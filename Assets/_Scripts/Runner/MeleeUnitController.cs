@@ -19,7 +19,10 @@ public class MeleeUnitController : MonoBehaviour
     [SerializeField] private float _driftSpeedRatio  = 0.3f; // доля от ChaseSpeed во время Drift
 
     [Header("Атака")]
-    [SerializeField] private int _damage             = 20;
+    [Tooltip("Компонент с IUnitAttack — вешается на prefab отдельно (WarriorAutoAttack, AssassinAutoAttack)")]
+    [SerializeField] private MonoBehaviour _autoAttackComponent;
+
+    private IUnitAttack _autoAttack;
 
     // ─── Резерв целей между воинами ──────────────────────────────
     // Статический список — общий для всех воинов в сцене.
@@ -34,12 +37,13 @@ public class MeleeUnitController : MonoBehaviour
     /// <summary>True когда воин в Follow — SquadController может им двигать.</summary>
     public bool IsInFormation { get; set; } = true;
 
+    public IUnitAttack AutoAttack => _autoAttack;
+
     public float DetectionRange => _detectionRange;
     public float AttackRange    => _attackRange;
     public float ReturnDistance => _returnDistance;
     public float ChaseSpeed     => _chaseSpeed;
     public float DriftSpeed     => _chaseSpeed * _driftSpeedRatio;
-    public int   Damage         => _damage;
 
     private UnitStateMachine _stateMachine;
 
@@ -55,6 +59,13 @@ public class MeleeUnitController : MonoBehaviour
         FormationOffset = formationOffset;
 
         _stateMachine = GetComponent<UnitStateMachine>();
+
+        // Получаем компонент атаки через интерфейс
+        _autoAttack = _autoAttackComponent as IUnitAttack;
+        if (_autoAttack == null)
+        {
+            Debug.LogError($"[MeleeUnitController] {gameObject.name}: _autoAttackComponent должен реализовывать IUnitAttack!", this);
+        }
 
         FollowState = new FollowState(this);
         StrikeState = new StrikeState(this);

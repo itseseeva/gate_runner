@@ -38,8 +38,6 @@ public class EnemySpawner : MonoBehaviour
                 GameObject go = Instantiate(_enemyPrefab,
                     new Vector3(x, 1f, waveZ),
                     Quaternion.identity);
-
-                Debug.Log($"[EnemySpawner] Волна {w+1}, враг {i+1} на Z={waveZ}", this);
             }
         }
     }

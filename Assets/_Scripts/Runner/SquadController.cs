@@ -2,26 +2,43 @@ using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
+/// Пара "тип героя + количество" для настройки стартового отряда.
+/// </summary>
+[System.Serializable]
+public class StartUnitEntry
+{
+    public HeroType heroType = HeroType.Mage;
+    [Min(0)] public int count = 1;
+}
+
+/// <summary>
 /// Управляет отрядом: хранит список юнитов,
 /// расставляет их в шеренгу вокруг SquadLeader.
 /// </summary>
 public class SquadController : MonoBehaviour
 {
-    [Header("Настройки шеренги")]
+    [Header("Настройки формации")]
     [SerializeField] private float _spacing     = 0.8f;
+    [SerializeField] private float _rowSpacing  = 0.8f;  // расстояние между рядами по Z
     [SerializeField] private float _followSpeed = 10f;
 
     [Header("Стартовый отряд")]
-    [SerializeField] private HeroType _startHeroType = HeroType.Warrior;
-    [SerializeField] private int      _startCount    = 1;
+    [SerializeField] private List<StartUnitEntry> _startUnits = new()
+    {
+        new StartUnitEntry { heroType = HeroType.Tank, count = 1 },
+        new StartUnitEntry { heroType = HeroType.Mage, count = 5 },
+    };
 
     private readonly List<Unit> _units = new();
     public int UnitCount => _units.Count;
 
     private void Start()
     {
-        for (int i = 0; i < _startCount; i++)
-            AddUnit(_startHeroType);
+        foreach (StartUnitEntry entry in _startUnits)
+        {
+            for (int i = 0; i < entry.count; i++)
+                AddUnit(entry.heroType);
+        }
     }
 
     private void Update()
@@ -34,34 +51,62 @@ public class SquadController : MonoBehaviour
         int count = _units.Count;
         if (count == 0) return;
 
+        // ─── Раскладываем юнитов по 4 рядам ───────────────
+        List<Unit>[] rows = new List<Unit>[4]
+        {
+            new List<Unit>(),  // 0 = Front (Tank)
+            new List<Unit>(),  // 1 = Mid   (Warrior, Assassin)
+            new List<Unit>(),  // 2 = Back  (Mage, Archer)
+            new List<Unit>(),  // 3 = Rear  (Healer, Support)
+        };
+
+        foreach (Unit u in _units)
+        {
+            if (u == null) continue;
+            int rowIndex = HeroDefinitionSO.GetFormationRow(u.HeroType);
+            rows[rowIndex].Add(u);
+        }
+
+        // ─── Расставляем каждый ряд ───────────────────────
+        // Передний ряд (Tank) — самый дальний от лидера по Z
+        // Тыл (Healer) — ближе всего к лидеру
+        for (int r = 0; r < 4; r++)
+        {
+            float zOffset = (4 - r) * _rowSpacing;
+            PlaceRow(rows[r], zOffset);
+        }
+    }
+
+    /// <summary>
+    /// Расставляет ряд юнитов центрированно по X на нужном Z-смещении от лидера.
+    /// </summary>
+    private void PlaceRow(List<Unit> row, float zOffset)
+    {
+        int count = row.Count;
+        if (count == 0) return;
+
         float totalWidth = (count - 1) * _spacing;
         float startX     = -totalWidth / 2f;
 
         for (int i = 0; i < count; i++)
         {
-            if (_units[i] == null) continue;
+            Unit u = row[i];
+            Vector3 offset = new Vector3(startX + i * _spacing, 0f, zOffset);
 
-            Vector3 offset = new Vector3(startX + i * _spacing, 0f, 0f);
-
-            MeleeUnitController meleeCtrl = _units[i].GetComponent<MeleeUnitController>();
+            MeleeUnitController meleeCtrl = u.GetComponent<MeleeUnitController>();
             if (meleeCtrl != null)
             {
-                // Всегда обновляем offset (нужен и в Targeting/Combat для возврата)
+                // Легендарка (Warrior/Assassin) — обновляем offset, двигаем только в Follow
                 meleeCtrl.FormationOffset = offset;
-
-                // Двигаем только если юнит в строю (Follow)
                 if (meleeCtrl.IsInFormation)
-                {
-                    // ЖЁСТКАЯ привязка — без Lerp, ноль отставания
-                    _units[i].transform.position = transform.position + offset;
-                }
+                    u.transform.position = transform.position + offset;
             }
             else
             {
-                // Range-юнит (Mage/Archer) — оставляем Lerp как было
+                // Обычный юнит (Tank/Mage/Archer/Healer/Support) — Lerp
                 Vector3 target = transform.position + offset;
-                _units[i].transform.position = Vector3.Lerp(
-                    _units[i].transform.position,
+                u.transform.position = Vector3.Lerp(
+                    u.transform.position,
                     target,
                     _followSpeed * Time.deltaTime
                 );
@@ -79,22 +124,14 @@ public class SquadController : MonoBehaviour
         MeleeUnitController meleeCtrl = unit.GetComponent<MeleeUnitController>();
         if (meleeCtrl != null)
         {
-            // Вычисляем offset позиции в шеренге для этого юнита
-            Vector3 offset = CalculateFormationOffset(_units.Count - 1);
-            meleeCtrl.Initialize(transform, offset);
+            // Стартовый offset = ноль, реальный пересчитается через UpdateFormation в этом же кадре
+            meleeCtrl.Initialize(transform, Vector3.zero);
         }
 
         Debug.Log($"[SquadController] +1 {type}. Всего: {_units.Count}", this);
     }
 
-    /// <summary>Считает offset юнита в шеренге по индексу.</summary>
-    private Vector3 CalculateFormationOffset(int index)
-    {
-        int count = _units.Count;
-        float totalWidth = (count - 1) * _spacing;
-        float startX     = -totalWidth / 2f;
-        return new Vector3(startX + index * _spacing, 0f, 0f);
-    }
+
 
     /// <summary>Убирает последнего юнита в пул.</summary>
     public void RemoveLastUnit()

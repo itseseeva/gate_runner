@@ -24,7 +24,6 @@ public class Unit : MonoBehaviour
     {
         _data      = data;
         _currentHP = data.MaxHP;
-        Debug.Log($"[Unit] Инициализирован: {data.HeroName} | HP: {_currentHP}", this);
     }
 
     /// <summary>
@@ -33,12 +32,10 @@ public class Unit : MonoBehaviour
     public bool TakeDamage(int amount)
     {
         _currentHP -= amount;
-        Debug.Log($"[Unit] {_data.HeroName} получил {amount} урона. HP: {_currentHP}", this);
 
         if (_currentHP <= 0)
         {
             _currentHP = 0;
-            Debug.Log($"[Unit] {_data.HeroName} погиб!", this);
             return true;
         }
         return false;

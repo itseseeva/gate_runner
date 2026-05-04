@@ -51,17 +51,24 @@ public class StrikeState : IUnitState
 
         if (distance <= _ctrl.AttackRange)
         {
-            // Подбежали — бьём
+            // Используем компонент атаки вместо прямого вызова TakeDamage
+            if (_ctrl.AutoAttack == null) return;
+            if (!_ctrl.AutoAttack.IsReady) return; // ждём cooldown
+
             DiagLogger.RecordHit(_ctrl.gameObject.GetInstanceID(), _target.GetInstanceID());
-            _target.TakeDamage(_ctrl.Damage);
-            Debug.Log($"[Strike] {_ctrl.gameObject.name} ударил {_target.name}! Урон: {_ctrl.Damage}", _ctrl);
+            HitResult result = _ctrl.AutoAttack.Hit(_target);
 
-            // Освобождаем побитую цель → доступна для других воинов / умрёт от добивания
-            _ctrl.ReleaseTarget(_target);
-            _target = null;
+            if (result.WasCritical)
+            {
+                Debug.Log($"[Strike] {_ctrl.gameObject.name} КРИТ по {_target.name}! Урон: {result.DamageDealt}", _ctrl);
+            }
 
-            // Сразу ищем следующего
-            FindAndSetNewTargetOrDrift();
+            if (result.Killed)
+            {
+                _ctrl.ReleaseTarget(_target);
+                _target = null;
+                FindAndSetNewTargetOrDrift();
+            }
             return;
         }
 

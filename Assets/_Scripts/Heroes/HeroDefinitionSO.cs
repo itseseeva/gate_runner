@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public enum HeroType { Warrior, Mage, Archer }
+public enum HeroType { Warrior, Mage, Archer, Tank, Assassin, Healer, Support }
 
 [CreateAssetMenu(fileName = "NewHero", menuName = "RPG/Hero Definition")]
 public class HeroDefinitionSO : ScriptableObject
@@ -29,4 +29,24 @@ public class HeroDefinitionSO : ScriptableObject
     public HeroType   HeroType    => _heroType;
     public GameObject Prefab      => _prefab;
     public float      AttackRange => _attackRange;
+
+    /// <summary>
+    /// Возвращает индекс ряда формации для этого типа героя.
+    /// 0 = передний (Tank), 1 = середина (Warrior/Assassin),
+    /// 2 = задний (Mage/Archer), 3 = тыл (Healer/Support).
+    /// </summary>
+    public static int GetFormationRow(HeroType type)
+    {
+        return type switch
+        {
+            HeroType.Tank      => 0, // Front
+            HeroType.Warrior   => 1, // Mid
+            HeroType.Assassin  => 1, // Mid
+            HeroType.Mage      => 2, // Back
+            HeroType.Archer    => 2, // Back
+            HeroType.Healer    => 3, // Rear
+            HeroType.Support   => 3, // Rear
+            _                  => 2, // По умолчанию — back
+        };
+    }
 }

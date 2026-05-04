@@ -18,8 +18,6 @@ public class UnitStateMachine : MonoBehaviour
         _currentState?.Exit();
         _currentState = newState;
         _currentState?.Enter();
-
-        Debug.Log($"[StateMachine] {gameObject.name} → {newState?.GetType().Name}", this);
     }
 
     private void Update()
