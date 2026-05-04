@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multiplier Gate Runner — План спринтов</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=JetBrains+Mono:wght@400;600&family=Manrope:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep:        #0a0612;
+    --bg-mid:         #14102a;
+    --bg-card:        #1c1638;
+    --bg-card-hover:  #251d4a;
+    --border:         #2d2452;
+    --border-bright:  #4a3d8c;
+    --gold:           #f5c45e;
+    --gold-soft:      #d4a838;
+    --fire:           #ff5e3a;
+    --ice:            #5ec8ff;
+    --lightning:      #c065ff;
+    --text:           #e8e3ff;
+    --text-dim:       #8a82b3;
+    --text-muted:     #5a5278;
+    --done:           #6dffb8;
+    --done-soft:      rgba(109, 255, 184, 0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg-deep);
+    color: var(--text);
+    font-family: 'Manrope', sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at top, rgba(192, 101, 255, 0.12), transparent 50%),
+      radial-gradient(ellipse at bottom, rgba(94, 200, 255, 0.08), transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(74, 61, 140, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(74, 61, 140, 0.08) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 60px 24px 80px;
+  }
+
+  /* ───────────────── HEADER ───────────────── */
+  header {
+    text-align: center;
+    margin-bottom: 60px;
+    position: relative;
+  }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 16px;
+    opacity: 0.85;
+  }
+
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: clamp(36px, 6vw, 64px);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, var(--gold) 0%, var(--text) 50%, var(--lightning) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 16px;
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  /* ───────────────── OVERALL PROGRESS ───────────────── */
+  .overall {
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-mid) 100%);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px 36px;
+    margin-bottom: 48px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .overall::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  .overall-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .overall-label {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 0.05em;
+  }
+
+  .overall-stats {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--gold);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .overall-stats .num {
+    font-size: 28px;
+    color: var(--text);
+  }
+
+  .progress-bar {
+    height: 8px;
+    background: var(--bg-deep);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold-soft), var(--gold), #fff5d4);
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 16px rgba(245, 196, 94, 0.5);
+    position: relative;
+  }
+
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 30px; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6));
+    animation: shimmer 2s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+  }
+
+  /* ───────────────── SPRINT CARD ───────────────── */
+  .sprint {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    margin-bottom: 32px;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .sprint:hover { border-color: var(--border-bright); }
+
+  .sprint-header {
+    padding: 28px 36px;
+    background: linear-gradient(135deg, rgba(245, 196, 94, 0.05), transparent);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .sprint-num {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 56px;
+    line-height: 1;
+    background: linear-gradient(180deg, var(--gold), var(--gold-soft));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    min-width: 80px;
+  }
+
+  .sprint-info { flex: 1; min-width: 200px; }
+
+  .sprint-title {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 24px;
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+
+  .sprint-desc {
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+
+  .sprint-progress {
+    text-align: right;
+    min-width: 120px;
+  }
+
+  .sprint-progress-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+
+  .sprint-progress-bar {
+    height: 4px;
+    background: var(--bg-deep);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .sprint-progress-fill {
+    height: 100%;
+    background: var(--gold);
+    transition: width 0.5s ease;
+  }
+
+  /* ───────────────── DAY ───────────────── */
+  .day {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .day:last-child { border-bottom: none; }
+
+  .day-header {
+    padding: 18px 36px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--bg-card);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+  }
+
+  .day-header:hover { background: var(--bg-card-hover); }
+
+  .day-toggle {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    transition: transform 0.3s;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .day.collapsed .day-toggle { transform: rotate(-90deg); }
+
+  .day-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-right: 8px;
+  }
+
+  .day-title {
+    font-family: 'Cinzel', serif;
+    font-weight: 500;
+    font-size: 18px;
+    flex: 1;
+  }
+
+  .day-stats {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+    padding: 4px 12px;
+    background: var(--bg-deep);
+    border-radius: 12px;
+  }
+
+  .day-stats.complete {
+    color: var(--done);
+    background: var(--done-soft);
+  }
+
+  .day-tasks {
+    padding: 8px 36px 24px;
+    list-style: none;
+    overflow: hidden;
+    transition: max-height 0.4s ease, padding 0.4s ease;
+  }
+
+  .day.collapsed .day-tasks {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .task {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 12px 0;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.2s;
+  }
+
+  .task:hover .task-text { color: var(--gold); }
+
+  .checkbox {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--border-bright);
+    border-radius: 6px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    position: relative;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--bg-deep);
+  }
+
+  .checkbox::after {
+    content: '';
+    position: absolute;
+    left: 6px; top: 2px;
+    width: 6px; height: 11px;
+    border: solid var(--bg-deep);
+    border-width: 0 2.5px 2.5px 0;
+    transform: rotate(45deg) scale(0);
+    transition: transform 0.2s ease;
+  }
+
+  .task.done .checkbox {
+    background: var(--done);
+    border-color: var(--done);
+    box-shadow: 0 0 12px rgba(109, 255, 184, 0.6);
+  }
+
+  .task.done .checkbox::after { transform: rotate(45deg) scale(1); }
+
+  .task-text {
+    flex: 1;
+    line-height: 1.5;
+    transition: color 0.2s;
+  }
+
+  .task.done .task-text {
+    color: var(--text-muted);
+    text-decoration: line-through;
+    text-decoration-color: var(--text-muted);
+  }
+
+  .task-tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    vertical-align: middle;
+  }
+
+  .tag-code   { background: rgba(94, 200, 255, 0.15); color: var(--ice); }
+  .tag-unity  { background: rgba(245, 196, 94, 0.15); color: var(--gold); }
+  .tag-test   { background: rgba(109, 255, 184, 0.15); color: var(--done); }
+  .tag-design { background: rgba(192, 101, 255, 0.15); color: var(--lightning); }
+  .tag-star   { background: rgba(255, 94, 58, 0.15);  color: var(--fire); }
+
+  /* ───────────────── FOOTER NOTES ───────────────── */
+  .notes {
+    margin-top: 60px;
+    padding: 32px 36px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold);
+    border-radius: 16px;
+  }
+
+  .notes-title {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--gold);
+    margin-bottom: 12px;
+    letter-spacing: 0.05em;
+  }
+
+  .notes p {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .notes p:last-child { margin-bottom: 0; }
+
+  .reset-btn {
+    margin-top: 16px;
+    background: transparent;
+    border: 1px solid var(--border-bright);
+    color: var(--text-dim);
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .reset-btn:hover {
+    border-color: var(--fire);
+    color: var(--fire);
+  }
+
+  /* MOBILE */
+  @media (max-width: 640px) {
+    .wrap { padding: 32px 16px; }
+    .sprint-header { padding: 20px; }
+    .sprint-num { font-size: 40px; min-width: 60px; }
+    .day-header { padding: 14px 20px; }
+    .day-tasks { padding: 6px 20px 18px; }
+    .overall { padding: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">◆ DEVELOPMENT TRACKER ◆</div>
+    <h1>Multiplier Gate Runner</h1>
+    <p class="subtitle">План спринтов разработки. Кликай по задачам — прогресс сохраняется автоматически.</p>
+  </header>
+
+  <!-- OVERALL PROGRESS -->
+  <div class="overall">
+    <div class="overall-top">
+      <div class="overall-label">⚜ Общий прогресс</div>
+      <div class="overall-stats">
+        <span class="num" id="overallDone">0</span> / <span id="overallTotal">0</span> задач · <span id="overallPercent">0%</span>
+      </div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="overallFill" style="width: 0%"></div>
+    </div>
+  </div>
+
+  <!-- SPRINTS -->
+  <div id="sprints"></div>
+
+  <!-- NOTES -->
+  <div class="notes">
+    <div class="notes-title">⚠ Важно</div>
+    <p>• Темп — 7-8 часов/день, всё спринты примерно за неделю.</p>
+    <p>• Если задача займёт больше времени — это нормально, не торопись.</p>
+    <p>• Прогресс сохраняется в браузере. Открывай файл из той же папки чтобы не потерять.</p>
+    <p>• <span style="color: var(--fire);">★</span> = ключевая веха спринта (после неё игру можно показать).</p>
+    <button class="reset-btn" onclick="resetAll()">↻ Сбросить весь прогресс</button>
+  </div>
+
+</div>
+
+<script>
+const PLAN = [
+  {
+    title: "Базовый раннер",
+    desc: "Один герой бежит и управляется пальцем",
+    days: [
+      {
+        title: "День 1 — Setup & Сцена",
+        tasks: [
+          { t: "Новый проект, перенос скриптов, настройка Android", tag: "unity", done: true },
+          { t: "Сцена: дорожка + герой + камера в Last War-стиле", tag: "unity", done: true },
+          { t: "Скрипт HeroRunner — движение вперёд", tag: "code", done: true },
+          { t: "Камера-чайлд героя (едет за ним)", tag: "unity", done: true }
+        ]
+      },
+      {
+        title: "День 2 — Управление пальцем",
+        tasks: [
+          { t: "Скрипт HeroInputController — drag по экрану", tag: "code" },
+          { t: "Герой плавно скользит влево/вправо за пальцем", tag: "code" },
+          { t: "Ограничение по ширине дорожки (clamp)", tag: "code" },
+          { t: "Подкрутить чувствительность свайпа", tag: "design" },
+          { t: "Тест на телефоне через Build And Run ★", tag: "star" }
+        ]
+      }
+    ]
+  },
+  {
+    title: "Отряд и Ворота",
+    desc: "Несколько юнитов, Quantity Gates, Object Pool",
+    days: [
+      {
+        title: "День 3 — Архитектура отряда",
+        tasks: [
+          { t: "Превратить Hero в Prefab", tag: "unity" },
+          { t: "Класс Unit (базовый юнит, отделить от логики бега)", tag: "code" },
+          { t: "SquadController — управление списком юнитов", tag: "code" },
+          { t: "Формация отряда (строй прямоугольником)", tag: "code" },
+          { t: "Object Pool для юнитов", tag: "code" }
+        ]
+      },
+      {
+        title: "День 4 — Ворота",
+        tasks: [
+          { t: "BaseGate — абстрактный класс ворот", tag: "code" },
+          { t: "QuantityGate (×2, +5) — изменяет размер отряда", tag: "code" },
+          { t: "Триггер прохождения сквозь ворота", tag: "code" },
+          { t: "Визуал ворот (заглушка из кубов + текст)", tag: "design" },
+          { t: "Спавн пары ворот через LevelSpawner", tag: "code" },
+          { t: "Тест: пробежать уровень с ×2×2 → 4 героя ★", tag: "star" }
+        ]
+      },
+      {
+        title: "День 5 — Quality Gates",
+        tasks: [
+          { t: "QualityGate — улучшает уровень способностей", tag: "code" },
+          { t: "Иерархия rank/level юнита (T1 → T2 → T3)", tag: "code" },
+          { t: "Визуальное отличие рангов (цвет/размер)", tag: "design" }
+        ]
+      }
+    ]
+  },
+  {
+    title: "Враги, Магия, Стихии",
+    desc: "Auto-стрельба, Fire/Ice/Lightning, слабости",
+    days: [
+      {
+        title: "День 6 — Враги и стрельба",
+        tasks: [
+          { t: "Класс Enemy — простой враг с HP", tag: "code" },
+          { t: "EnemySpawner — спавн волнами впереди отряда", tag: "code" },
+          { t: "BaseSpell — абстракт способности", tag: "code" },
+          { t: "ProjectileSpell — простой выстрел в ближайшего", tag: "code" },
+          { t: "Auto-targeting — каждый юнит сам находит цель", tag: "code" }
+        ]
+      },
+      {
+        title: "День 7 — Стихии и финальная полировка",
+        tasks: [
+          { t: "Enum ElementType (Fire / Ice / Lightning)", tag: "code" },
+          { t: "Element Gates — меняют стихию отряда", tag: "code" },
+          { t: "Таблица слабостей (Fire ×2 по Ice и т.д.)", tag: "code" },
+          { t: "Визуальные эффекты (партиклы по стихиям)", tag: "design" },
+          { t: "Game Over / Victory экран (заглушка)", tag: "code" },
+          { t: "Финальный playtest: полный уровень от старта до победы ★", tag: "star" }
+        ]
+      }
+    ]
+  }
+];
+
+const TAG_LABELS = {
+  code:   "CODE",
+  unity:  "UNITY",
+  test:   "TEST",
+  design: "DESIGN",
+  star:   "★ MILESTONE"
+};
+
+const STORAGE_KEY = "mgr_sprint_progress_v1";
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { console.warn(e); }
+  return null;
+}
+
+function saveProgress(state) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch (e) { console.warn(e); }
+}
+
+function buildState() {
+  const saved = loadProgress();
+  return PLAN.map((sprint, si) => ({
+    ...sprint,
+    days: sprint.days.map((day, di) => ({
+      ...day,
+      collapsed: saved?.[si]?.days?.[di]?.collapsed ?? false,
+      tasks: day.tasks.map((task, ti) => ({
+        ...task,
+        done: saved?.[si]?.days?.[di]?.tasks?.[ti]?.done ?? task.done ?? false
+      }))
+    }))
+  }));
+}
+
+let state = buildState();
+
+function persist() {
+  saveProgress(state.map(s => ({
+    days: s.days.map(d => ({
+      collapsed: d.collapsed,
+      tasks: d.tasks.map(t => ({ done: t.done }))
+    }))
+  })));
+}
+
+function render() {
+  const root = document.getElementById('sprints');
+  root.innerHTML = '';
+
+  let totalAll = 0, doneAll = 0;
+
+  state.forEach((sprint, si) => {
+    const sprintEl = document.createElement('div');
+    sprintEl.className = 'sprint';
+
+    let sprintTotal = 0, sprintDone = 0;
+    sprint.days.forEach(d => {
+      sprintTotal += d.tasks.length;
+      sprintDone += d.tasks.filter(t => t.done).length;
+    });
+    totalAll += sprintTotal;
+    doneAll += sprintDone;
+    const sprintPct = sprintTotal ? Math.round(sprintDone / sprintTotal * 100) : 0;
+
+    sprintEl.innerHTML = `
+      <div class="sprint-header">
+        <div class="sprint-num">0${si+1}</div>
+        <div class="sprint-info">
+          <div class="sprint-title">${sprint.title}</div>
+          <div class="sprint-desc">${sprint.desc}</div>
+        </div>
+        <div class="sprint-progress">
+          <div class="sprint-progress-num">${sprintDone} / ${sprintTotal}</div>
+          <div class="sprint-progress-bar">
+            <div class="sprint-progress-fill" style="width:${sprintPct}%"></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    sprint.days.forEach((day, di) => {
+      const dayEl = document.createElement('div');
+      dayEl.className = 'day' + (day.collapsed ? ' collapsed' : '');
+      const dayDone = day.tasks.filter(t => t.done).length;
+      const dayComplete = dayDone === day.tasks.length;
+
+      const headerEl = document.createElement('div');
+      headerEl.className = 'day-header';
+      headerEl.innerHTML = `
+        <div class="day-toggle">▾</div>
+        <div class="day-label">${String(di+1).padStart(2,'0')}</div>
+        <div class="day-title">${day.title.replace(/^День \d+ — /, '')}</div>
+        <div class="day-stats ${dayComplete ? 'complete' : ''}">${dayDone}/${day.tasks.length}${dayComplete ? ' ✓' : ''}</div>
+      `;
+      headerEl.addEventListener('click', () => {
+        state[si].days[di].collapsed = !state[si].days[di].collapsed;
+        persist();
+        render();
+      });
+
+      const tasksEl = document.createElement('ul');
+      tasksEl.className = 'day-tasks';
+
+      day.tasks.forEach((task, ti) => {
+        const taskEl = document.createElement('li');
+        taskEl.className = 'task' + (task.done ? ' done' : '');
+        const tagHTML = task.tag ? `<span class="task-tag tag-${task.tag}">${TAG_LABELS[task.tag]}</span>` : '';
+        taskEl.innerHTML = `
+          <div class="checkbox"></div>
+          <div class="task-text">${task.t}${tagHTML}</div>
+        `;
+        taskEl.addEventListener('click', () => {
+          state[si].days[di].tasks[ti].done = !state[si].days[di].tasks[ti].done;
+          persist();
+          render();
+        });
+        tasksEl.appendChild(taskEl);
+      });
+
+      dayEl.appendChild(headerEl);
+      dayEl.appendChild(tasksEl);
+      sprintEl.appendChild(dayEl);
+    });
+
+    root.appendChild(sprintEl);
+  });
+
+  document.getElementById('overallDone').textContent = doneAll;
+  document.getElementById('overallTotal').textContent = totalAll;
+  const overallPct = totalAll ? Math.round(doneAll / totalAll * 100) : 0;
+  document.getElementById('overallPercent').textContent = overallPct + '%';
+  document.getElementById('overallFill').style.width = overallPct + '%';
+}
+
+function resetAll() {
+  if (!confirm('Сбросить ВЕСЬ прогресс? Это нельзя отменить.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  state = buildState();
+  // Reset done flags from PLAN defaults too
+  state.forEach((s, si) => s.days.forEach((d, di) => d.tasks.forEach((t, ti) => {
+    t.done = false;
+  })));
+  persist();
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
