@@ -21,17 +21,18 @@ public class SquadController : MonoBehaviour
     [Tooltip("Дефолтное расстояние между юнитами в ряду по X")]
     [SerializeField] private float _spacing     = 0.4f;
 
-    [Tooltip("Минимальное расстояние между юнитами при тесноте")]
-    [SerializeField] private float _minSpacing  = 0.2f;
+    [Header("Настройки толпы")]
+    [Tooltip("Расстояние между юнитами внутри зоны")]
+    [SerializeField] private float _crowdSpacing    = 0.35f;
 
-    [Tooltip("Расстояние между рядами разных ролей по Z")]
-    [SerializeField] private float _rowSpacing  = 1.2f;
+    [Tooltip("Расстояние между зонами по Z")]
+    [SerializeField] private float _zoneSpacing     = 0.8f;
 
-    [Tooltip("Расстояние между подрядами одного ряда (когда юнитов слишком много)")]
-    [SerializeField] private float _subRowSpacing = 0.4f;
+    [Tooltip("Максимум юнитов в одной строке сетки")]
+    [SerializeField] private int   _maxPerRow       = 8;
 
-    [Tooltip("Полуширина дорожки — макс смещение по X от центра")]
-    [SerializeField] private float _trackHalfWidth = 2f;
+    [Tooltip("Смещение всего отряда вперёд от лидера по Z")]
+    [SerializeField] private float _crowdForwardOffset = 1.5f;
 
     [SerializeField] private float _followSpeed = 10f;
 
@@ -42,11 +43,199 @@ public class SquadController : MonoBehaviour
         new StartUnitEntry { heroType = HeroType.Mage, count = 5 },
     };
 
-    private readonly List<Unit> _units = new();
-    public int UnitCount => _units.Count;
+    // ─── Структура толпы ────────────────────────────────────────────
+    // Ключ = (тип, тир). Значение = список юнитов этой категории.
+    // ПРАВИЛА:
+    // - T1-категория: макс 15 юнитов → слияние в 1 T2
+    // - T2-категория: нет лимита по числу, но общий лимит 50 всех моделей
+    // - При лимите 50: новое слияние T2 → PowerMultiplier +1 у всех T2 этого типа
+    // - При лимите 50 + ворота +N: PowerMultiplier +N у T1 этого типа
+    private readonly Dictionary<(HeroType, UnitTier), List<Unit>> _crowd = new();
+
+    // Вспомогательный список для итерации по всем юнитам (обновляется в RebuildFlatList)
+    private readonly List<Unit> _allUnits = new();
+    private bool _flatListDirty = true;
+
+    public int UnitCount => CountAllUnits();
+
+    private const int MAX_T1_PER_CATEGORY = 15;  // TODO: перенести в RemoteConfig
+    private const int MAX_TOTAL_MODELS    = 50;  // TODO: перенести в RemoteConfig
+
+    /// <summary>Считает все модели на сцене (T1 + T2 суммарно).</summary>
+    private int CountAllUnits()
+    {
+        int total = 0;
+        foreach (var list in _crowd.Values)
+            total += list.Count;
+        return total;
+    }
+
+    /// <summary>Считает только T2-модели всех типов.</summary>
+    private int CountAllT2()
+    {
+        int total = 0;
+        foreach (var kv in _crowd)
+            if (kv.Key.Item2 == UnitTier.T2)
+                total += kv.Value.Count;
+        return total;
+    }
+
+    /// <summary>Возвращает количество юнитов конкретного типа (T1 + T2 суммарно).</summary>
+    public int GetUnitCountByType(HeroType type)
+    {
+        return GetCategory(type, UnitTier.T1).Count +
+               GetCategory(type, UnitTier.T2).Count;
+    }
+
+    /// <summary>
+    /// Возвращает список юнитов категории (type, tier).
+    /// Создаёт пустой список если категории нет.
+    /// </summary>
+    private List<Unit> GetCategory(HeroType type, UnitTier tier)
+    {
+        var key = (type, tier);
+        if (!_crowd.ContainsKey(key))
+            _crowd[key] = new List<Unit>();
+        return _crowd[key];
+    }
+
+    /// <summary>Перестраивает плоский список всех юнитов (для UpdateFormation и итерации).</summary>
+    private void RebuildFlatList()
+    {
+        _allUnits.Clear();
+        foreach (var list in _crowd.Values)
+            _allUnits.AddRange(list);
+        _flatListDirty = false;
+    }
+
+    /// <summary>
+    /// Возвращает индекс зоны для типа юнита.
+    /// 0 = самый далёкий от камеры (впереди по движению).
+    /// Чем больше индекс — тем ближе к камере (сзади).
+    /// </summary>
+    private static int GetCrowdZone(HeroType type)
+    {
+        return type switch
+        {
+            HeroType.Tank      => 0,  // Самые впереди
+            HeroType.Warrior   => 1,  // Легендарки за танками
+            HeroType.Assassin  => 1,  // Легендарки за танками
+            HeroType.Mage      => 2,  // Стрелки
+            HeroType.Archer    => 2,  // Стрелки
+            HeroType.Healer    => 3,  // Тыл
+            HeroType.Support   => 3,  // Тыл
+            _                  => 2,
+        };
+    }
+
+    /// <summary>
+    /// Расставляет всех юнитов толпой с зональностью.
+    /// Зоны: Tank впереди, Mage/Archer сзади.
+    /// Внутри зоны — квадратная сетка, центрированная по X.
+    /// T1 и T2 одной зоны стоят вместе (T2 в центре строки).
+    /// </summary>
+    private void PlaceCrowd()
+    {
+        if (_allUnits.Count == 0) return;
+
+        // ─── Группируем юнитов по зонам ────────────────────────
+        // Зона 0 = самая дальняя (впереди), зона 3 = ближайшая к камере
+        const int ZONE_COUNT = 4;
+        List<Unit>[] zones = new List<Unit>[ZONE_COUNT];
+        for (int z = 0; z < ZONE_COUNT; z++)
+            zones[z] = new List<Unit>();
+
+        foreach (Unit u in _allUnits)
+        {
+            if (u == null) continue;
+            int zone = GetCrowdZone(u.HeroType);
+            zones[zone].Add(u);
+        }
+
+        // ─── Считаем сколько зон непустых ──────────────────────
+        int activeZones = 0;
+        for (int z = 0; z < ZONE_COUNT; z++)
+            if (zones[z].Count > 0) activeZones++;
+
+        // ─── Расставляем зоны ──────────────────────────────────
+        // Зона 0 — самый большой Z (дальше от лидера = впереди отряда)
+        // Зона 3 — Z = 0 (у лидера)
+        int slotIndex = activeZones - 1;
+        for (int z = 0; z < ZONE_COUNT; z++)
+        {
+            if (zones[z].Count == 0) continue;
+
+            float baseZ = _crowdForwardOffset + slotIndex * _zoneSpacing;
+            PlaceZone(zones[z], baseZ);
+            slotIndex--;
+        }
+    }
+
+    /// <summary>
+    /// Расставляет список юнитов сеткой в указанной Z-зоне.
+    /// Строки идут назад (в сторону лидера) если юнитов больше чем _maxPerRow.
+    /// </summary>
+    private void PlaceZone(List<Unit> units, float baseZ)
+    {
+        int total = units.Count;
+        if (total == 0) return;
+
+        // T2 юниты идут в центр первой строки, T1 — вокруг них
+        // Для простоты пока расставляем всех подряд: T2 первыми, T1 следом
+        List<Unit> sorted = new List<Unit>(total);
+        foreach (Unit u in units) if (u.Tier == UnitTier.T2) sorted.Add(u);
+        foreach (Unit u in units) if (u.Tier == UnitTier.T1) sorted.Add(u);
+
+        for (int i = 0; i < sorted.Count; i++)
+        {
+            Unit u = sorted[i];
+            if (u == null) continue;
+
+            // Позиция в сетке
+            int   col    = i % _maxPerRow;
+            int   row    = i / _maxPerRow;
+            int   countInRow = Mathf.Min(_maxPerRow, sorted.Count - row * _maxPerRow);
+
+            // Центрируем строку по X
+            float rowWidth = (countInRow - 1) * _crowdSpacing;
+            float x = -rowWidth / 2f + col * _crowdSpacing;
+
+            // Строки идут назад (к камере) от baseZ
+            float z = baseZ - row * _crowdSpacing;
+
+            Vector3 offset = new Vector3(x, 0f, z);
+
+            MeleeUnitController meleeCtrl = u.GetComponent<MeleeUnitController>();
+            if (meleeCtrl != null)
+            {
+                // Легендарка — обновляем offset, двигаем только в Follow
+                meleeCtrl.FormationOffset = offset;
+                if (meleeCtrl.IsInFormation)
+                    u.transform.position = transform.position + offset;
+            }
+            else
+            {
+                // Обычный юнит — Lerp к позиции
+                Vector3 target = transform.position + offset;
+                u.transform.position = Vector3.Lerp(
+                    u.transform.position,
+                    target,
+                    _followSpeed * Time.deltaTime
+                );
+            }
+        }
+    }
 
     private void Start()
     {
+        // Инициализируем _crowd заранее для всех типов и тиров
+        foreach (HeroType type in System.Enum.GetValues(typeof(HeroType)))
+        {
+            _crowd[(type, UnitTier.T1)] = new List<Unit>();
+            _crowd[(type, UnitTier.T2)] = new List<Unit>();
+        }
+
+        // Спавним стартовый отряд
         foreach (StartUnitEntry entry in _startUnits)
         {
             for (int i = 0; i < entry.count; i++)
@@ -56,158 +245,197 @@ public class SquadController : MonoBehaviour
 
     private void Update()
     {
-        UpdateFormation();
+        if (_flatListDirty) RebuildFlatList();
+        PlaceCrowd();
     }
 
-    private void UpdateFormation()
+
+
+    /// <summary>
+    /// Добавляет юнита в толпу. Главная точка входа для ворот и старта.
+    /// После добавления — проверяет слияние T1 и общий лимит 50.
+    /// </summary>
+    public void AddUnit(HeroType type)
     {
-        int count = _units.Count;
-        if (count == 0) return;
+        int totalModels = CountAllUnits();
 
-        // ─── Раскладываем юнитов по 4 рядам ───────────────
-        List<Unit>[] rows = new List<Unit>[4]
+        if (totalModels >= MAX_TOTAL_MODELS)
         {
-            new List<Unit>(),  // 0 = Front (Tank)
-            new List<Unit>(),  // 1 = Mid   (Warrior, Assassin)
-            new List<Unit>(),  // 2 = Back  (Mage, Archer)
-            new List<Unit>(),  // 3 = Rear  (Healer, Support)
-        };
-
-        foreach (Unit u in _units)
-        {
-            if (u == null) continue;
-            int rowIndex = HeroDefinitionSO.GetFormationRow(u.HeroType);
-            rows[rowIndex].Add(u);
+            // Лимит 50 достигнут — усиляем существующих T1 этого типа
+            // (или T2 если T1 нет)
+            PowerUpCategory(type);
+            Debug.Log($"[Crowd] Лимит {MAX_TOTAL_MODELS} достигнут. {type} PowerUp!", this);
+            return;
         }
 
-        // ─── Расставляем непустые ряды последовательно, без дырок ───────────────
-        // Считаем сколько рядов с юнитами
-        int activeRows = 0;
-        for (int r = 0; r < 4; r++)
-            if (rows[r].Count > 0) activeRows++;
+        // Добавляем обычного T1
+        Unit unit = UnitPool.Instance.Get(type, UnitTier.T1);
+        if (unit == null) return;
 
-        // Расставляем непустые ряды последовательно
-        int slot = activeRows - 1;
-        for (int r = 0; r < 4; r++)
+        GetCategory(type, UnitTier.T1).Add(unit);
+        _flatListDirty = true;
+
+        // Инициализация если это легендарка
+        MeleeUnitController meleeCtrl = unit.GetComponent<MeleeUnitController>();
+        if (meleeCtrl != null)
+            meleeCtrl.Initialize(transform, Vector3.zero);
+
+        Debug.Log($"[Crowd] +1 {type}_T1. Всего: {CountAllUnits()}", this);
+
+        // Проверяем нужно ли сливать T1 → T2
+        TryMergeT1(type);
+    }
+
+    /// <summary>
+    /// Убирает N юнитов указанного типа из отряда.
+    /// Используется плохими воротами (-N Type).
+    /// Убирает сначала T1, потом T2.
+    /// </summary>
+    public void RemoveUnits(HeroType type, int count)
+    {
+        int removed = 0;
+
+        // Сначала убираем T1
+        var t1list = GetCategory(type, UnitTier.T1);
+        while (removed < count && t1list.Count > 0)
         {
-            if (rows[r].Count == 0) continue;
-            float zOffset = slot * _rowSpacing;
-            PlaceRow(rows[r], zOffset);
-            slot--;
+            Unit u = t1list[^1];
+            t1list.RemoveAt(t1list.Count - 1);
+            UnitPool.Instance.Return(u);
+            _flatListDirty = true;
+            removed++;
+        }
+
+        // Если T1 кончились — убираем T2
+        var t2list = GetCategory(type, UnitTier.T2);
+        while (removed < count && t2list.Count > 0)
+        {
+            Unit u = t2list[^1];
+            t2list.RemoveAt(t2list.Count - 1);
+            UnitPool.Instance.Return(u);
+            _flatListDirty = true;
+            removed++;
+        }
+
+        Debug.Log($"[Crowd] -{removed} {type}. Всего: {CountAllUnits()}", this);
+    }
+
+    /// <summary>
+    /// Усиливает категорию при достижении лимита 50.
+    /// Приоритет — T2 юниты, если нет — T1.
+    /// </summary>
+    private void PowerUpCategory(HeroType type)
+    {
+        var t2list = GetCategory(type, UnitTier.T2);
+        if (t2list.Count > 0)
+        {
+            foreach (Unit u in t2list)
+                u.IncrementPowerMultiplier();
+            Debug.Log($"[Crowd] {type}_T2 × PowerMultiplier++", this);
+            return;
+        }
+
+        var t1list = GetCategory(type, UnitTier.T1);
+        foreach (Unit u in t1list)
+            u.IncrementPowerMultiplier();
+        Debug.Log($"[Crowd] {type}_T1 × PowerMultiplier++", this);
+    }
+
+    /// <summary>
+    /// Проверяет: если в T1-категории >= 15 → сливает 15 в 1 T2.
+    /// Цикл на случай если добавили +30 и нужно слить дважды.
+    /// </summary>
+    private void TryMergeT1(HeroType type)
+    {
+        var t1list = GetCategory(type, UnitTier.T1);
+        var data   = UnitPool.Instance.GetHeroData(type);
+
+        // Если у этого типа нет T2 prefab — не апаем
+        if (data == null || !data.CanUpgradeToT2) return;
+
+        while (t1list.Count >= MAX_T1_PER_CATEGORY)
+        {
+            // Убираем 15 T1 в пул
+            for (int i = 0; i < MAX_T1_PER_CATEGORY; i++)
+            {
+                Unit u = t1list[0];
+                t1list.RemoveAt(0);
+                UnitPool.Instance.Return(u);
+            }
+
+            _flatListDirty = true;
+            AddT2(type);
+            Debug.Log($"[Crowd] {type}: 15×T1 → 1×T2", this);
         }
     }
 
     /// <summary>
-    /// Расставляет ряд юнитов центрированно по X на нужном Z-смещении.
-    /// Если юнитов слишком много — разбивает на подряды (несколько слоёв за основным).
-    /// Spacing адаптивный: от дефолтного к минимуму при увеличении плотности.
+    /// Добавляет 1 T2-юнита или усиляет существующих если лимит 50 достигнут.
     /// </summary>
-    private void PlaceRow(List<Unit> row, float zOffset)
+    private void AddT2(HeroType type)
     {
-        int total = row.Count;
-        if (total == 0) return;
+        int totalModels = CountAllUnits();
 
-        // ─── Сколько юнитов максимум влезает в один подряд ───────
-        // При минимальном spacing
-        float maxWidth      = _trackHalfWidth * 2f;
-        int   maxPerSubrow  = Mathf.FloorToInt(maxWidth / _minSpacing) + 1;
-        if (maxPerSubrow < 1) maxPerSubrow = 1;
-
-        // ─── Сколько подрядов нужно ───────────────────────────────
-        int subrows = Mathf.CeilToInt(total / (float)maxPerSubrow);
-
-        // ─── Размещаем юнитов по подрядам ─────────────────────────
-        int placed = 0;
-        for (int sub = 0; sub < subrows; sub++)
+        if (totalModels < MAX_TOTAL_MODELS)
         {
-            // Сколько юнитов в этом подряде
-            int countInSub = Mathf.Min(maxPerSubrow, total - placed);
+            // Есть место — спавним новый T2
+            Unit t2 = UnitPool.Instance.Get(type, UnitTier.T2);
+            if (t2 == null) return;
 
-            // Адаптивный spacing — чем больше юнитов, тем плотнее
-            float spacing;
-            if (countInSub <= 1)
-            {
-                spacing = _spacing;
-            }
-            else
-            {
-                float wantedWidth = (countInSub - 1) * _spacing;
-                if (wantedWidth <= maxWidth)
-                {
-                    // Влезают по дефолтному spacing
-                    spacing = _spacing;
-                }
-                else
-                {
-                    // Не влезают — ужимаем
-                    spacing = maxWidth / (countInSub - 1);
-                    if (spacing < _minSpacing) spacing = _minSpacing;
-                }
-            }
+            GetCategory(type, UnitTier.T2).Add(t2);
+            _flatListDirty = true;
 
-            float totalRowWidth = (countInSub - 1) * spacing;
-            float startX        = -totalRowWidth / 2f;
-            float subZ          = zOffset + sub * _subRowSpacing;
+            // Инициализация если легендарка-T2
+            MeleeUnitController meleeCtrl = t2.GetComponent<MeleeUnitController>();
+            if (meleeCtrl != null)
+                meleeCtrl.Initialize(transform, Vector3.zero);
 
-            for (int i = 0; i < countInSub; i++)
-            {
-                Unit u = row[placed + i];
-                Vector3 offset = new Vector3(startX + i * spacing, 0f, subZ);
-
-                MeleeUnitController meleeCtrl = u.GetComponent<MeleeUnitController>();
-                if (meleeCtrl != null)
-                {
-                    meleeCtrl.FormationOffset = offset;
-                    if (meleeCtrl.IsInFormation)
-                        u.transform.position = transform.position + offset;
-                }
-                else
-                {
-                    Vector3 target = transform.position + offset;
-                    u.transform.position = Vector3.Lerp(
-                        u.transform.position,
-                        target,
-                        _followSpeed * Time.deltaTime
-                    );
-                }
-            }
-
-            placed += countInSub;
+            Debug.Log($"[Crowd] +1 {type}_T2. Всего T2: {CountAllT2()}", this);
+        }
+        else
+        {
+            // Лимит — усиляем всех T2 этого типа
+            var t2list = GetCategory(type, UnitTier.T2);
+            foreach (Unit u in t2list)
+                u.IncrementPowerMultiplier();
+            Debug.Log($"[Crowd] Лимит! {type}_T2 PowerMultiplier++. Всего T2: {CountAllT2()}", this);
         }
     }
 
-    /// <summary>Добавляет юнита в отряд из пула.</summary>
-    public void AddUnit(HeroType type)
-    {
-        Unit unit = UnitPool.Instance.Get(type);
-        _units.Add(unit);
-
-        // Если это милишник — инициализируем его контроллер
-        MeleeUnitController meleeCtrl = unit.GetComponent<MeleeUnitController>();
-        if (meleeCtrl != null)
-        {
-            // Стартовый offset = ноль, реальный пересчитается через UpdateFormation в этом же кадре
-            meleeCtrl.Initialize(transform, Vector3.zero);
-        }
-
-        Debug.Log($"[SquadController] +1 {type}. Всего: {_units.Count}", this);
-    }
-
-
-
-    /// <summary>Убирает последнего юнита в пул.</summary>
+    /// <summary>Убирает последнего добавленного T1-юнита из любой категории.</summary>
     public void RemoveLastUnit()
     {
-        if (_units.Count == 0) return;
-        Unit unit = _units[^1];
-        _units.RemoveAt(_units.Count - 1);
-        UnitPool.Instance.Return(unit);
-        Debug.Log($"[SquadController] -1 юнит. Всего: {_units.Count}", this);
+        foreach (var kv in _crowd)
+        {
+            if (kv.Key.Item2 != UnitTier.T1) continue;
+            var list = kv.Value;
+            if (list.Count == 0) continue;
+
+            Unit unit = list[^1];
+            list.RemoveAt(list.Count - 1);
+            UnitPool.Instance.Return(unit);
+            _flatListDirty = true;
+
+            Debug.Log($"[Crowd] -1 {kv.Key.Item1}_T1. Всего: {CountAllUnits()}", this);
+            return;
+        }
     }
 
     /// <summary>Тест через кнопку в редакторе — добавить воина.</summary>
     [ContextMenu("Тест — добавить воина")]
     private void TestAddWarrior() => AddUnit(HeroType.Warrior);
+
+    [ContextMenu("Тест — добавить мага")]
+    private void TestAddMage() => AddUnit(HeroType.Mage);
+
+    [ContextMenu("Тест — добавить танка")]
+    private void TestAddTank() => AddUnit(HeroType.Tank);
+
+    [ContextMenu("Тест — добавить лучника")]
+    private void TestAddArcher() => AddUnit(HeroType.Archer);
+
+    [ContextMenu("Тест — добавить ассасина")]
+    private void TestAddAssassin() => AddUnit(HeroType.Assassin);
 
     /// <summary>Тест через кнопку в редакторе — убрать юнита.</summary>
     [ContextMenu("Тест — убрать юнита")]

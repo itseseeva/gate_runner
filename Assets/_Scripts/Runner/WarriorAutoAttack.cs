@@ -5,11 +5,11 @@ using UnityEngine;
 /// </summary>
 public class WarriorAutoAttack : MeleeAutoAttackBase
 {
-    protected override DamageCalculation CalculateDamage()
+    protected override DamageCalculation CalculateDamage(int powerMultiplier)
     {
         return new DamageCalculation
         {
-            FinalDamage     = _baseDamage,
+            FinalDamage     = _baseDamage * powerMultiplier,
             WasCritical     = false,
             LifestealAmount = 0,
         };

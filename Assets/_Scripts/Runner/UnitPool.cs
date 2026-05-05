@@ -72,6 +72,12 @@ public class UnitPool : MonoBehaviour
         return unit;
     }
 
+    /// <summary>Возвращает HeroDefinitionSO по типу героя.</summary>
+    public HeroDefinitionSO GetHeroData(HeroType type)
+    {
+        return _dataMap.ContainsKey(type) ? _dataMap[type] : null;
+    }
+
     /// <summary>Берёт юнита из пула указанного тира.</summary>
     public Unit Get(HeroType type, UnitTier tier = UnitTier.T1)
     {

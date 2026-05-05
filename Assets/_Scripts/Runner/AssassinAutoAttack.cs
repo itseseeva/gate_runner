@@ -18,17 +18,16 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
     [Range(0f, 1f)]
     [SerializeField] private float _lifestealRatio = 0.20f;
 
-    protected override DamageCalculation CalculateDamage()
+    protected override DamageCalculation CalculateDamage(int powerMultiplier)
     {
-        // Проверяем крит
         bool isCrit = Random.value < _critChance;
 
-        // Считаем урон
-        int finalDamage = isCrit
-            ? Mathf.RoundToInt(_baseDamage * _critMultiplier)
-            : _baseDamage;
+        // Множитель применяется ДО крита — крит считается от усиленного урона
+        int boostedDamage = _baseDamage * powerMultiplier;
+        int finalDamage   = isCrit
+            ? Mathf.RoundToInt(boostedDamage * _critMultiplier)
+            : boostedDamage;
 
-        // Лайфстил
         int lifesteal = Mathf.RoundToInt(finalDamage * _lifestealRatio);
 
         return new DamageCalculation

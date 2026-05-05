@@ -400,13 +400,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.19080894, y: 0, z: 0, w: 0.9816273}
-  m_LocalPosition: {x: 0, y: 4, z: -5}
+  m_LocalRotation: {x: 0.23800305, y: 0.002909283, z: -0.0007128362, w: 0.9712598}
+  m_LocalPosition: {x: -0.06759097, y: 6.725282, z: -7.9960155}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1554201391}
-  m_LocalEulerAnglesHint: {x: 22, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 30, y: 0, z: 0}
 --- !u!114 &330585547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -825,18 +825,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8b3074e66dfc454bb9afb10f99277cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SquadController
-  _spacing: 0.22
-  _rowSpacing: 0.9
+  _spacing: 0.4
+  _minSpacing: 0.2
+  _rowSpacing: 1.2
+  _subRowSpacing: 0.4
+  _trackHalfWidth: 2
   _followSpeed: 10
   _startUnits:
   - heroType: 3
     count: 2
   - heroType: 1
-    count: 5
+    count: 25
   - heroType: 0
     count: 3
   - heroType: 4
-    count: 2
+    count: 12
   - heroType: 2
     count: 2
 --- !u!114 &1554201389
@@ -876,7 +879,7 @@ Transform:
   m_GameObject: {fileID: 1554201387}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: 5}
+  m_LocalPosition: {x: 0, y: 1, z: 6}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

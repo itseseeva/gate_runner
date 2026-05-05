@@ -18,6 +18,14 @@ public abstract class MeleeAutoAttackBase : MonoBehaviour, IUnitAttack
     [SerializeField] protected int _baseDamage = 20;
 
     private float _lastFireTime = -999f;
+    private Unit _unit;
+
+    private void Awake()
+    {
+        _unit = GetComponent<Unit>();
+        if (_unit == null)
+            Debug.LogError($"[MeleeAutoAttackBase] {gameObject.name}: нет компонента Unit!", this);
+    }
 
     public float Range   => _range;
     public bool  IsReady => Time.time - _lastFireTime >= (1f / _attackSpeed);
@@ -31,7 +39,8 @@ public abstract class MeleeAutoAttackBase : MonoBehaviour, IUnitAttack
         if (target == null) return HitResult.Miss();
 
         // Расчёт урона делегируется наследнику
-        DamageCalculation calc = CalculateDamage();
+        int multiplier = _unit != null ? _unit.PowerMultiplier : 1;
+        DamageCalculation calc = CalculateDamage(multiplier);
 
         // Наносим урон
         bool died = target.TakeDamage(calc.FinalDamage);
@@ -62,7 +71,7 @@ public abstract class MeleeAutoAttackBase : MonoBehaviour, IUnitAttack
     /// Наследники реализуют свою формулу.
     /// Возвращают финальный урон + флаг крита + сколько HP вернуть.
     /// </summary>
-    protected abstract DamageCalculation CalculateDamage();
+    protected abstract DamageCalculation CalculateDamage(int powerMultiplier);
 
     /// <summary>Промежуточная структура для расчёта урона.</summary>
     protected struct DamageCalculation

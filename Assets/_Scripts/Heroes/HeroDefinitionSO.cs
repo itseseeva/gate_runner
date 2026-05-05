@@ -45,21 +45,4 @@ public class HeroDefinitionSO : ScriptableObject
     /// <summary>True если у этого типа есть T2-версия (можно апать).</summary>
     public bool CanUpgradeToT2 => _prefabT2 != null;
 
-    /// <summary>
-    /// УСТАРЕЛО: используется только до фазы 2.1 рефакторинга (CrowdManager заменит формацию).
-    /// </summary>
-    public static int GetFormationRow(HeroType type)
-    {
-        return type switch
-        {
-            HeroType.Tank     => 0,
-            HeroType.Warrior  => 1,
-            HeroType.Assassin => 1,
-            HeroType.Mage     => 2,
-            HeroType.Archer   => 2,
-            HeroType.Healer   => 3,
-            HeroType.Support  => 3,
-            _                 => 2,
-        };
-    }
 }
