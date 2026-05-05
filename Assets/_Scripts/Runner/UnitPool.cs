@@ -2,17 +2,22 @@ using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
-/// Пул юнитов. Никаких Instantiate/Destroy в рантайме.
-/// Get() — берёт из пула. Return() — возвращает в пул.
+/// Пул юнитов по тирам. Никаких Instantiate/Destroy в рантайме.
+/// Get(type, tier) — берёт из нужного пула (T1 или T2).
+/// Return(unit) — возвращает в правильный пул по unit.Tier.
 /// </summary>
 public class UnitPool : MonoBehaviour
 {
     public static UnitPool Instance;
 
-    [SerializeField] private int _preloadCount = 10; // сколько создать заранее
-    [SerializeField] private HeroDefinitionSO[] _heroData; // все 3 SO сюда
+    [Tooltip("Сколько юнитов каждого типа создать заранее (для T1 и T2 отдельно)")]
+    [SerializeField] private int _preloadCount = 10;
 
-    private Dictionary<HeroType, Queue<Unit>> _pool = new();
+    [Tooltip("Все 5+ HeroDefinitionSO сюда (Warrior, Mage, Archer, Tank, Assassin, ...)")]
+    [SerializeField] private HeroDefinitionSO[] _heroData;
+
+    // Ключ — (тип, тир). Каждая пара имеет свою очередь.
+    private Dictionary<(HeroType, UnitTier), Queue<Unit>> _pool = new();
     private Dictionary<HeroType, HeroDefinitionSO> _dataMap = new();
 
     private void Awake()
@@ -26,43 +31,85 @@ public class UnitPool : MonoBehaviour
         foreach (var data in _heroData)
         {
             _dataMap[data.HeroType] = data;
-            _pool[data.HeroType] = new Queue<Unit>();
 
-            for (int i = 0; i < _preloadCount; i++)
+            // T1 пул — всегда создаём
+            CreatePoolForTier(data, UnitTier.T1);
+
+            // T2 пул — только если у SO есть _prefabT2
+            if (data.CanUpgradeToT2)
             {
-                Unit unit = CreateUnit(data);
-                unit.gameObject.SetActive(false);
-                _pool[data.HeroType].Enqueue(unit);
+                CreatePoolForTier(data, UnitTier.T2);
             }
         }
         Debug.Log("[UnitPool] Пул готов!", this);
     }
 
-    private Unit CreateUnit(HeroDefinitionSO data)
+    private void CreatePoolForTier(HeroDefinitionSO data, UnitTier tier)
     {
-        GameObject go = Instantiate(data.Prefab);
+        var key = (data.HeroType, tier);
+        _pool[key] = new Queue<Unit>();
+
+        for (int i = 0; i < _preloadCount; i++)
+        {
+            Unit unit = CreateUnit(data, tier);
+            unit.gameObject.SetActive(false);
+            _pool[key].Enqueue(unit);
+        }
+    }
+
+    private Unit CreateUnit(HeroDefinitionSO data, UnitTier tier)
+    {
+        GameObject prefab = data.GetPrefab(tier);
+        if (prefab == null)
+        {
+            Debug.LogError($"[UnitPool] Нет prefab для {data.HeroType} {tier}!", this);
+            return null;
+        }
+
+        GameObject go = Instantiate(prefab);
         Unit unit = go.GetComponent<Unit>();
-        unit.Initialize(data);
+        unit.Initialize(data, tier);
         return unit;
     }
 
-    /// <summary>Берёт юнита из пула.</summary>
-    public Unit Get(HeroType type)
+    /// <summary>Берёт юнита из пула указанного тира.</summary>
+    public Unit Get(HeroType type, UnitTier tier = UnitTier.T1)
     {
-        if (_pool[type].Count > 0)
+        var key = (type, tier);
+
+        // Если категории нет — значит у этого типа нет такого тира
+        if (!_pool.ContainsKey(key))
         {
-            Unit unit = _pool[type].Dequeue();
+            Debug.LogError($"[UnitPool] Нет пула для {type} {tier}. Проверь что _prefabT2 указан в SO.", this);
+            return null;
+        }
+
+        if (_pool[key].Count > 0)
+        {
+            Unit unit = _pool[key].Dequeue();
             unit.gameObject.SetActive(true);
             return unit;
         }
-        // Пул пуст — создаём новый
-        return CreateUnit(_dataMap[type]);
+
+        // Пул пуст — создаём новый на лету
+        return CreateUnit(_dataMap[type], tier);
     }
 
-    /// <summary>Возвращает юнита в пул.</summary>
+    /// <summary>Возвращает юнита в пул (автоматически в нужный тир).</summary>
     public void Return(Unit unit)
     {
+        if (unit == null) return;
+
+        var key = (unit.HeroType, unit.Tier);
+
+        if (!_pool.ContainsKey(key))
+        {
+            Debug.LogWarning($"[UnitPool] Возврат в несуществующий пул {key}, уничтожаем юнита.", this);
+            Destroy(unit.gameObject);
+            return;
+        }
+
         unit.gameObject.SetActive(false);
-        _pool[unit.HeroType].Enqueue(unit);
+        _pool[key].Enqueue(unit);
     }
 }
