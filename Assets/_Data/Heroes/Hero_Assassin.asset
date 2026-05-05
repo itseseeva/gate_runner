@@ -19,5 +19,5 @@ MonoBehaviour:
   _baseSpeed: 120
   _baseMana: 40
   _heroType: 4
-  _prefab: {fileID: 0}
+  _prefab: {fileID: 3056958237148401626, guid: 2d943d9ef74625349a1d27d76824f939, type: 3}
   _attackRange: 1.8

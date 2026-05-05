@@ -67,13 +67,20 @@ public class SquadController : MonoBehaviour
             rows[rowIndex].Add(u);
         }
 
-        // ─── Расставляем каждый ряд ───────────────────────
-        // Передний ряд (Tank) — самый дальний от лидера по Z
-        // Тыл (Healer) — ближе всего к лидеру
+        // ─── Расставляем непустые ряды последовательно, без дырок ───────────────
+        // Считаем сколько рядов с юнитами
+        int activeRows = 0;
+        for (int r = 0; r < 4; r++)
+            if (rows[r].Count > 0) activeRows++;
+
+        // Расставляем непустые ряды последовательно
+        int slot = activeRows - 1;
         for (int r = 0; r < 4; r++)
         {
-            float zOffset = (4 - r) * _rowSpacing;
+            if (rows[r].Count == 0) continue;
+            float zOffset = slot * _rowSpacing;
             PlaceRow(rows[r], zOffset);
+            slot--;
         }
     }
 

@@ -374,7 +374,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 60
+  field of view: 55
   orthographic: 0
   orthographic size: 5
   m_Depth: -1
@@ -400,13 +400,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.30070576, y: 0, z: 0, w: 0.953717}
-  m_LocalPosition: {x: 0, y: 5, z: -4}
+  m_LocalRotation: {x: 0.19080894, y: 0, z: 0, w: 0.9816273}
+  m_LocalPosition: {x: 0, y: 4, z: -5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1554201391}
-  m_LocalEulerAnglesHint: {x: 35, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 22, y: 0, z: 0}
 --- !u!114 &330585547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -612,6 +612,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b228377a05cd22d488a9d483314deff0, type: 2}
   - {fileID: 11400000, guid: 28f9fbe30bb72df44a6d0a715710aedd, type: 2}
   - {fileID: 11400000, guid: 1daeae0b0de40904395b19e149c32a93, type: 2}
+  - {fileID: 11400000, guid: fe3906fe9a74e8e4db39760c22573c26, type: 2}
+  - {fileID: 11400000, guid: 5a365d1d61ffac342b58fec71f4a94e8, type: 2}
 --- !u!4 &571834657
 Transform:
   m_ObjectHideFlags: 0
@@ -823,10 +825,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8b3074e66dfc454bb9afb10f99277cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SquadController
-  _spacing: 0.8
+  _spacing: 0.22
+  _rowSpacing: 0.9
   _followSpeed: 10
-  _startHeroType: 1
-  _startCount: 5
+  _startUnits:
+  - heroType: 3
+    count: 2
+  - heroType: 1
+    count: 5
+  - heroType: 0
+    count: 3
+  - heroType: 4
+    count: 2
+  - heroType: 2
+    count: 2
 --- !u!114 &1554201389
 MonoBehaviour:
   m_ObjectHideFlags: 0
