@@ -18,6 +18,9 @@ public abstract class MeleeAutoAttackBase : MonoBehaviour, IUnitAttack
     [SerializeField] protected int _baseDamage = 20;
 
     private float _lastFireTime = -999f;
+
+    /// <summary>Обновляет время последнего выстрела. Вызывается наследниками.</summary>
+    protected void UpdateCooldown() => _lastFireTime = Time.time;
     private Unit _unit;
 
     private void Awake()
@@ -34,7 +37,7 @@ public abstract class MeleeAutoAttackBase : MonoBehaviour, IUnitAttack
     /// Главный метод — выполняет удар.
     /// Не наследники — их дело только формула урона.
     /// </summary>
-    public HitResult Hit(Enemy target)
+    public virtual HitResult Hit(Enemy target)
     {
         if (target == null) return HitResult.Miss();
 
@@ -46,7 +49,7 @@ public abstract class MeleeAutoAttackBase : MonoBehaviour, IUnitAttack
         bool died = target.TakeDamage(calc.FinalDamage);
 
         // Обновляем cooldown
-        _lastFireTime = Time.time;
+        UpdateCooldown();
 
         // Лайфстил: восстанавливаем HP юниту-владельцу
         int healed = 0;

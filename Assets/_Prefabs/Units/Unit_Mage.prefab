@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 601803485064914464}
   - component: {fileID: 6110484627153497070}
   - component: {fileID: -4333126469607185240}
-  - component: {fileID: -5036847367397787173}
+  - component: {fileID: 6823549602140963377}
   m_Layer: 0
   m_Name: Unit_Mage
   m_TagString: Untagged
@@ -142,8 +142,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c3d0c68cb36e918458b1ac228efd2ee5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoAttacker
-  _attackRange: 5
---- !u!114 &-5036847367397787173
+--- !u!114 &6823549602140963377
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -152,8 +151,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1970454060845482337}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 84f1d598af7785544a40c1efe6913500, type: 3}
+  m_Script: {fileID: 11500000, guid: a64268e98ba55234f8eebb3ccdc35fcf, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeSpell
-  _cooldown: 1
-  _damage: 15
+  m_EditorClassIdentifier: Assembly-CSharp::RangedAutoAttack
+  _attackSpeed: 1.2
+  _range: 8
+  _baseDamage: 15
+  _spawnHeightOffset: 0.5

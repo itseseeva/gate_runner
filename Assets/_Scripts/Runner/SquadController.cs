@@ -128,18 +128,10 @@ public class SquadController : MonoBehaviour
         };
     }
 
-    /// <summary>
-    /// Расставляет всех юнитов толпой с зональностью.
-    /// Зоны: Tank впереди, Mage/Archer сзади.
-    /// Внутри зоны — квадратная сетка, центрированная по X.
-    /// T1 и T2 одной зоны стоят вместе (T2 в центре строки).
-    /// </summary>
     private void PlaceCrowd()
     {
         if (_allUnits.Count == 0) return;
 
-        // ─── Группируем юнитов по зонам ────────────────────────
-        // Зона 0 = самая дальняя (впереди), зона 3 = ближайшая к камере
         const int ZONE_COUNT = 4;
         List<Unit>[] zones = new List<Unit>[ZONE_COUNT];
         for (int z = 0; z < ZONE_COUNT; z++)
@@ -148,40 +140,44 @@ public class SquadController : MonoBehaviour
         foreach (Unit u in _allUnits)
         {
             if (u == null) continue;
-            int zone = GetCrowdZone(u.HeroType);
-            zones[zone].Add(u);
+            zones[GetCrowdZone(u.HeroType)].Add(u);
         }
 
-        // ─── Считаем сколько зон непустых ──────────────────────
-        int activeZones = 0;
-        for (int z = 0; z < ZONE_COUNT; z++)
-            if (zones[z].Count > 0) activeZones++;
-
-        // ─── Расставляем зоны ──────────────────────────────────
-        // Зона 0 — самый большой Z (дальше от лидера = впереди отряда)
-        // Зона 3 — Z = 0 (у лидера)
-        int slotIndex = activeZones - 1;
+        // Фиксированные Z-позиции для каждой зоны
+        // Зона 0 (Tank) = дальше всех от камеры
+        // Зона 3 (Healer) = ближе всех к камере
+        float[] zoneZ = new float[ZONE_COUNT];
+        
+        // Считаем сколько строк займёт каждая зона
+        float currentZ = _crowdForwardOffset;
         for (int z = 0; z < ZONE_COUNT; z++)
         {
             if (zones[z].Count == 0) continue;
+            
+            int rows = Mathf.CeilToInt(zones[z].Count / (float)_maxPerRow);
+            zoneZ[z] = currentZ + (rows - 1) * _crowdSpacing;
+            currentZ += rows * _crowdSpacing + _zoneSpacing;
+        }
 
-            float baseZ = _crowdForwardOffset + slotIndex * _zoneSpacing;
-            PlaceZone(zones[z], baseZ);
-            slotIndex--;
+        // Расставляем зоны — Tank (зона 0) дальше всех
+        float maxZ = 0;
+        for (int z = 0; z < ZONE_COUNT; z++)
+            if (zones[z].Count > 0 && zoneZ[z] > maxZ) maxZ = zoneZ[z];
+
+        for (int z = 0; z < ZONE_COUNT; z++)
+        {
+            if (zones[z].Count == 0) continue;
+            // Инвертируем: зона 0 (Tank) получает максимальный Z
+            float invertedZ = maxZ - zoneZ[z] + _crowdForwardOffset;
+            PlaceZone(zones[z], invertedZ);
         }
     }
 
-    /// <summary>
-    /// Расставляет список юнитов сеткой в указанной Z-зоне.
-    /// Строки идут назад (в сторону лидера) если юнитов больше чем _maxPerRow.
-    /// </summary>
     private void PlaceZone(List<Unit> units, float baseZ)
     {
         int total = units.Count;
         if (total == 0) return;
 
-        // T2 юниты идут в центр первой строки, T1 — вокруг них
-        // Для простоты пока расставляем всех подряд: T2 первыми, T1 следом
         List<Unit> sorted = new List<Unit>(total);
         foreach (Unit u in units) if (u.Tier == UnitTier.T2) sorted.Add(u);
         foreach (Unit u in units) if (u.Tier == UnitTier.T1) sorted.Add(u);
@@ -191,16 +187,12 @@ public class SquadController : MonoBehaviour
             Unit u = sorted[i];
             if (u == null) continue;
 
-            // Позиция в сетке
-            int   col    = i % _maxPerRow;
-            int   row    = i / _maxPerRow;
-            int   countInRow = Mathf.Min(_maxPerRow, sorted.Count - row * _maxPerRow);
+            int col = i % _maxPerRow;
+            int row = i / _maxPerRow;
+            int countInRow = Mathf.Min(_maxPerRow, sorted.Count - row * _maxPerRow);
 
-            // Центрируем строку по X
             float rowWidth = (countInRow - 1) * _crowdSpacing;
             float x = -rowWidth / 2f + col * _crowdSpacing;
-
-            // Строки идут назад (к камере) от baseZ
             float z = baseZ - row * _crowdSpacing;
 
             Vector3 offset = new Vector3(x, 0f, z);
@@ -208,20 +200,13 @@ public class SquadController : MonoBehaviour
             MeleeUnitController meleeCtrl = u.GetComponent<MeleeUnitController>();
             if (meleeCtrl != null)
             {
-                // Легендарка — обновляем offset, двигаем только в Follow
                 meleeCtrl.FormationOffset = offset;
                 if (meleeCtrl.IsInFormation)
                     u.transform.position = transform.position + offset;
             }
             else
             {
-                // Обычный юнит — Lerp к позиции
-                Vector3 target = transform.position + offset;
-                u.transform.position = Vector3.Lerp(
-                    u.transform.position,
-                    target,
-                    _followSpeed * Time.deltaTime
-                );
+                u.transform.position = transform.position + offset;
             }
         }
     }

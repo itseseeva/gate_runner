@@ -1,38 +1,48 @@
 using UnityEngine;
 
 /// <summary>
-/// Компонент автоатаки юнита.
-/// Каждый кадр ищет ближайшего врага и бьёт если готово.
+/// Компонент автоатаки для range-юнитов (Mage, Archer, Tank).
+/// Каждый кадр ищет ближайшего врага и атакует через IUnitAttack.
 /// </summary>
+[RequireComponent(typeof(Unit))]
 public class AutoAttacker : MonoBehaviour
 {
-    [SerializeField] private float _attackRange = 5f;
-    
-    private BaseSpell _spell;
+    private IUnitAttack _attack;
 
     private void Awake()
     {
-        _spell = GetComponent<BaseSpell>();
+        // Ищем компонент который реализует IUnitAttack
+        // (RangedAutoAttack, WarriorAutoAttack и т.д.)
+        foreach (var comp in GetComponents<MonoBehaviour>())
+        {
+            if (comp is IUnitAttack attack)
+            {
+                _attack = attack;
+                break;
+            }
+        }
+
+        if (_attack == null)
+            Debug.LogError($"[AutoAttacker] {gameObject.name}: нет компонента IUnitAttack!", this);
     }
 
     private void Update()
     {
-        if (_spell == null) return;
-        
-        Enemy target = FindNearestEnemy();
-        if (target != null)
-            _spell.TryCast(target);
+        if (_attack == null) return;
+
+        Enemy target = FindNearestEnemy(_attack.Range);
+        if (target != null && _attack.IsReady)
+            _attack.Hit(target);
     }
 
-    private Enemy FindNearestEnemy()
+    private Enemy FindNearestEnemy(float range)
     {
-        // TODO: заменить на кэшированный список врагов для оптимизации
-        Enemy[] allEnemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
-        
-        Enemy nearest  = null;
-        float minDist  = _attackRange;
+        // TODO: заменить на кэшированный список (День 7)
+        Enemy[] all = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
+        Enemy nearest = null;
+        float minDist = range;
 
-        foreach (Enemy e in allEnemies)
+        foreach (Enemy e in all)
         {
             if (!e.gameObject.activeSelf) continue;
             float dist = Vector3.Distance(transform.position, e.transform.position);

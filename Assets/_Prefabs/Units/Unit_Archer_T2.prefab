@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 3183696216783387092}
   - component: {fileID: 1731220317407899971}
   - component: {fileID: 937969653322110299}
-  - component: {fileID: -958667510554273899}
+  - component: {fileID: 4834668380256056755}
   m_Layer: 0
   m_Name: Unit_Archer_T2
   m_TagString: Untagged
@@ -142,8 +142,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c3d0c68cb36e918458b1ac228efd2ee5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoAttacker
-  _attackRange: 5
---- !u!114 &-958667510554273899
+--- !u!114 &4834668380256056755
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -152,8 +151,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 7607463943539219709}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 84f1d598af7785544a40c1efe6913500, type: 3}
+  m_Script: {fileID: 11500000, guid: a64268e98ba55234f8eebb3ccdc35fcf, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeSpell
-  _cooldown: 1
-  _damage: 15
+  m_EditorClassIdentifier: Assembly-CSharp::RangedAutoAttack
+  _attackSpeed: 0.8
+  _range: 12
+  _baseDamage: 12
+  _spawnHeightOffset: 0.5
