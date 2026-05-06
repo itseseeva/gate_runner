@@ -159,3 +159,5 @@ MonoBehaviour:
   _trackingRange: 8
   _trackingSpeed: 3
   _damage: 20
+  _separationRadius: 1
+  _separationForce: 3

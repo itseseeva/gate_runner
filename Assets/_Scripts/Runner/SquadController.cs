@@ -446,7 +446,8 @@ public class SquadController : MonoBehaviour
                 if (CountAllUnits() == 0)
                 {
                     Debug.Log("[Squad] Все юниты погибли! Game Over.", this);
-                    // TODO: GameStateManager.Instance.SetGameOver() — подключим на следующем шаге
+                    if (GameStateManager.Instance != null)
+                        GameStateManager.Instance.SetGameOver();
                 }
 
                 return;
@@ -478,5 +479,20 @@ public class SquadController : MonoBehaviour
             }
         }
         return nearest;
+    }
+    /// <summary>
+    /// Возвращает случайного живого юнита из отряда.
+    /// Используется для естественного распределения врагов по целям.
+    /// </summary>
+    public Unit GetRandomUnit()
+    {
+        if (_flatListDirty) RebuildFlatList();
+        if (_allUnits.Count == 0) return null;
+
+        // Фильтруем только активных
+        List<Unit> active = _allUnits.FindAll(u => u != null && u.gameObject.activeSelf);
+        if (active.Count == 0) return null;
+
+        return active[Random.Range(0, active.Count)];
     }
 }
