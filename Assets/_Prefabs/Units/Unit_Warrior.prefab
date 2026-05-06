@@ -159,7 +159,7 @@ MonoBehaviour:
   _attackRange: 1.8
   _returnDistance: 0.5
   _chaseSpeed: 8
-  _driftSpeedRatio: 0.3
+  _driftSpeedRatio: 2
   _autoAttackComponent: {fileID: 4431215859352217724}
 --- !u!114 &4431215859352217724
 MonoBehaviour:

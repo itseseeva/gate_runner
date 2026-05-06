@@ -10,7 +10,7 @@ public class StrikeState : IUnitState
     private readonly MeleeUnitController _ctrl;
     private Enemy _target;
     private Enemy _lastHitEnemy; // враг которого только что ударили
-    private float _lastHitZ;    // Z позиция последнего удара
+    public float LastHitZ { get; private set; }    // Z позиция последнего удара
 
     public StrikeState(MeleeUnitController controller)
     {
@@ -63,7 +63,7 @@ public class StrikeState : IUnitState
                 Debug.Log($"[Strike] {_ctrl.gameObject.name} КРИТ по {_target.name}! Урон: {result.DamageDealt}", _ctrl);
 
             // Один удар — сразу уходим, не ждём смерти врага
-            _lastHitZ = _target.transform.position.z;
+            LastHitZ = _target.transform.position.z;
             _lastHitEnemy = _target;
             _ctrl.ReleaseTarget(_target);
             _target = null;
@@ -83,7 +83,7 @@ public class StrikeState : IUnitState
             _ctrl.ClaimTarget(_lastHitEnemy);
 
         // Ищем врага ТОЛЬКО впереди по Z (следующая волна)
-        Enemy next = _ctrl.FindRandomEnemyInRange(_ctrl.DetectionRange, minZ: _lastHitZ + 1f);
+        Enemy next = _ctrl.FindRandomEnemyInRange(_ctrl.DetectionRange, minZ: LastHitZ + 1f);
 
         // Освобождаем последнего побитого
         if (_lastHitEnemy != null)

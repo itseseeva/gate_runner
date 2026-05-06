@@ -21,7 +21,9 @@ public class DriftState : IUnitState
         if (_ctrl.Leader == null) return;
 
         // 1. Появился враг? → новый рывок
-        Enemy enemy = _ctrl.FindRandomEnemyInRange(_ctrl.DetectionRange);
+        // Ищем врага ТОЛЬКО впереди — не возвращаемся бить ту же волну
+        float minZ = _ctrl.StrikeState.LastHitZ + 1f;
+        Enemy enemy = _ctrl.FindRandomEnemyInRange(_ctrl.DetectionRange, minZ: minZ);
         if (enemy != null)
         {
             _ctrl.ClaimTarget(enemy);
@@ -41,9 +43,11 @@ public class DriftState : IUnitState
             return;
         }
 
-        // 4. Иначе — двигаемся К позиции в формации.
-        //    Скорость = ChaseSpeed (полная), чтобы быстро вернуться.
+        // 4. Двигаемся к позиции в формации
         Vector3 dir = (formationPos - _ctrl.transform.position).normalized;
-        _ctrl.transform.position += dir * _ctrl.ChaseSpeed * Time.deltaTime;
+        float speed = distToFormation > 3f
+            ? _ctrl.ChaseSpeed * 3f   // далеко — летим быстро
+            : _ctrl.ChaseSpeed * 1.5f; // близко — плавно
+        _ctrl.transform.position += dir * speed * Time.deltaTime;
     }
 }
