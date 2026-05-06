@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 6110484627153497070}
   - component: {fileID: -4333126469607185240}
   - component: {fileID: -5036847367397787173}
+  - component: {fileID: -9135729230414756288}
   m_Layer: 0
   m_Name: Unit_Tank
   m_TagString: Untagged
@@ -142,7 +143,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c3d0c68cb36e918458b1ac228efd2ee5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoAttacker
-  _attackRange: 2.5
 --- !u!114 &-5036847367397787173
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -157,3 +157,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MeleeSpell
   _cooldown: 1.2
   _damage: 10
+--- !u!114 &-9135729230414756288
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1970454060845482337}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 110fa897ddbd0dc48bc4b2fd39477e36, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WarriorAutoAttack
+  _attackSpeed: 0.8
+  _range: 2.5
+  _baseDamage: 10

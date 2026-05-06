@@ -9,6 +9,8 @@ public class StrikeState : IUnitState
 {
     private readonly MeleeUnitController _ctrl;
     private Enemy _target;
+    private Enemy _lastHitEnemy; // враг которого только что ударили
+    private float _lastHitZ;    // Z позиция последнего удара
 
     public StrikeState(MeleeUnitController controller)
     {
@@ -51,24 +53,21 @@ public class StrikeState : IUnitState
 
         if (distance <= _ctrl.AttackRange)
         {
-            // Используем компонент атаки вместо прямого вызова TakeDamage
             if (_ctrl.AutoAttack == null) return;
-            if (!_ctrl.AutoAttack.IsReady) return; // ждём cooldown
+            if (!_ctrl.AutoAttack.IsReady) return;
 
             DiagLogger.RecordHit(_ctrl.gameObject.GetInstanceID(), _target.GetInstanceID());
             HitResult result = _ctrl.AutoAttack.Hit(_target);
 
             if (result.WasCritical)
-            {
                 Debug.Log($"[Strike] {_ctrl.gameObject.name} КРИТ по {_target.name}! Урон: {result.DamageDealt}", _ctrl);
-            }
 
-            if (result.Killed)
-            {
-                _ctrl.ReleaseTarget(_target);
-                _target = null;
-                FindAndSetNewTargetOrDrift();
-            }
+            // Один удар — сразу уходим, не ждём смерти врага
+            _lastHitZ = _target.transform.position.z;
+            _lastHitEnemy = _target;
+            _ctrl.ReleaseTarget(_target);
+            _target = null;
+            FindAndSetNewTargetOrDrift();
             return;
         }
 
@@ -77,13 +76,24 @@ public class StrikeState : IUnitState
         _ctrl.transform.position += dir * _ctrl.ChaseSpeed * Time.deltaTime;
     }
 
-    /// <summary>
-    /// Ищет следующего врага в радиусе. Найден → продолжаем рывок к нему.
-    /// Не найден → переходим в Drift (плавный возврат в строй).
-    /// </summary>
     private void FindAndSetNewTargetOrDrift()
     {
-        Enemy next = _ctrl.FindRandomEnemyInRange(_ctrl.DetectionRange);
+        // Временно бронируем последнего побитого чтобы не выбрать его снова
+        if (_lastHitEnemy != null && _lastHitEnemy.gameObject.activeSelf)
+            _ctrl.ClaimTarget(_lastHitEnemy);
+
+        // Ищем врага ТОЛЬКО впереди по Z (следующая волна)
+        Enemy next = _ctrl.FindRandomEnemyInRange(_ctrl.DetectionRange, minZ: _lastHitZ + 1f);
+
+        // Освобождаем последнего побитого
+        if (_lastHitEnemy != null)
+        {
+            _ctrl.ReleaseTarget(_lastHitEnemy);
+            _lastHitEnemy = null;
+        }
+
+        Debug.Log($"[Strike] FindNext: {(next != null ? next.name : "NULL → Drift")}", _ctrl);
+
         if (next != null)
         {
             _ctrl.ClaimTarget(next);

@@ -20,4 +20,5 @@ MonoBehaviour:
   _baseMana: 50
   _heroType: 2
   _prefab: {fileID: 7607463943539219709, guid: 74c9595443ce13f4d994614dda2a657a, type: 3}
+  _prefabT2: {fileID: 7607463943539219709, guid: 36691d40284c36f4b806ee85862af3c4, type: 3}
   _attackRange: 6

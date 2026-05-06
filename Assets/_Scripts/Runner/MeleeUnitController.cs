@@ -80,7 +80,7 @@ public class MeleeUnitController : MonoBehaviour
     /// Возвращает рандомного НЕ забронированного врага в радиусе.
     /// null если никого подходящего нет.
     /// </summary>
-    public Enemy FindRandomEnemyInRange(float range)
+    public Enemy FindRandomEnemyInRange(float range, float minZ = float.MinValue)
     {
         Enemy[] all = Object.FindObjectsByType<Enemy>(FindObjectsSortMode.None);
 
@@ -89,6 +89,7 @@ public class MeleeUnitController : MonoBehaviour
         {
             if (e == null || !e.gameObject.activeSelf) continue;
             if (_claimedTargets.Contains(e)) continue;
+            if (e.transform.position.z < minZ) continue;  // ← фильтр по Z
             float d = Vector3.Distance(transform.position, e.transform.position);
             if (d <= range) candidates.Add(e);
         }
@@ -100,8 +101,7 @@ public class MeleeUnitController : MonoBehaviour
         }
 
         DiagLogger.RecordFindHit();
-        int idx = Random.Range(0, candidates.Count);
-        return candidates[idx];
+        return candidates[Random.Range(0, candidates.Count)];
     }
 
     /// <summary>Резервирует цель — другие воины её не выберут.</summary>
