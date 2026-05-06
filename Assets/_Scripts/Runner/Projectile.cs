@@ -8,8 +8,9 @@ using UnityEngine;
 public class Projectile : MonoBehaviour
 {
     [Header("Параметры")]
-    [SerializeField] private float _speed       = 15f;
-    [SerializeField] private float _maxDistance = 16f;
+    [SerializeField] private float _speed        = 15f;
+    [SerializeField] private float _maxDistance  = 16f;
+    [SerializeField] private float _hitRadius    = 0.3f; // размер хитбокса
 
     private int   _damage;
     private float _distanceTravelled;
@@ -29,11 +30,13 @@ public class Projectile : MonoBehaviour
         if (!_active) return;
 
         float step = _speed * Time.deltaTime;
+        const float HitDetectionPadding = 0.5f;
+        float rayLength = step + HitDetectionPadding;
 
-        // Raycast вперёд на шаг движения — гарантированное обнаружение
-        if (Physics.Raycast(transform.position, Vector3.forward, out RaycastHit hit, step))
+        // SphereCast вместо Raycast — шар летит вперёд, не промахивается мимо врага
+        if (Physics.SphereCast(transform.position, _hitRadius, transform.forward, out RaycastHit hit, rayLength))
         {
-            Debug.Log($"[Projectile] Raycast попал в {hit.collider.name}");
+            Debug.Log($"[Projectile] SphereCast попал в {hit.collider.name}", this);
             Enemy enemy = hit.collider.GetComponent<Enemy>();
             if (enemy != null)
             {
@@ -43,11 +46,19 @@ public class Projectile : MonoBehaviour
             }
         }
 
-        transform.position += Vector3.forward * step;
+        transform.position += transform.forward * step;
         _distanceTravelled += step;
 
         if (_distanceTravelled >= _maxDistance)
             ReturnToPool();
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (!_active) return;
+        Gizmos.color = Color.red;
+        // Рисуем сферу — это наш хитбокс снаряда
+        Gizmos.DrawWireSphere(transform.position + transform.forward * _hitRadius, _hitRadius);
     }
 
 

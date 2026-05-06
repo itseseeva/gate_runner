@@ -157,4 +157,4 @@ MonoBehaviour:
   _attackSpeed: 1.2
   _range: 8
   _baseDamage: 15
-  _spawnHeightOffset: 0.5
+  _spawnHeightOffset: 0

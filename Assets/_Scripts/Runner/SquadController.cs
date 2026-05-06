@@ -425,4 +425,58 @@ public class SquadController : MonoBehaviour
     /// <summary>Тест через кнопку в редакторе — убрать юнита.</summary>
     [ContextMenu("Тест — убрать юнита")]
     private void TestRemove() => RemoveLastUnit();
+    /// <summary>
+    /// Вызывается когда юнит погибает от урона врага.
+    /// Убирает юнита из формации и возвращает в пул.
+    /// </summary>
+    public void OnUnitDied(Unit unit)
+    {
+        // Ищем юнита во всех категориях и убираем
+        foreach (var list in _crowd.Values)
+        {
+            if (list.Remove(unit))
+            {
+                _flatListDirty = true;
+                UnitPool.Instance.Return(unit);
+
+                Debug.Log($"[Squad] Юнит {unit.gameObject.name} удалён из отряда. " +
+                          $"Осталось: {CountAllUnits()}", this);
+
+                // Если отряд полностью пуст — Game Over
+                if (CountAllUnits() == 0)
+                {
+                    Debug.Log("[Squad] Все юниты погибли! Game Over.", this);
+                    // TODO: GameStateManager.Instance.SetGameOver() — подключим на следующем шаге
+                }
+
+                return;
+            }
+        }
+
+        Debug.LogWarning($"[Squad] OnUnitDied: юнит {unit.gameObject.name} не найден в отряде!", this);
+    }
+    /// <summary>
+    /// Возвращает юнита ближайшего по X к указанной позиции.
+    /// Используется врагами для наведения.
+    /// </summary>
+    public Unit GetNearestUnitByX(float x)
+    {
+        if (_flatListDirty) RebuildFlatList();
+        if (_allUnits.Count == 0) return null;
+
+        Unit  nearest = null;
+        float minDist = float.MaxValue;
+
+        foreach (Unit u in _allUnits)
+        {
+            if (u == null || !u.gameObject.activeSelf) continue;
+            float dist = Mathf.Abs(u.transform.position.x - x);
+            if (dist < minDist)
+            {
+                minDist = dist;
+                nearest = u;
+            }
+        }
+        return nearest;
+    }
 }
