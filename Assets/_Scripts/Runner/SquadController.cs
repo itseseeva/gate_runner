@@ -117,9 +117,9 @@ public class SquadController : MonoBehaviour
     {
         return type switch
         {
-            HeroType.Tank      => 0,  // Самые впереди
-            HeroType.Warrior   => 1,  // Легендарки за танками
-            HeroType.Assassin  => 1,  // Легендарки за танками
+            HeroType.Warrior   => 0,  // впереди
+            HeroType.Assassin  => 0,  // впереди
+            HeroType.Tank      => 0,
             HeroType.Mage      => 2,  // Стрелки
             HeroType.Archer    => 2,  // Стрелки
             HeroType.Healer    => 3,  // Тыл

@@ -18,6 +18,14 @@ public class MeleeUnitController : MonoBehaviour
     [SerializeField] private float _chaseSpeed       = 8f;   // скорость рывка к врагу
     [SerializeField] private float _driftSpeedRatio  = 0.3f; // доля от ChaseSpeed во время Drift
 
+    [Header("Возврат в строй")]
+    [Tooltip("Время плавного возврата в формацию после боя (секунды)")]
+    [SerializeField] private float _rejoinDuration = 0.4f;
+
+    private float _rejoinTimer;
+    private bool  _isRejoining;
+    private Vector3 _rejoinStartPos;
+
     [Header("Атака")]
     [Tooltip("Компонент с IUnitAttack — вешается на prefab отдельно (WarriorAutoAttack, AssassinAutoAttack)")]
     [SerializeField] private MonoBehaviour _autoAttackComponent;
@@ -50,7 +58,6 @@ public class MeleeUnitController : MonoBehaviour
     // ─── Состояния ───────────────────────────────────────────────
     public FollowState FollowState { get; private set; }
     public StrikeState StrikeState { get; private set; }
-    public DriftState  DriftState  { get; private set; }
 
     /// <summary>Инициализация — вызывается из SquadController.</summary>
     public void Initialize(Transform leader, Vector3 formationOffset)
@@ -69,9 +76,37 @@ public class MeleeUnitController : MonoBehaviour
 
         FollowState = new FollowState(this);
         StrikeState = new StrikeState(this);
-        DriftState  = new DriftState(this);
 
         _stateMachine.ChangeState(FollowState);
+    }
+
+    public float RejoinDuration => _rejoinDuration;
+    public bool  IsRejoining    => _isRejoining;
+
+    /// <summary>Запускает плавный возврат в формацию.</summary>
+    public void StartRejoin()
+    {
+        _rejoinStartPos = transform.position;
+        _rejoinTimer    = 0f;
+        _isRejoining    = true;
+    }
+
+    /// <summary>Обновляет плавный возврат. Вызывается из FollowState каждый кадр.</summary>
+    public void UpdateRejoin()
+    {
+        if (!_isRejoining) return;
+
+        _rejoinTimer += Time.deltaTime;
+        float t = _rejoinTimer / _rejoinDuration;
+
+        if (t >= 1f)
+        {
+            _isRejoining = false;
+            return;
+        }
+
+        Vector3 formationPos = Leader.position + FormationOffset;
+        transform.position = Vector3.Lerp(_rejoinStartPos, formationPos, t);
     }
 
     public void ChangeState(IUnitState state) => _stateMachine.ChangeState(state);

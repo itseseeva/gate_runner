@@ -1,9 +1,8 @@
 using UnityEngine;
 
 /// <summary>
-/// Состояние "в строю".
-/// Воин НЕ двигает себя — за него это делает SquadController.
-/// State только сканирует врагов и переходит в Strike при появлении.
+/// Состояние "в строю". При плавном возврате после боя — Lerp к позиции.
+/// Иначе — SquadController двигает воина как часть толпы.
 /// </summary>
 public class FollowState : IUnitState
 {
@@ -16,13 +15,13 @@ public class FollowState : IUnitState
 
     public void Enter()
     {
-        // Разрешаем SquadController нас двигать
-        _ctrl.IsInFormation = true;
+        // Пока идёт rejoin — НЕ позволяем SquadController двигать
+        // (мы сами Lerp-им). После завершения rejoin — IsInFormation = true
+        _ctrl.IsInFormation = !_ctrl.IsRejoining;
     }
 
     public void Exit()
     {
-        // Запрещаем SquadController нас двигать — теперь рулим сами
         _ctrl.IsInFormation = false;
     }
 
@@ -30,11 +29,24 @@ public class FollowState : IUnitState
     {
         if (_ctrl.Leader == null) return;
 
-        // Ищем рандомного врага в радиусе
-        Enemy enemy = _ctrl.FindRandomEnemyInRange(_ctrl.DetectionRange);
+        // Плавный возврат идёт?
+        if (_ctrl.IsRejoining)
+        {
+            _ctrl.UpdateRejoin();
+
+            // Завершился rejoin — отдаём управление SquadController
+            if (!_ctrl.IsRejoining)
+                _ctrl.IsInFormation = true;
+
+            return; // во время rejoin не ищем врагов
+        }
+
+        // Обычный режим — ищем рандомного врага
+        // Ищем врага только впереди по Z (не возвращаемся к мёртвой волне)
+        float minZ = _ctrl.transform.position.z + 1f;
+        Enemy enemy = _ctrl.FindRandomEnemyInRange(_ctrl.DetectionRange, minZ: minZ);
         if (enemy != null)
         {
-            // Бронируем и переходим в рывок
             _ctrl.ClaimTarget(enemy);
             _ctrl.StrikeState.SetTarget(enemy);
             _ctrl.ChangeState(_ctrl.StrikeState);

@@ -36,7 +36,8 @@ public class Enemy : MonoBehaviour
 
     private void Die()
     {
-        Debug.Log($"[Enemy] {gameObject.name} погиб!", this);
+        Debug.Log($"[Enemy] {gameObject.name} погиб! Active до: {gameObject.activeSelf}", this);
         gameObject.SetActive(false);
+        Debug.Log($"[Enemy] {gameObject.name} Active после: {gameObject.activeSelf}", this);
     }
 }

@@ -1,33 +1,28 @@
 using UnityEngine;
 
 /// <summary>
-/// Состояние "рывок и удар".
-/// Воин бежит к цели, бьёт один раз, ищет следующую жертву в радиусе.
-/// Если врагов в радиусе нет → переход в Drift (плавный возврат в строй).
+/// Состояние "рывок и удар". Воин бежит к цели, бьёт один раз,
+/// ищет следующую цель ВПЕРЕДИ по Z. Если нет — возврат в Follow.
 /// </summary>
 public class StrikeState : IUnitState
 {
     private readonly MeleeUnitController _ctrl;
     private Enemy _target;
-    private Enemy _lastHitEnemy; // враг которого только что ударили
-    public float LastHitZ { get; private set; }    // Z позиция последнего удара
+    private Enemy _lastHitEnemy;
+
+    public float LastHitZ { get; private set; }
 
     public StrikeState(MeleeUnitController controller)
     {
         _ctrl = controller;
     }
 
-    /// <summary>Устанавливает цель ПЕРЕД входом в состояние (вызывается из FollowState).</summary>
-    public void SetTarget(Enemy target)
-    {
-        _target = target;
-    }
+    public void SetTarget(Enemy target) => _target = target;
 
     public void Enter() { }
 
     public void Exit()
     {
-        // Освобождаем текущую цель если ещё держим (например при выходе в Drift)
         if (_target != null)
         {
             _ctrl.ReleaseTarget(_target);
@@ -37,13 +32,12 @@ public class StrikeState : IUnitState
 
     public void Tick()
     {
-        // Цель умерла во время рывка? → Освобождаем и ищем новую
+        // Цель умерла во время рывка
         if (_target == null || !_target.gameObject.activeSelf)
         {
             if (_target != null) _ctrl.ReleaseTarget(_target);
             _target = null;
-
-            FindAndSetNewTargetOrDrift();
+            FindNextOrReturn();
             return;
         }
 
@@ -60,14 +54,14 @@ public class StrikeState : IUnitState
             HitResult result = _ctrl.AutoAttack.Hit(_target);
 
             if (result.WasCritical)
-                Debug.Log($"[Strike] {_ctrl.gameObject.name} КРИТ по {_target.name}! Урон: {result.DamageDealt}", _ctrl);
+                Debug.Log($"[Strike] {_ctrl.gameObject.name} КРИТ! Урон: {result.DamageDealt}", _ctrl);
 
-            // Один удар — сразу уходим, не ждём смерти врага
+            // Один удар — запоминаем Z и ищем следующего
             LastHitZ = _target.transform.position.z;
             _lastHitEnemy = _target;
             _ctrl.ReleaseTarget(_target);
             _target = null;
-            FindAndSetNewTargetOrDrift();
+            FindNextOrReturn();
             return;
         }
 
@@ -76,32 +70,35 @@ public class StrikeState : IUnitState
         _ctrl.transform.position += dir * _ctrl.ChaseSpeed * Time.deltaTime;
     }
 
-    private void FindAndSetNewTargetOrDrift()
+    /// <summary>
+    /// Ищет следующего врага ВПЕРЕДИ (Z больше LastHitZ).
+    /// Найден → продолжаем Strike. Нет → возврат в Follow с плавным Lerp.
+    /// </summary>
+    private void FindNextOrReturn()
     {
-        // Временно бронируем последнего побитого чтобы не выбрать его снова
+        // Бронируем последнего побитого чтобы не выбрать его снова
         if (_lastHitEnemy != null && _lastHitEnemy.gameObject.activeSelf)
             _ctrl.ClaimTarget(_lastHitEnemy);
 
-        // Ищем врага ТОЛЬКО впереди по Z (следующая волна)
-        Enemy next = _ctrl.FindRandomEnemyInRange(_ctrl.DetectionRange, minZ: LastHitZ + 1f);
+        Debug.Log($"[Strike] LastHitZ={LastHitZ:F1}, ищем minZ={LastHitZ + 3f:F1}");
+        Enemy next = _ctrl.FindRandomEnemyInRange(_ctrl.DetectionRange, minZ: LastHitZ + 3f);
 
-        // Освобождаем последнего побитого
         if (_lastHitEnemy != null)
         {
             _ctrl.ReleaseTarget(_lastHitEnemy);
             _lastHitEnemy = null;
         }
 
-        Debug.Log($"[Strike] FindNext: {(next != null ? next.name : "NULL → Drift")}", _ctrl);
-
         if (next != null)
         {
+            Debug.Log($"[Strike] Найден next на Z={next.transform.position.z:F1}");
             _ctrl.ClaimTarget(next);
             _target = next;
+            return;
         }
-        else
-        {
-            _ctrl.ChangeState(_ctrl.DriftState);
-        }
+
+        // Нет следующих — запускаем плавный возврат и переходим в Follow
+        _ctrl.StartRejoin();
+        _ctrl.ChangeState(_ctrl.FollowState);
     }
 }

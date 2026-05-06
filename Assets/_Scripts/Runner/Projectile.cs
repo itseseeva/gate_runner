@@ -29,6 +29,20 @@ public class Projectile : MonoBehaviour
         if (!_active) return;
 
         float step = _speed * Time.deltaTime;
+
+        // Raycast вперёд на шаг движения — гарантированное обнаружение
+        if (Physics.Raycast(transform.position, Vector3.forward, out RaycastHit hit, step))
+        {
+            Debug.Log($"[Projectile] Raycast попал в {hit.collider.name}");
+            Enemy enemy = hit.collider.GetComponent<Enemy>();
+            if (enemy != null)
+            {
+                enemy.TakeDamage(_damage);
+                ReturnToPool();
+                return;
+            }
+        }
+
         transform.position += Vector3.forward * step;
         _distanceTravelled += step;
 
@@ -36,16 +50,7 @@ public class Projectile : MonoBehaviour
             ReturnToPool();
     }
 
-    private void OnTriggerEnter(Collider other)
-    {
-        if (!_active) return;
 
-        Enemy enemy = other.GetComponent<Enemy>();
-        if (enemy == null) return;
-
-        enemy.TakeDamage(_damage);
-        ReturnToPool();
-    }
 
     private void ReturnToPool()
     {
