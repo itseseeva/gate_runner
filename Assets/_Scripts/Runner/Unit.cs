@@ -10,6 +10,9 @@ public class Unit : MonoBehaviour
     [Header("Состояние")]
     [SerializeField] private int _currentHP;
 
+    [Header("UI")]
+    [SerializeField] private HealthBar _healthBar;
+
     private HeroDefinitionSO _data;
     private UnitTier         _tier = UnitTier.T1;
     private int              _powerMultiplier = 1;
@@ -30,6 +33,10 @@ public class Unit : MonoBehaviour
         _tier = tier;
         _powerMultiplier = 1;
         _currentHP = data.MaxHP * _powerMultiplier;
+
+        // Сообщаем бару полное HP — он скроется автоматически
+        if (_healthBar != null)
+            _healthBar.SetHP(_currentHP, data.MaxHP);
     }
 
     /// <summary>
@@ -57,12 +64,30 @@ public class Unit : MonoBehaviour
             {
                 _powerMultiplier--;
                 _currentHP = _data.MaxHP; // восстанавливаем HP до полной шкалы
+
+                Debug.Log($"[Unit] {gameObject.name} потерял множитель. " +
+                          $"PowerMultiplier={_powerMultiplier}, HP восстановлено", this);
+
+                // Обновляем бар после восстановления
+                if (_healthBar != null)
+                    _healthBar.SetHP(_currentHP, _data.MaxHP);
+
                 return false;
             }
 
             _currentHP = 0;
+
+            // Обновляем бар перед смертью
+            if (_healthBar != null)
+                _healthBar.SetHP(_currentHP, _data.MaxHP);
+
             return true;
         }
+
+        // Обычный урон без смерти
+        if (_healthBar != null)
+            _healthBar.SetHP(_currentHP, _data.MaxHP);
+
         return false;
     }
 }
