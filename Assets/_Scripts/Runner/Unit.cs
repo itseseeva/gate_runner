@@ -13,9 +13,19 @@ public class Unit : MonoBehaviour
     [Header("UI")]
     [SerializeField] private HealthBar _healthBar;
 
+    [Header("Регенерация")]
+    [Tooltip("Через сколько секунд после последнего удара начинается регенерация")]
+    [SerializeField] private float _regenDelay = 3f;
+
+    [Tooltip("За сколько секунд восстанавливается до полного HP")]
+    [SerializeField] private float _regenTimeToFull = 3f;
+
     private HeroDefinitionSO _data;
     private UnitTier         _tier = UnitTier.T1;
     private int              _powerMultiplier = 1;
+    private float            _regenAccumulator = 0f;
+    private float            _lastDamageTime  = -999f;
+    private bool             _wasRegenerating = false;
 
     public HeroType         HeroType         => _data != null ? _data.HeroType : HeroType.Warrior;
     public UnitTier         Tier             => _tier;
@@ -33,61 +43,92 @@ public class Unit : MonoBehaviour
         _tier = tier;
         _powerMultiplier = multiplier;
         _currentHP = data.MaxHP * multiplier;
+        _lastDamageTime = -999f;
+        _regenAccumulator = 0f;
 
-        // Сообщаем бару полное HP — он скроется автоматически
         if (_healthBar != null)
             _healthBar.SetHP(_currentHP, data.MaxHP * multiplier);
     }
 
     /// <summary>
-    /// Увеличивает множитель силы. Используется когда T2 уже есть и приходит ещё одно слияние.
-    /// HP при этом не пересчитывается (рост HP — это отдельный вопрос дизайна, обсудим).
+    /// Увеличивает множитель силы. Используется при +юниты от ворот.
     /// </summary>
     public void IncrementPowerMultiplier()
     {
         _powerMultiplier++;
-        // HP можем дать рост пропорционально — но это решим в фазе 2.3
     }
 
     /// <summary>
-    /// При смерти T2-юнита с множителем — теряем 1 множитель за удар.
-    /// Если множитель упал до 1 (или ниже) — юнит реально умирает.
+    /// Получает урон. Возвращает true если погиб.
+    /// HP — общий пул всего пакета T2 (multiplier × MaxHP_T1).
     /// </summary>
     public bool TakeDamage(int amount)
     {
+        int hpBefore = _currentHP;
         _currentHP -= amount;
+        _lastDamageTime = Time.time;
+
+        int maxHP = _data.MaxHP * _powerMultiplier;
+
+        Debug.Log($"[Unit] {gameObject.name} получил {amount} урона. " +
+                  $"HP: {hpBefore} → {_currentHP} / {maxHP} (multiplier={_powerMultiplier})", this);
+
+        if (_healthBar != null)
+            _healthBar.SetHP(_currentHP, maxHP);
 
         if (_currentHP <= 0)
         {
-            // Если есть запас множителя — теряем его, а не умираем
-            if (_powerMultiplier > 1)
-            {
-                _powerMultiplier--;
-                _currentHP = _data.MaxHP; // восстанавливаем HP до полной шкалы
-
-                Debug.Log($"[Unit] {gameObject.name} потерял множитель. " +
-                          $"PowerMultiplier={_powerMultiplier}, HP восстановлено", this);
-
-                // Обновляем бар после восстановления
-                if (_healthBar != null)
-                    _healthBar.SetHP(_currentHP, _data.MaxHP * _powerMultiplier);
-
-                return false;
-            }
-
             _currentHP = 0;
-
-            // Обновляем бар перед смертью
-            if (_healthBar != null)
-                _healthBar.SetHP(_currentHP, _data.MaxHP * _powerMultiplier);
-
+            Debug.Log($"[Unit] {gameObject.name} ПОГИБ!", this);
             return true;
         }
 
-        // Обычный урон без смерти
-        if (_healthBar != null)
-            _healthBar.SetHP(_currentHP, _data.MaxHP * _powerMultiplier);
-
         return false;
+    }
+
+    private void Update()
+    {
+        if (GameStateManager.Instance != null && !GameStateManager.Instance.IsPlaying)
+            return;
+
+        if (_data == null) return;
+
+        bool canRegen = (Time.time - _lastDamageTime >= _regenDelay);
+        int maxHP = _data.MaxHP * _powerMultiplier;
+        bool needsRegen = _currentHP < maxHP;
+
+        // Лог когда регенерация только начинается
+        if (canRegen && needsRegen && !_wasRegenerating)
+        {
+            _wasRegenerating = true;
+            Debug.Log($"[Unit] {gameObject.name} начал регенерацию. HP: {_currentHP}/{maxHP}", this);
+        }
+
+        // Лог когда регенерация закончилась (HP=max или пришёл удар)
+        if (_wasRegenerating && (!canRegen || !needsRegen))
+        {
+            _wasRegenerating = false;
+            if (_currentHP >= maxHP)
+                Debug.Log($"[Unit] {gameObject.name} полностью восстановился. HP: {maxHP}", this);
+        }
+
+        // Не регенимся
+        if (!canRegen) return;
+        if (!needsRegen) return;
+
+        // ... остальная регенерация без изменений
+        float regenPerSecond = maxHP / _regenTimeToFull;
+        _regenAccumulator   += regenPerSecond * Time.deltaTime;
+
+        if (_regenAccumulator >= 1f)
+        {
+            int wholeAmount = Mathf.FloorToInt(_regenAccumulator);
+            _regenAccumulator -= wholeAmount;
+
+            _currentHP = Mathf.Min(_currentHP + wholeAmount, maxHP);
+
+            if (_healthBar != null)
+                _healthBar.SetHP(_currentHP, maxHP);
+        }
     }
 }
