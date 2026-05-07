@@ -367,15 +367,19 @@ public class SquadController : MonoBehaviour
             Unit t2 = UnitPool.Instance.Get(type, UnitTier.T2);
             if (t2 == null) return;
 
+            // Новый T2 = пакет из 15 T1 → multiplier=15
+            var data = UnitPool.Instance.GetHeroData(type);
+            if (data != null)
+                t2.Initialize(data, UnitTier.T2, MAX_T1_PER_CATEGORY);
+
             GetCategory(type, UnitTier.T2).Add(t2);
             _flatListDirty = true;
 
-            // Инициализация если легендарка-T2
             MeleeUnitController meleeCtrl = t2.GetComponent<MeleeUnitController>();
             if (meleeCtrl != null)
                 meleeCtrl.Initialize(transform, Vector3.zero);
 
-            Debug.Log($"[Crowd] +1 {type}_T2. Всего T2: {CountAllT2()}", this);
+            Debug.Log($"[Crowd] +1 {type}_T2 (multiplier={MAX_T1_PER_CATEGORY}). Всего T2: {CountAllT2()}", this);
         }
         else
         {

@@ -27,12 +27,12 @@ public class Unit : MonoBehaviour
     /// Инициализирует юнита по данным из ScriptableObject + указывает тир.
     /// Вызывается сразу после спавна из пула.
     /// </summary>
-    public void Initialize(HeroDefinitionSO data, UnitTier tier = UnitTier.T1)
+    public void Initialize(HeroDefinitionSO data, UnitTier tier = UnitTier.T1, int multiplier = 1)
     {
         _data = data;
         _tier = tier;
-        _powerMultiplier = 1;
-        _currentHP = data.MaxHP * _powerMultiplier;
+        _powerMultiplier = multiplier;
+        _currentHP = data.MaxHP * multiplier;
 
         // Сообщаем бару полное HP — он скроется автоматически
         if (_healthBar != null)
