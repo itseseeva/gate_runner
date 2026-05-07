@@ -36,7 +36,7 @@ public class Unit : MonoBehaviour
 
         // Сообщаем бару полное HP — он скроется автоматически
         if (_healthBar != null)
-            _healthBar.SetHP(_currentHP, data.MaxHP);
+            _healthBar.SetHP(_currentHP, data.MaxHP * multiplier);
     }
 
     /// <summary>
@@ -70,7 +70,7 @@ public class Unit : MonoBehaviour
 
                 // Обновляем бар после восстановления
                 if (_healthBar != null)
-                    _healthBar.SetHP(_currentHP, _data.MaxHP);
+                    _healthBar.SetHP(_currentHP, _data.MaxHP * _powerMultiplier);
 
                 return false;
             }
@@ -79,14 +79,14 @@ public class Unit : MonoBehaviour
 
             // Обновляем бар перед смертью
             if (_healthBar != null)
-                _healthBar.SetHP(_currentHP, _data.MaxHP);
+                _healthBar.SetHP(_currentHP, _data.MaxHP * _powerMultiplier);
 
             return true;
         }
 
         // Обычный урон без смерти
         if (_healthBar != null)
-            _healthBar.SetHP(_currentHP, _data.MaxHP);
+            _healthBar.SetHP(_currentHP, _data.MaxHP * _powerMultiplier);
 
         return false;
     }
