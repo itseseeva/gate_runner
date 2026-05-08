@@ -272,6 +272,22 @@ public class SquadController : MonoBehaviour
     }
 
     /// <summary>
+    /// Меняет стихию ВСЕХ юнитов в отряде.
+    /// Вызывается ElementGate при прохождении.
+    /// </summary>
+    public void SetSquadElement(ElementType element)
+    {
+        if (_flatListDirty) RebuildFlatList();
+
+        foreach (Unit u in _allUnits)
+        {
+            if (u != null) u.SetElement(element);
+        }
+
+        Debug.Log($"[Crowd] Стихия отряда → {element}", this);
+    }
+
+    /// <summary>
     /// Убирает N юнитов указанного типа из отряда.
     /// Используется плохими воротами (-N Type).
     /// Убирает сначала T1, потом T2.

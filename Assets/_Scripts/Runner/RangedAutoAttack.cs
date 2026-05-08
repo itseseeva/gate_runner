@@ -27,15 +27,16 @@ public class RangedAutoAttack : MeleeAutoAttackBase
     {
         if (!IsReady) return HitResult.Miss();
 
-        // Получаем множитель силы
-        Unit unit = GetComponent<Unit>();
-        int multiplier = unit != null ? unit.PowerMultiplier : 1;
+        // Расчёт урона делегируется наследнику
+        int multiplier = OwnerUnit != null ? OwnerUnit.PowerMultiplier : 1;
         DamageCalculation calc = CalculateDamage(multiplier);
 
         // Спавним снаряд из пула
         Vector3 spawnPos = transform.position + Vector3.up * _spawnHeightOffset;
         Projectile p = ProjectilePool.Instance.Get(spawnPos, Quaternion.identity);
-        p.Launch(calc.FinalDamage, _range);
+        // Получаем стихию юнита
+        ElementType element = OwnerUnit != null ? OwnerUnit.Element : ElementType.None;
+        p.Launch(calc.FinalDamage, _range, element);
 
         // Обновляем cooldown через reflection базового класса
         UpdateCooldown();

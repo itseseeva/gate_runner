@@ -74,6 +74,12 @@ public class EnemyMeleeAttack : MonoBehaviour
         float distZ = transform.position.z - _squad.transform.position.z;
         if (distZ < 0f) return;
 
+        // ─── Множитель скорости (для статуса Frozen) ──────────────
+        // Берём из WorldScroller — он же используется для движения по Z.
+        float speedMul = 1f;
+        var scroller = GetComponent<WorldScroller>();
+        if (scroller != null) speedMul = scroller.SpeedMultiplier;
+
         // ─── ХАОС 1: периодически "ленюсь" ──────────────────────────
         bool isLazyNow = Time.time < _lazyUntil;
         if (Time.time > _nextLazyCheck)
@@ -104,12 +110,14 @@ public class EnemyMeleeAttack : MonoBehaviour
             if (Mathf.Abs(diff) > 0.3f)
             {
                 float pull = Mathf.Lerp(1f, 0.1f, Mathf.Clamp01(distZ / _trackingRange));
-                trackingDeltaX = Mathf.Sign(diff) * _trackingSpeed * _personalSpeedFactor * pull * Time.deltaTime;
+                // Применяем speedMul к tracking
+                trackingDeltaX = Mathf.Sign(diff) * _trackingSpeed * _personalSpeedFactor * pull * speedMul * Time.deltaTime;
             }
         }
 
         // ─── ХАОС 2: покачивание по X (синус) ───────────────────────
-        float wobble = Mathf.Sin(Time.time * _wobbleSpeed + _wobblePhase) * _wobbleAmount * Time.deltaTime;
+        // Применяем speedMul и к покачиванию
+        float wobble = Mathf.Sin(Time.time * _wobbleSpeed + _wobblePhase) * _wobbleAmount * speedMul * Time.deltaTime;
 
         // ─── 2. Отталкивание от других врагов ───────────────────────
         float separationDeltaX = 0f;
@@ -128,7 +136,8 @@ public class EnemyMeleeAttack : MonoBehaviour
             float dist = Mathf.Sqrt(distSqr);
             if (dist < 0.01f) dist = 0.01f;
 
-            float strength = (1f - dist / _separationRadius) * _separationForce * Time.deltaTime;
+            // Применяем speedMul к разделению
+            float strength = (1f - dist / _separationRadius) * _separationForce * speedMul * Time.deltaTime;
             separationDeltaX += (d.x / dist) * strength;
             separationDeltaZ += (d.z / dist) * strength;
         }

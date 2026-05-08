@@ -23,6 +23,39 @@ public class Unit : MonoBehaviour
     private HeroDefinitionSO _data;
     private UnitTier         _tier = UnitTier.T1;
     private int              _powerMultiplier = 1;
+    private ElementType _element = ElementType.None;
+    public  ElementType Element => _element;
+
+    /// <summary>
+    /// Меняет стихию юнита. Вызывается ElementGate-ом для всего отряда.
+    /// Опционально меняет цвет материала для визуальной индикации.
+    /// </summary>
+    public void SetElement(ElementType element)
+    {
+        _element = element;
+        UpdateVisualForElement();
+    }
+
+    private void UpdateVisualForElement()
+    {
+        var renderer = GetComponentInChildren<MeshRenderer>();
+        if (renderer == null) return;
+
+        Color color = _element switch
+        {
+            ElementType.Fire      => new Color(1f, 0.4f, 0.1f),  // оранжево-красный
+            ElementType.Ice       => new Color(0.4f, 0.8f, 1f),  // голубой
+            ElementType.Lightning => new Color(1f, 0.95f, 0.3f), // жёлтый
+            _                     => Color.white,                 // None — белый (или дефолт материала)
+        };
+
+        // Создаём instance материала чтобы не менять shared
+        Material mat = renderer.material;
+        if (mat.HasProperty("_BaseColor"))
+            mat.SetColor("_BaseColor", color);
+        else
+            mat.color = color;
+    }
     private float            _regenAccumulator = 0f;
     private float            _lastDamageTime  = -999f;
     private bool             _wasRegenerating = false;

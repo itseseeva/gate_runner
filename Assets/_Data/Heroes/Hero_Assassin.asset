@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Hero_Assassin
   m_EditorClassIdentifier: Assembly-CSharp::HeroDefinitionSO
   _heroName: Assassin
-  _maxHP: 80
+  _maxHP: 15
   _attack: 30
   _defense: 2
   _baseSpeed: 120

@@ -22,6 +22,7 @@ public abstract class MeleeAutoAttackBase : MonoBehaviour, IUnitAttack
     /// <summary>Обновляет время последнего выстрела. Вызывается наследниками.</summary>
     protected void UpdateCooldown() => _lastFireTime = Time.time;
     private Unit _unit;
+    protected Unit OwnerUnit => _unit;
 
     private void Awake()
     {
@@ -45,8 +46,19 @@ public abstract class MeleeAutoAttackBase : MonoBehaviour, IUnitAttack
         int multiplier = _unit != null ? _unit.PowerMultiplier : 1;
         DamageCalculation calc = CalculateDamage(multiplier);
 
-        // Наносим урон
-        bool died = target.TakeDamage(calc.FinalDamage);
+        // Применяем стихию через DamageCalculator
+        ElementType element       = _unit != null ? _unit.Element : ElementType.None;
+        StatusController status   = target.GetComponent<StatusController>();
+        int finalDamage           = DamageCalculator.CalculateFinalDamage(calc.FinalDamage, element, status);
+
+        bool died = target.TakeDamage(finalDamage);
+
+        // Накладываем статус если враг жив и есть стихия
+        if (!died && element != ElementType.None && status != null)
+        {
+            StatusEffectType statusToApply = DamageCalculator.GetStatusFromElement(element);
+            status.ApplyStatus(statusToApply, finalDamage);
+        }
 
         // Обновляем cooldown
         UpdateCooldown();
@@ -64,7 +76,7 @@ public abstract class MeleeAutoAttackBase : MonoBehaviour, IUnitAttack
             Hit          = true,
             Killed       = died,
             WasCritical  = calc.WasCritical,
-            DamageDealt  = calc.FinalDamage,
+            DamageDealt  = finalDamage,
             HealingDone  = healed,
             IsAbility    = false,
         };

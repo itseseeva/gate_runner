@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 7336987947705657810}
   - component: {fileID: 7607744655368653282}
   - component: {fileID: -2326326216073917645}
+  - component: {fileID: 5072084837095800618}
   m_Layer: 0
   m_Name: Enemy_Basic
   m_TagString: Untagged
@@ -196,6 +197,18 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &5072084837095800618
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6538716731787721495}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb1ac89913314954483a39c14b7032be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StatusController
 --- !u!1001 &6138877180929577878
 PrefabInstance:
   m_ObjectHideFlags: 0
