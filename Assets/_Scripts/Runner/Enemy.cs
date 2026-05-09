@@ -6,6 +6,7 @@ using UnityEngine;
 /// </summary>
 public class Enemy : MonoBehaviour
 {
+    public static event System.Action<Enemy> OnAnyEnemyDied;
     [Header("Данные врага")]
     [SerializeField] private EnemyDefinitionSO _data;
 
@@ -71,6 +72,9 @@ public class Enemy : MonoBehaviour
     {
         _isDead = true;
         Debug.Log($"[Enemy] {gameObject.name} погиб!", this);
+
+        OnAnyEnemyDied?.Invoke(this);
+
         gameObject.SetActive(false);
     }
 }

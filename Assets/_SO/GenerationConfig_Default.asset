@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GenerationConfigSO
   LevelLength: 300
   WaveCountMin: 5
-  WaveCountMax: 10
+  WaveCountMax: 8
   EnemiesPerWaveMin: 8
   EnemiesPerWaveMax: 15
   WaveSpacingMin: 22

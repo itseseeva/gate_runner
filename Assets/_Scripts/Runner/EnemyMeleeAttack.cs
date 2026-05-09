@@ -173,6 +173,16 @@ public class EnemyMeleeAttack : MonoBehaviour
     {
         _isDead = true;
         Debug.Log($"[EnemyMelee] {gameObject.name} погиб после тарана!", this);
-        gameObject.SetActive(false);
+
+        // Через Enemy.TakeDamage с большим уроном — чтобы сработало событие OnAnyEnemyDied
+        Enemy enemy = GetComponent<Enemy>();
+        if (enemy != null)
+        {
+            enemy.TakeDamage(99999); // гарантированный кил → Die() → событие
+        }
+        else
+        {
+            gameObject.SetActive(false);
+        }
     }
 }

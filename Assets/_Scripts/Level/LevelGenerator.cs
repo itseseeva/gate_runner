@@ -20,6 +20,7 @@ public class LevelGenerator : MonoBehaviour
     private LevelPlan _plan;
     private bool      _levelFinished;
     private float     _virtualLeaderZ;
+    private int       _aliveEnemyCount = 0;  // сколько врагов сейчас живо на сцене
 
     private void Start()
     {
@@ -37,7 +38,18 @@ public class LevelGenerator : MonoBehaviour
         }
 
         BuildPlan();
+        Enemy.OnAnyEnemyDied += HandleEnemyDied;
         Debug.Log($"[LevelGen] План уровня готов: {_plan.Waves.Count} волн, {_plan.Gates.Count} ворот, длина {_plan.LevelLength}м", this);
+    }
+
+    private void OnDestroy()
+    {
+        Enemy.OnAnyEnemyDied -= HandleEnemyDied;
+    }
+
+    private void HandleEnemyDied(Enemy e)
+    {
+        _aliveEnemyCount = Mathf.Max(0, _aliveEnemyCount - 1);
     }
 
     private void Update()
@@ -98,8 +110,9 @@ public class LevelGenerator : MonoBehaviour
             if (e == null || !e.gameObject.activeSelf) continue;
             if (e.transform.position.z < threshold)
             {
+                _aliveEnemyCount = Mathf.Max(0, _aliveEnemyCount - 1);
                 e.gameObject.SetActive(false);
-                Debug.Log($"[LevelGen] Враг {e.gameObject.name} убежал за лидера, деактивирован", this);
+                Debug.Log($"[LevelGen] Враг убежал за лидера, деактивирован", this);
             }
         }
     }
@@ -235,9 +248,12 @@ public class LevelGenerator : MonoBehaviour
 
             GameObject go = Instantiate(_config.EnemyPrefab, new Vector3(x, 1f, wave.Z), Quaternion.identity);
 
-            // Применяем множитель HP
             Enemy enemy = go.GetComponent<Enemy>();
-            if (enemy != null) enemy.ApplyHealthMultiplier(wave.HealthMultiplier);
+            if (enemy != null)
+            {
+                enemy.ApplyHealthMultiplier(wave.HealthMultiplier);
+                _aliveEnemyCount++;
+            }
         }
 
         Debug.Log($"[LevelGen] Волна заспавнена на Z={wave.Z:F0}, врагов={wave.EnemyCount}, HP×{wave.HealthMultiplier:F2}", this);
@@ -277,18 +293,6 @@ public class LevelGenerator : MonoBehaviour
     /// </summary>
     public int GetTotalEnemiesRemaining()
     {
-        int alive = 0;
-        Enemy[] enemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
-        foreach (Enemy e in enemies)
-        {
-            if (e != null && e.gameObject.activeSelf)
-            {
-                alive++;
-                if (Time.frameCount % 60 == 0)
-                    Debug.Log($"[Counter] Живой враг: {e.gameObject.name} pos={e.transform.position}, active={e.gameObject.activeSelf}");
-            }
-        }
-
         int notSpawned = 0;
         if (_plan != null)
         {
@@ -298,13 +302,7 @@ public class LevelGenerator : MonoBehaviour
             }
         }
 
-        int total = alive + notSpawned;
-
-        // Временный лог раз в секунду
-        if (Time.frameCount % 60 == 0)
-            Debug.Log($"[Counter] alive={alive}, notSpawned={notSpawned}, total={total}");
-
-        return total;
+        return _aliveEnemyCount + notSpawned;
     }
 
     /// <summary>True если все запланированные волны уже заспавнены.</summary>
