@@ -31,6 +31,21 @@ public class Enemy : MonoBehaviour
             _healthBar.SetHP(_currentHP, _maxHP);
     }
 
+    /// <summary>
+    /// Применяет множитель к Max HP. Вызывается LevelGenerator-ом при спавне.
+    /// </summary>
+    public void ApplyHealthMultiplier(float multiplier)
+    {
+        if (_data == null) return;
+
+        int boostedHP = Mathf.RoundToInt(_data.MaxHP * multiplier);
+        _maxHP = boostedHP;
+        _currentHP = boostedHP;
+
+        if (_healthBar != null)
+            _healthBar.SetHP(_currentHP, _maxHP);
+    }
+
     /// <summary>Получает урон. Возвращает true если погиб.</summary>
     public bool TakeDamage(int amount)
     {

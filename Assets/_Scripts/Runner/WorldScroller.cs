@@ -12,7 +12,7 @@ public class WorldScroller : MonoBehaviour
     /// Глобальная скорость "бега мира" в м/сек.
     /// TODO: Вынести в GameSettingsSO когда добавим Remote Config
     /// </summary>
-    public static float WorldSpeed = 4.2f;
+    public static float WorldSpeed = 7f;
 
     /// <summary>
     /// Локальный множитель скорости (1.0 = норма, 0.5 = в 2 раза медленнее).

@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c9c9aee1649db848ba8282db1e541d1, type: 3}
+  m_Name: GenerationConfig_Default
+  m_EditorClassIdentifier: Assembly-CSharp::GenerationConfigSO
+  LevelLength: 300
+  WaveCountMin: 5
+  WaveCountMax: 10
+  EnemiesPerWaveMin: 8
+  EnemiesPerWaveMax: 15
+  WaveSpacingMin: 22
+  WaveSpacingMax: 38
+  FirstWaveZ: 30
+  EnemySpreadX: 1.5
+  EnemyPrefab: {fileID: 6538716731787721495, guid: 04cfa2390fb5745429fcbf6e47441369, type: 3}
+  GatePool:
+  - {fileID: 3563244148941149285, guid: a324b7efa578b48459f5cef063468d10, type: 3}
+  - {fileID: 5300034710362681070, guid: 2b9f238b16d9c8b4bb667495993ab306, type: 3}
+  - {fileID: 5096216531739346512, guid: 010e478c500d05542871144eb7a95b69, type: 3}
+  - {fileID: 4177263134620102634, guid: fe48aeabd0d018245b943395d9437c80, type: 3}
+  DoubleGateChance: 0.1
+  QuantityHeroPool: 01000000020000000000000003000000
+  MultiplyChance: 0.2
+  NegativeChance: 0.4
+  AddValueRange: {x: 2, y: 6}
+  MultiplyValueRange: {x: 2, y: 3}
+  NegativeValueRange: {x: 2, y: 4}
+  ZScalingMultiplier: 0.005
+  LevelScalingPerLevel: 0.2

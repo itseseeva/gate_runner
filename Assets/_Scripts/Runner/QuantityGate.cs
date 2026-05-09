@@ -57,6 +57,23 @@ public class QuantityGate : BaseGate
     }
 
     /// <summary>
+    /// Настраивает ворота на лету при процедурной генерации.
+    /// Вызывается LevelGenerator-ом сразу после Instantiate.
+    /// </summary>
+    public void SetupForGenerator(HeroType heroType, bool isMultiply, int value)
+    {
+        Debug.Log($"[Setup] {gameObject.name} ДО: heroType={_heroType} value={_value}");
+        
+        _heroType  = heroType;
+        _operation = isMultiply ? OperationType.Multiply : OperationType.Add;
+        _value     = value;
+
+        Debug.Log($"[Setup] {gameObject.name} ПОСЛЕ: heroType={_heroType} value={_value}");
+
+        OnValidate();
+    }
+
+    /// <summary>
     /// Обновляет цвет стёкол в зависимости от типа ворот.
     /// Вызывается автоматически в редакторе при изменении настроек.
     /// </summary>
