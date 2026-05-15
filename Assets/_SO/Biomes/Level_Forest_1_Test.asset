@@ -15,5 +15,5 @@ MonoBehaviour:
   Id: forest_1
   DisplayName: "\u0423\u0440\u043E\u0432\u0435\u043D\u044C 1"
   GenerationConfig: {fileID: 11400000, guid: 34e681af5e115904285057a53e665794, type: 2}
-  RewardGold: 10
-  RewardXP: 5
+  RewardGold: 100
+  RewardXP: 50

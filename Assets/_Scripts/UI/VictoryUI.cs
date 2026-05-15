@@ -5,13 +5,15 @@ using TMPro;
 
 /// <summary>
 /// Экран Победы. Появляется когда игрок прошёл уровень.
-/// Кнопка "Дальше" перезагружает сцену → следующий уровень.
+/// Показывает что прошёл и какие награды получил.
 /// </summary>
 public class VictoryUI : MonoBehaviour
 {
-    [SerializeField] private GameObject _panel;
-    [SerializeField] private Button _continueButton;
-    [SerializeField] private TextMeshProUGUI _levelLabel;
+    [Header("UI")]
+    [SerializeField] private GameObject       _panel;
+    [SerializeField] private Button           _continueButton;
+    [SerializeField] private TextMeshProUGUI  _levelLabel;
+    [SerializeField] private TextMeshProUGUI  _rewardsLabel;
 
     private void Start()
     {
@@ -34,17 +36,27 @@ public class VictoryUI : MonoBehaviour
 
         if (_panel != null) _panel.SetActive(true);
 
-        if (_levelLabel != null && ProgressionManager.Instance != null)
+        // Имя уровня
+        if (_levelLabel != null && LevelLauncher.Instance != null && LevelLauncher.Instance.SelectedBiome != null)
         {
-            // Показываем какой только что прошли (после AdvanceLevel это уже следующий)
-            int prev = ProgressionManager.Instance.CurrentLevel - 1;
-            _levelLabel.text = $"Уровень {prev} пройден!";
+            var biome = LevelLauncher.Instance.SelectedBiome;
+            int idx   = LevelLauncher.Instance.SelectedLevelIndex;
+            _levelLabel.text = $"{biome.DisplayName} — {biome.GetLevelDisplayName(idx)} пройден!";
+        }
+
+        // Текст наград
+        if (_rewardsLabel != null && LevelLauncher.Instance != null && LevelLauncher.Instance.SelectedBiome != null)
+        {
+            var biome = LevelLauncher.Instance.SelectedBiome;
+            int idx   = LevelLauncher.Instance.SelectedLevelIndex;
+            int gold  = biome.GetLevelRewardGold(idx);
+            int xp    = biome.GetLevelRewardXP(idx);
+            _rewardsLabel.text = $"+{gold} Gold\n+{xp} XP";
         }
     }
 
     private void OnContinue()
     {
-        // Возврат в главное меню
         SceneManager.LoadScene("MainMenu");
     }
 }
