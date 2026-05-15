@@ -53,6 +53,14 @@ public class Enemy : MonoBehaviour
         if (_isDead) return false;
 
         _currentHP -= amount;
+        
+        // Спавн цифры урона над врагом
+        if (DamageNumberPool.Instance != null)
+        {
+            Vector3 spawnPos = transform.position + Vector3.up * 1.5f;
+            DamageNumberPool.Instance.Spawn(amount, spawnPos, false);
+        }
+
         Debug.Log($"[Enemy] {gameObject.name} получил {amount} урона. HP={_currentHP}", this);
 
         // Обновляем бар

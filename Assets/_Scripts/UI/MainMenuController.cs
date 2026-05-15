@@ -18,6 +18,10 @@ public class MainMenuController : MonoBehaviour
     [SerializeField] private Button       _forestButton;
     [SerializeField] private BiomeDataSO  _forestBiome;
 
+    [Header("Desert")]
+    [SerializeField] private Button       _desertButton;
+    [SerializeField] private BiomeDataSO  _desertBiome;
+
     [Tooltip("Главное меню — скрывается при открытии BiomeView")]
     [SerializeField] private GameObject _mainMenuRoot;
 
@@ -38,6 +42,9 @@ public class MainMenuController : MonoBehaviour
         // Кнопка биома
         if (_forestButton != null)
             _forestButton.onClick.AddListener(OnForestClicked);
+
+        if (_desertButton != null)
+            _desertButton.onClick.AddListener(OnDesertClicked);
     }
 
     private void OnDestroy()
@@ -52,9 +59,9 @@ public class MainMenuController : MonoBehaviour
 
         var p = PlayerDataManager.Instance;
 
-        if (_goldText  != null) _goldText.text  = $"Gold: {p.Gold}";
-        if (_xpText    != null) _xpText.text    = $"XP: {p.XP} / {p.GetXPForNextLevel()}";
-        if (_levelText != null) _levelText.text = $"Уровень: {p.AccountLevel}";
+        if (_goldText  != null) _goldText.text  = $"<sprite=0> {p.Gold}";
+        if (_xpText    != null) _xpText.text    = $"<sprite=0> {p.XP} / {p.GetXPForNextLevel()}";
+        if (_levelText != null) _levelText.text = $"<sprite=0> {p.AccountLevel}";
     }
 
     private void OnForestClicked()
@@ -73,6 +80,24 @@ public class MainMenuController : MonoBehaviour
 
         if (_mainMenuRoot != null) _mainMenuRoot.SetActive(false);
         _biomeView.Show(_forestBiome);
+    }
+
+    private void OnDesertClicked()
+    {
+        if (_desertBiome == null)
+        {
+            Debug.LogError("[MainMenu] Desert Biome не задан!", this);
+            return;
+        }
+
+        if (_biomeView == null)
+        {
+            Debug.LogError("[MainMenu] BiomeView не задан!", this);
+            return;
+        }
+
+        if (_mainMenuRoot != null) _mainMenuRoot.SetActive(false);
+        _biomeView.Show(_desertBiome);
     }
 
     public void ShowMainMenu()

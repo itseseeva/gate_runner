@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
+using DG.Tweening;
 
 /// <summary>
 /// Панель биома — показывает заголовок биома и список уровней (кнопок).
@@ -36,9 +37,23 @@ public class BiomeView : MonoBehaviour
         if (biome == null) return;
         _currentBiome = biome;
 
-        if (_panel != null) _panel.SetActive(true);
-        if (_biomeTitle != null) _biomeTitle.text = biome.DisplayName;
+        if (_panel != null)
+        {
+            _panel.SetActive(true);
 
+            // Анимация — выезжаем снизу + появляемся
+            var rt = _panel.GetComponent<RectTransform>();
+            var canvasGroup = _panel.GetComponent<CanvasGroup>();
+            if (canvasGroup == null) canvasGroup = _panel.AddComponent<CanvasGroup>();
+
+            rt.anchoredPosition = new Vector2(0, -Screen.height);
+            canvasGroup.alpha = 0;
+
+            rt.DOAnchorPosY(0, 0.4f).SetEase(Ease.OutQuad);
+            canvasGroup.DOFade(1f, 0.3f);
+        }
+
+        if (_biomeTitle != null) _biomeTitle.text = biome.DisplayName;
         RefreshLevels();
     }
 

@@ -2,10 +2,16 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
+using DG.Tweening;
 
 /// <summary>
-/// Экран Победы. Появляется когда игрок прошёл уровень.
-/// Показывает что прошёл и какие награды получил.
+/// Экран Победы с анимациями DOTween.
+/// Поток:
+/// 1. Появление панели + текст "Уровень X пройден!"
+/// 2. Цифры наград "+N Gold, +N XP"
+/// 3. Анимация полоски XP с тикающими цифрами
+/// 4. Если был level-up — попап "Уровень N!"
+/// 5. Кнопка "Продолжить" доступна по завершении анимации
 /// </summary>
 public class VictoryUI : MonoBehaviour
 {
@@ -14,6 +20,18 @@ public class VictoryUI : MonoBehaviour
     [SerializeField] private Button           _continueButton;
     [SerializeField] private TextMeshProUGUI  _levelLabel;
     [SerializeField] private TextMeshProUGUI  _rewardsLabel;
+
+    [Header("XP-полоска")]
+    [SerializeField] private Slider           _xpBar;
+    [SerializeField] private TextMeshProUGUI  _xpBarText;
+    [SerializeField] private TextMeshProUGUI  _accountLevelText;
+
+    [Header("Level-Up Popup (опционально, на той же сцене)")]
+    [SerializeField] private LevelUpPopup _levelUpPopup;
+
+    [Header("Тайминги")]
+    [SerializeField] private float _delayBeforeXP = 0.5f;
+    [SerializeField] private float _xpFillDuration = 1.5f;
 
     private void Start()
     {
@@ -33,26 +51,170 @@ public class VictoryUI : MonoBehaviour
     private void HandleStateChanged(GameState newState)
     {
         if (newState != GameState.Victory) return;
+        ShowVictory();
+    }
 
+    private void ShowVictory()
+    {
         if (_panel != null) _panel.SetActive(true);
 
-        // Имя уровня
-        if (_levelLabel != null && LevelLauncher.Instance != null && LevelLauncher.Instance.SelectedBiome != null)
+        var launcher = LevelLauncher.Instance;
+        var pdm      = PlayerDataManager.Instance;
+
+        // Защита если играем напрямую со SampleScene
+        if (launcher == null || pdm == null || launcher.SelectedBiome == null)
         {
-            var biome = LevelLauncher.Instance.SelectedBiome;
-            int idx   = LevelLauncher.Instance.SelectedLevelIndex;
-            _levelLabel.text = $"{biome.DisplayName} — {biome.GetLevelDisplayName(idx)} пройден!";
+            Debug.LogWarning("[VictoryUI] Нет launcher/pdm — анимации не показываются", this);
+            if (_continueButton != null) _continueButton.interactable = true;
+            return;
         }
 
-        // Текст наград
-        if (_rewardsLabel != null && LevelLauncher.Instance != null && LevelLauncher.Instance.SelectedBiome != null)
+        var biome = launcher.SelectedBiome;
+        int idx   = launcher.SelectedLevelIndex;
+        int gold  = biome.GetLevelRewardGold(idx);
+        int xp    = biome.GetLevelRewardXP(idx);
+
+        // Имя уровня
+        if (_levelLabel != null)
+            _levelLabel.text = $"{biome.DisplayName} — {biome.GetLevelDisplayName(idx)} пройден!";
+
+        // Награды текст — анимация тиканья от 0 до значений
+        if (_rewardsLabel != null)
         {
-            var biome = LevelLauncher.Instance.SelectedBiome;
-            int idx   = LevelLauncher.Instance.SelectedLevelIndex;
-            int gold  = biome.GetLevelRewardGold(idx);
-            int xp    = biome.GetLevelRewardXP(idx);
-            _rewardsLabel.text = $"+{gold} Gold\n+{xp} XP";
+            _rewardsLabel.text = "+0 Gold\n+0 XP";
+            AnimateRewardsText(gold, xp);
         }
+
+        // Кнопку временно отключаем — пока идут анимации
+        if (_continueButton != null) _continueButton.interactable = false;
+
+        // Запоминаем XP "до" для анимации полоски
+        int oldXP    = pdm.XP;
+        int oldLevel = pdm.AccountLevel;
+
+        // Начисляем золото сразу (на полоску оно не влияет)
+        pdm.AddGold(gold);
+
+        // Запускаем анимацию полоски XP
+        AnimateXPBar(oldXP, oldLevel, xp);
+    }
+
+    /// <summary>
+    /// Анимирует полоску XP от старого значения к новому.
+    /// Если по пути level-up — переключает полоску на новый уровень и показывает попап.
+    /// </summary>
+    private void AnimateXPBar(int startXP, int startLevel, int xpToAdd)
+    {
+        var pdm = PlayerDataManager.Instance;
+        if (pdm == null) return;
+
+        int    currentLevel = startLevel;
+        int    currentXP    = startXP;
+        int    xpForLevel   = 100 * currentLevel;
+
+        // Стартовое состояние полоски
+        UpdateBarVisual(currentXP, xpForLevel, currentLevel);
+
+        // Sequence для анимации
+        Sequence seq = DOTween.Sequence();
+        seq.AppendInterval(_delayBeforeXP);
+
+        int xpLeft = xpToAdd;
+        while (xpLeft > 0)
+        {
+            int xpToFill = Mathf.Min(xpLeft, xpForLevel - currentXP);
+            int targetXP = currentXP + xpToFill;
+
+            // Локальные копии для замыкания
+            int capturedStart = currentXP;
+            int capturedEnd   = targetXP;
+            int capturedMax   = xpForLevel;
+            int capturedLvl   = currentLevel;
+
+            float fillDuration = _xpFillDuration * ((float)xpToFill / xpToAdd);
+
+            seq.Append(DOVirtual.Float(capturedStart, capturedEnd, fillDuration, value =>
+            {
+                int xpNow = Mathf.RoundToInt(value);
+                UpdateBarVisual(xpNow, capturedMax, capturedLvl);
+            }));
+
+            currentXP = targetXP;
+            xpLeft -= xpToFill;
+
+            // Достигли максимума — level-up
+            if (currentXP >= xpForLevel)
+            {
+                int newLevel = currentLevel + 1;
+                seq.AppendCallback(() => ShowLevelUpPopup(newLevel));
+                seq.AppendInterval(1.0f); // пауза для попапа
+
+                currentLevel = newLevel;
+                currentXP    = 0;
+                xpForLevel   = 100 * currentLevel;
+
+                // Сбрасываем полоску визуально на 0
+                int capLvl = currentLevel;
+                int capMax = xpForLevel;
+                seq.AppendCallback(() => UpdateBarVisual(0, capMax, capLvl));
+            }
+        }
+
+        // В конце анимации — реально начисляем XP
+        seq.OnComplete(() =>
+        {
+            pdm.AddXP(xpToAdd);
+            if (_continueButton != null) _continueButton.interactable = true;
+        });
+    }
+
+    private void UpdateBarVisual(int currentXP, int maxXP, int level)
+    {
+        if (_xpBar != null)
+        {
+            _xpBar.maxValue = maxXP;
+            _xpBar.value    = currentXP;
+        }
+        if (_xpBarText != null)
+            _xpBarText.text = $"{currentXP} / {maxXP}";
+        if (_accountLevelText != null)
+            _accountLevelText.text = $"Уровень {level}";
+    }
+
+    private void ShowLevelUpPopup(int newLevel)
+    {
+        if (_levelUpPopup != null)
+            _levelUpPopup.Show(newLevel);
+        else
+            Debug.Log($"[VictoryUI] Level-up до {newLevel} (попап не привязан)");
+    }
+
+    private void AnimateRewardsText(int gold, int xp)
+    {
+        if (_rewardsLabel == null) return;
+
+        int currentGold = 0;
+        int currentXP = 0;
+
+        Sequence seq = DOTween.Sequence();
+
+        // Появление с увеличением
+        _rewardsLabel.transform.localScale = Vector3.zero;
+        seq.Append(_rewardsLabel.transform.DOScale(1f, 0.3f).SetEase(Ease.OutBack));
+
+        // Тикаем gold
+        seq.Append(DOVirtual.Float(0, gold, 0.6f, val =>
+        {
+            currentGold = Mathf.RoundToInt(val);
+            _rewardsLabel.text = $"+{currentGold} Gold\n+{currentXP} XP";
+        }));
+
+        // Тикаем xp
+        seq.Append(DOVirtual.Float(0, xp, 0.5f, val =>
+        {
+            currentXP = Mathf.RoundToInt(val);
+            _rewardsLabel.text = $"+{currentGold} Gold\n+{currentXP} XP";
+        }));
     }
 
     private void OnContinue()

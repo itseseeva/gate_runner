@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using DG.Tweening;
 
 /// <summary>
 /// Кнопка уровня в меню биома. Состояния: пройден ✓ / доступен ▶ / закрыт 🔒.
@@ -50,7 +51,43 @@ public class LevelButton : MonoBehaviour
             _button.interactable = _isUnlocked;
             _button.onClick.RemoveAllListeners();
             _button.onClick.AddListener(OnClicked);
+            
+            // Hover-эффект через EventTrigger
+            SetupHoverAnimation();
         }
+    }
+
+    private void SetupHoverAnimation()
+    {
+        if (!_isUnlocked || _button == null) return;
+
+        var trigger = _button.gameObject.GetComponent<UnityEngine.EventSystems.EventTrigger>();
+        if (trigger == null)
+            trigger = _button.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+
+        trigger.triggers.Clear();
+
+        // PointerEnter — увеличение
+        var entryEnter = new UnityEngine.EventSystems.EventTrigger.Entry
+        {
+            eventID = UnityEngine.EventSystems.EventTriggerType.PointerEnter
+        };
+        entryEnter.callback.AddListener(_ =>
+        {
+            transform.DOScale(1.05f, 0.15f).SetEase(Ease.OutQuad);
+        });
+        trigger.triggers.Add(entryEnter);
+
+        // PointerExit — возврат
+        var entryExit = new UnityEngine.EventSystems.EventTrigger.Entry
+        {
+            eventID = UnityEngine.EventSystems.EventTriggerType.PointerExit
+        };
+        entryExit.callback.AddListener(_ =>
+        {
+            transform.DOScale(1f, 0.15f).SetEase(Ease.OutQuad);
+        });
+        trigger.triggers.Add(entryExit);
     }
 
     private void OnClicked()

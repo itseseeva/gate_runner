@@ -31,6 +31,9 @@ public class PlayerDataManager : MonoBehaviour
     // ─── События для UI ───────────────────────────────────────────
     public static event System.Action OnDataChanged;
 
+    /// <summary>Срабатывает при level-up. Параметр — новый уровень.</summary>
+    public static event System.Action<int> OnLevelUp;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -100,6 +103,8 @@ public class PlayerDataManager : MonoBehaviour
             XP -= GetXPForNextLevel();
             AccountLevel++;
             Debug.Log($"[Player] LEVEL UP! Теперь уровень {AccountLevel}", this);
+
+            OnLevelUp?.Invoke(AccountLevel);
         }
 
         Save();

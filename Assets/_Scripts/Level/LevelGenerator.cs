@@ -299,21 +299,14 @@ public class LevelGenerator : MonoBehaviour
     {
         Debug.Log("[LevelGen] УРОВЕНЬ ПРОЙДЕН!", this);
 
-        // Начисляем награды через PlayerDataManager
+        // НЕ начисляем награды здесь — это делает VictoryUI после анимации
+        // Просто помечаем уровень пройденным
         var launcher = LevelLauncher.Instance;
         var pdm      = PlayerDataManager.Instance;
 
-        if (launcher != null && pdm != null && launcher.SelectedBiome != null)
+        if (launcher != null && pdm != null && !string.IsNullOrEmpty(launcher.SelectedLevelId))
         {
-            int idx = launcher.SelectedLevelIndex;
-            int gold = launcher.SelectedBiome.GetLevelRewardGold(idx);
-            int xp   = launcher.SelectedBiome.GetLevelRewardXP(idx);
-
-            pdm.AddGold(gold);
-            pdm.AddXP(xp);
             pdm.MarkLevelComplete(launcher.SelectedLevelId);
-
-            Debug.Log($"[LevelGen] Награды: +{gold}g, +{xp}xp", this);
         }
 
         if (GameStateManager.Instance != null)
