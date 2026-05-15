@@ -44,7 +44,7 @@ public class VictoryUI : MonoBehaviour
 
     private void OnContinue()
     {
-        // Перезагружаем сцену — она сама подтянет новый уровень из ProgressionManager
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        // Возврат в главное меню
+        SceneManager.LoadScene("MainMenu");
     }
 }

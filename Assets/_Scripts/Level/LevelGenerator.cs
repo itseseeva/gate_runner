@@ -24,6 +24,14 @@ public class LevelGenerator : MonoBehaviour
 
     private void Start()
     {
+        // Если есть LevelLauncher с выбранным уровнем — используем его конфиг
+        if (LevelLauncher.Instance != null && LevelLauncher.Instance.SelectedLevel != null)
+        {
+            _config = LevelLauncher.Instance.SelectedLevel.GenerationConfig;
+            int lvlIndex = LevelLauncher.Instance.SelectedLevelIndex;
+            Debug.Log($"[LevelGen] Использую конфиг из шаблона, уровень={lvlIndex + 1}", this);
+        }
+
         if (_config == null)
         {
             Debug.LogError("[LevelGen] GenerationConfig не задан!", this);
@@ -123,8 +131,9 @@ public class LevelGenerator : MonoBehaviour
     {
         _plan = new LevelPlan { LevelLength = _config.LevelLength };
 
-        int currentLevel = ProgressionManager.Instance != null
-            ? ProgressionManager.Instance.CurrentLevel
+        // Номер уровня в биоме определяет сложность
+        int currentLevel = LevelLauncher.Instance != null && LevelLauncher.Instance.SelectedLevelIndex >= 0
+            ? LevelLauncher.Instance.SelectedLevelIndex + 1
             : 1;
 
         // Множитель сложности от номера уровня
@@ -277,12 +286,35 @@ public class LevelGenerator : MonoBehaviour
 
     // ─── Финиш ───────────────────────────────────────────────────
 
+    /// <summary>Принудительно завершает уровень победой. Используется чит-панелью.</summary>
+    [ContextMenu("Force Victory")]
+    public void ForceFinishLevel()
+    {
+        if (_levelFinished) return;
+        _levelFinished = true;
+        FinishLevel();
+    }
+
     private void FinishLevel()
     {
         Debug.Log("[LevelGen] УРОВЕНЬ ПРОЙДЕН!", this);
 
-        if (ProgressionManager.Instance != null)
-            ProgressionManager.Instance.AdvanceLevel();
+        // Начисляем награды через PlayerDataManager
+        var launcher = LevelLauncher.Instance;
+        var pdm      = PlayerDataManager.Instance;
+
+        if (launcher != null && pdm != null && launcher.SelectedBiome != null)
+        {
+            int idx = launcher.SelectedLevelIndex;
+            int gold = launcher.SelectedBiome.GetLevelRewardGold(idx);
+            int xp   = launcher.SelectedBiome.GetLevelRewardXP(idx);
+
+            pdm.AddGold(gold);
+            pdm.AddXP(xp);
+            pdm.MarkLevelComplete(launcher.SelectedLevelId);
+
+            Debug.Log($"[LevelGen] Награды: +{gold}g, +{xp}xp", this);
+        }
 
         if (GameStateManager.Instance != null)
             GameStateManager.Instance.SetVictory();
