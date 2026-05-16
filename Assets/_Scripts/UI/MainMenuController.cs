@@ -32,6 +32,10 @@ public class MainMenuController : MonoBehaviour
     [Tooltip("Имя сцены геймплея — должна совпадать с файлом в Build Profiles")]
     [SerializeField] private string _gameplaySceneName = "SampleScene";
 
+    [Header("Переход на базу")]
+    [SerializeField] private Button _baseButton;
+    [SerializeField] private string _baseSceneName = "BaseScene";
+
     private void Start()
     {
         UpdateUI();
@@ -45,6 +49,9 @@ public class MainMenuController : MonoBehaviour
 
         if (_desertButton != null)
             _desertButton.onClick.AddListener(OnDesertClicked);
+
+        if (_baseButton != null)
+            _baseButton.onClick.AddListener(OnBaseClicked);
     }
 
     private void OnDestroy()
@@ -103,5 +110,11 @@ public class MainMenuController : MonoBehaviour
     public void ShowMainMenu()
     {
         if (_mainMenuRoot != null) _mainMenuRoot.SetActive(true);
+    }
+
+    private void OnBaseClicked()
+    {
+        Debug.Log("[MainMenu] Переход на базу");
+        SceneManager.LoadScene(_baseSceneName);
     }
 }

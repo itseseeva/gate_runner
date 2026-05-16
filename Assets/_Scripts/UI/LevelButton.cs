@@ -35,8 +35,7 @@ public class LevelButton : MonoBehaviour
 
         if (_label != null)
         {
-            string prefix = completed ? "✓ " : (_isUnlocked ? "" : "🔒 ");
-            _label.text   = $"{prefix}{biome.GetLevelDisplayName(levelIndex)}";
+            _label.text = biome.GetLevelDisplayName(levelIndex);
         }
 
         if (_background != null)

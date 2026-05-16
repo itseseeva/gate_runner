@@ -178,7 +178,7 @@ public class EnemyMeleeAttack : MonoBehaviour
         Enemy enemy = GetComponent<Enemy>();
         if (enemy != null)
         {
-            enemy.TakeDamage(99999); // гарантированный кил → Die() → событие
+            enemy.TakeDamage(99999, showDamageNumber: false); // тихая смерть от тарана
         }
         else
         {

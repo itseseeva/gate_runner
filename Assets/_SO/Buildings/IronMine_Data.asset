@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4577b05055c97e44082ac72b0c17c8fb, type: 3}
+  m_Name: IronMine_Data
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingDataSO
+  Type: 2
+  DisplayName: IronMine
+  Description: The main building of the base
+  PrimitiveColor: {r: 0.41509432, g: 0.41509432, b: 0.41509432, a: 1}
+  PrimitiveHeight: 2.5
+  Levels:
+  - Level: 1
+    CostGold: 0
+    CostIron: 0
+    CostFood: 0
+    UpgradeTimeSeconds: 0
+    ProductionPerSecond: 0
+    StorageCapacity: 0
+  - Level: 2
+    CostGold: 200
+    CostIron: 0
+    CostFood: 0
+    UpgradeTimeSeconds: 5
+    ProductionPerSecond: 0
+    StorageCapacity: 0
+  - Level: 3
+    CostGold: 500
+    CostIron: 100
+    CostFood: 0
+    UpgradeTimeSeconds: 5
+    ProductionPerSecond: 0
+    StorageCapacity: 0
+  - Level: 4
+    CostGold: 1500
+    CostIron: 300
+    CostFood: 0
+    UpgradeTimeSeconds: 5
+    ProductionPerSecond: 0
+    StorageCapacity: 0
+  - Level: 5
+    CostGold: 5000
+    CostIron: 1000
+    CostFood: 0
+    UpgradeTimeSeconds: 0
+    ProductionPerSecond: 5
+    StorageCapacity: 0

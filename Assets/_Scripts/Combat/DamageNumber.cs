@@ -17,9 +17,9 @@ public class DamageNumber : MonoBehaviour
     private Sequence    _activeSequence;
 
     [Header("Анимация")]
-    [SerializeField] private float _flyDuration = 0.6f;
-    [SerializeField] private float _flyDistance = 1.5f;
-    [SerializeField] private float _appearScale = 1.1f;
+    [SerializeField] private float _flyDuration = 0.5f;     // быстрее
+    [SerializeField] private float _flyDistance = 1.2f;     // длиннее полёт
+    [SerializeField] private float _appearScale = 1.05f;    // меньше bounce
 
     [Header("Цвета")]
     [SerializeField] private Color _normalColor = Color.white;
@@ -30,54 +30,54 @@ public class DamageNumber : MonoBehaviour
         _label = GetComponent<TextMeshPro>();
     }
 
-    /// <summary>Показывает цифру урона в указанной позиции.</summary>
     public void Show(int damage, Vector3 worldPosition, bool isCritical)
     {
-        // Останавливаем предыдущую анимацию если была
         _activeSequence?.Kill();
 
-        transform.position = worldPosition;
+        // Случайное смещение появления (почти 0)
+        Vector3 randomOffset = new Vector3(
+            Random.Range(-0.05f, 0.05f),
+            0f,
+            Random.Range(-0.05f, 0.05f)
+        );
+        Vector3 startPos = worldPosition + randomOffset;
+
+        transform.position = startPos;
         transform.localScale = Vector3.zero;
 
         if (isCritical)
         {
             _label.text     = $"{damage}!";
             _label.color    = _critColor;
-            _label.fontSize = 6f;
         }
         else
         {
             _label.text     = damage.ToString();
             _label.color    = _normalColor;
-            _label.fontSize = 4f;
         }
 
-        // Поворачиваем к камере (Billboard)
+        // Поворачиваем к камере
         if (Camera.main != null)
             transform.forward = Camera.main.transform.forward;
 
-        // Sequence анимаций
+        // Случайный угол полёта — не строго вверх, а вверх + чуть в сторону
+        float angleX = Random.Range(-0.5f, 0.5f);
+        Vector3 endPos = startPos + new Vector3(angleX, _flyDistance, 0f);
+
         _activeSequence = DOTween.Sequence();
 
-        // Появление с bounce
-        _activeSequence.Append(transform.DOScale(_appearScale, 0.12f).SetEase(Ease.OutQuad));
-        _activeSequence.Append(transform.DOScale(1f, 0.08f));
+        // Резкий выстрел вверх с быстрым появлением
+        _activeSequence.Append(transform.DOScale(_appearScale, 0.08f).SetEase(Ease.OutBack));
+        _activeSequence.Append(transform.DOScale(1f, 0.05f));
 
-        // Полёт вверх + затухание
-        Vector3 endPos = worldPosition + Vector3.up * _flyDistance;
         _activeSequence.Append(transform.DOMove(endPos, _flyDuration).SetEase(Ease.OutQuad));
+        _activeSequence.Join(_label.DOFade(0f, _flyDuration).SetEase(Ease.InQuad));
 
-        // Fade в параллель с полётом
-        _activeSequence.Join(_label.DOFade(0f, _flyDuration));
-
-        // По окончании — возврат в пул
         _activeSequence.OnComplete(() =>
         {
-            // Сбрасываем alpha для следующего использования
             Color c = _label.color;
             c.a = 1f;
             _label.color = c;
-
             DamageNumberPool.Instance?.Return(this);
         });
     }

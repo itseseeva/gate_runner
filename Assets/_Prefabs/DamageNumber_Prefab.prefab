@@ -116,8 +116,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+    rgba: 4280331239
+  m_fontColor: {r: 0.9056604, g: 0.668938, b: 0.12388753, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -134,8 +134,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 4
-  m_fontSizeBase: 4
+  m_fontSize: 2
+  m_fontSizeBase: 2
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -194,8 +194,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 463b9d44462e5db498ab5f11a3be97d7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageNumber
-  _flyDuration: 0.6
-  _flyDistance: 1.5
+  _flyDuration: 0.3
+  _flyDistance: 0.5
   _appearScale: 1.1
   _normalColor: {r: 1, g: 1, b: 1, a: 1}
   _critColor: {r: 1, g: 0.85, b: 0.2, a: 1}

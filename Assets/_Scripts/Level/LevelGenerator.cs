@@ -150,11 +150,15 @@ public class LevelGenerator : MonoBehaviour
             float zMul = 1f + currentZ * _config.ZScalingMultiplier;
             float totalMul = zMul * levelMul;
 
+            // Формация: рандом среди 3 вариантов
+            WaveFormation formation = (WaveFormation)Random.Range(0, 3);
+
             _plan.Waves.Add(new WaveData
             {
                 Z                = currentZ,
                 EnemyCount       = Random.Range(_config.EnemiesPerWaveMin, _config.EnemiesPerWaveMax + 1),
                 HealthMultiplier = totalMul,
+                Formation        = formation,
             });
 
             // Между волнами — ворота
@@ -250,12 +254,12 @@ public class LevelGenerator : MonoBehaviour
     {
         if (_config.EnemyPrefab == null) return;
 
-        for (int i = 0; i < wave.EnemyCount; i++)
-        {
-            float totalWidth = (wave.EnemyCount - 1) * _config.EnemySpreadX;
-            float x = -totalWidth / 2f + i * _config.EnemySpreadX;
+        // Определяем позиции врагов в зависимости от формации
+        Vector3[] positions = GenerateWavePositions(wave);
 
-            GameObject go = Instantiate(_config.EnemyPrefab, new Vector3(x, 1f, wave.Z), Quaternion.identity);
+        for (int i = 0; i < positions.Length; i++)
+        {
+            GameObject go = Instantiate(_config.EnemyPrefab, positions[i], Quaternion.identity);
 
             Enemy enemy = go.GetComponent<Enemy>();
             if (enemy != null)
@@ -265,7 +269,63 @@ public class LevelGenerator : MonoBehaviour
             }
         }
 
-        Debug.Log($"[LevelGen] Волна заспавнена на Z={wave.Z:F0}, врагов={wave.EnemyCount}, HP×{wave.HealthMultiplier:F2}", this);
+        Debug.Log($"[LevelGen] Волна заспавнена на Z={wave.Z:F0}, формация={wave.Formation}, врагов={wave.EnemyCount}, HP×{wave.HealthMultiplier:F2}", this);
+    }
+
+    /// <summary>Генерирует позиции для волны в зависимости от формации.</summary>
+    private Vector3[] GenerateWavePositions(WaveData wave)
+    {
+        Vector3[] positions = new Vector3[wave.EnemyCount];
+
+        switch (wave.Formation)
+        {
+            case WaveFormation.LeftCluster:
+                // Плотный отряд слева (X ≈ -1.2)
+                positions = GenerateClusterPositions(wave.EnemyCount, wave.Z, centerX: -1.2f, clusterRadius: 0.8f);
+                break;
+
+            case WaveFormation.RightCluster:
+                // Плотный отряд справа (X ≈ +1.2)
+                positions = GenerateClusterPositions(wave.EnemyCount, wave.Z, centerX: 1.2f, clusterRadius: 0.8f);
+                break;
+
+            case WaveFormation.CenterMob:
+                // Большая толпа по центру — широкая по X и глубокая по Z
+                positions = GenerateClusterPositions(wave.EnemyCount, wave.Z, centerX: 0f, clusterRadius: 1.5f);
+                break;
+        }
+
+        return positions;
+    }
+
+    /// <summary>Генерирует позиции толпы вокруг указанного центра.</summary>
+    private Vector3[] GenerateClusterPositions(int count, float centerZ, float centerX, float clusterRadius)
+    {
+        Vector3[] positions = new Vector3[count];
+
+        // Расставляем в сетке + лёгкий шум для естественности
+        int rows = Mathf.CeilToInt(Mathf.Sqrt(count));
+        int cols = Mathf.CeilToInt((float)count / rows);
+        float spacing = clusterRadius * 2f / Mathf.Max(cols - 1, 1);
+
+        int idx = 0;
+        for (int row = 0; row < rows && idx < count; row++)
+        {
+            for (int col = 0; col < cols && idx < count; col++)
+            {
+                float x = centerX + (col - (cols - 1) / 2f) * spacing;
+                float z = centerZ + (row - (rows - 1) / 2f) * spacing;
+
+                // Лёгкий случайный шум чтобы не выглядело как сетка
+                x += Random.Range(-0.15f, 0.15f);
+                z += Random.Range(-0.15f, 0.15f);
+
+                positions[idx] = new Vector3(x, 1f, z);
+                idx++;
+            }
+        }
+
+        return positions;
     }
 
     private void SpawnGate(GateData data)

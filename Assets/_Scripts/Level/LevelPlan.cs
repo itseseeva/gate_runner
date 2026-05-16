@@ -12,6 +12,13 @@ public class LevelPlan
     public float LevelLength;
 }
 
+public enum WaveFormation
+{
+    LeftCluster,  // плотный отряд слева от центра
+    RightCluster, // плотный отряд справа от центра
+    CenterMob,    // большая толпа по центру
+}
+
 /// <summary>Данные о волне врагов: где, сколько, насколько сильные.</summary>
 public class WaveData
 {
@@ -19,6 +26,7 @@ public class WaveData
     public int   EnemyCount;     // сколько врагов
     public float HealthMultiplier; // множитель HP (от Z + от уровня игрока)
     public bool  Spawned;        // уже создан?
+    public WaveFormation Formation;
 }
 
 /// <summary>Данные о воротах: где, какой prefab, какие настройки если Quantity.</summary>
