@@ -157,6 +157,110 @@ public class BaseManager : MonoBehaviour
         OnBuildingsChanged?.Invoke();
     }
 
+    // ─── Апгрейды ───────────────────────────────────────────
+
+    /// <summary>
+    /// Запускает апгрейд здания. Списывает ресурсы. Возвращает true если получилось.
+    /// </summary>
+    public bool StartUpgrade(string buildingId)
+    {
+        var building = GetBuilding(buildingId);
+        if (building == null)
+        {
+            Debug.LogError($"[Base] Здание {buildingId} не найдено!", this);
+            return false;
+        }
+
+        // Уже в процессе апгрейда?
+        if (building.IsUpgrading)
+        {
+            Debug.LogWarning($"[Base] {buildingId} уже апгрейдится", this);
+            return false;
+        }
+
+        // Достигли максимума?
+        var data = GetDataFor(building.Type);
+        if (data == null) return false;
+        if (building.Level >= data.MaxLevel)
+        {
+            Debug.LogWarning($"[Base] {buildingId} уже на максимуме", this);
+            return false;
+        }
+
+        // Проверка очереди — пока только 1 апгрейд одновременно
+        if (IsAnyUpgrading())
+        {
+            Debug.LogWarning($"[Base] Уже идёт другой апгрейд — очередь пока 1", this);
+            return false;
+        }
+
+        // Получаем данные следующего уровня
+        var nextLevelData = data.GetLevel(building.Level + 1);
+        if (nextLevelData == null) return false;
+
+        // Списываем ресурсы
+        if (ResourceManager.Instance == null)
+        {
+            Debug.LogError("[Base] ResourceManager не найден!", this);
+            return false;
+        }
+
+        if (!ResourceManager.Instance.TrySpend(nextLevelData.CostGold, nextLevelData.CostIron))
+        {
+            Debug.LogWarning("[Base] Не хватает ресурсов", this);
+            return false;
+        }
+
+        // Запускаем таймер
+        building.IsUpgrading = true;
+        building.UpgradeEndTime = DateTime.UtcNow.AddSeconds(nextLevelData.UpgradeTimeSeconds);
+
+        Save();
+        OnBuildingsChanged?.Invoke();
+
+        Debug.Log($"[Base] Запущен апгрейд {building.Type} → Lvl {building.Level + 1} (займёт {nextLevelData.UpgradeTimeSeconds}с)", this);
+        return true;
+    }
+
+    /// <summary>Завершает апгрейд — уровень +1, флаги сбрасываются.</summary>
+    public void CompleteUpgrade(string buildingId)
+    {
+        var building = GetBuilding(buildingId);
+        if (building == null || !building.IsUpgrading) return;
+
+        building.Level++;
+        building.IsUpgrading = false;
+
+        Save();
+        OnBuildingsChanged?.Invoke();
+
+        Debug.Log($"[Base] Апгрейд завершён: {building.Type} теперь Lvl {building.Level}", this);
+    }
+
+    /// <summary>Есть ли хоть одно здание которое сейчас апгрейдится.</summary>
+    public bool IsAnyUpgrading()
+    {
+        foreach (var b in _state.Buildings)
+            if (b.IsUpgrading) return true;
+        return false;
+    }
+
+    /// <summary>
+    /// Проверяет все здания — если у кого-то таймер истёк, завершает апгрейд.
+    /// Вызывается из UpgradeTicker каждую секунду.
+    /// </summary>
+    public void CheckUpgradeTimers()
+    {
+        DateTime now = DateTime.UtcNow;
+        foreach (var b in _state.Buildings)
+        {
+            if (b.IsUpgrading && now >= b.UpgradeEndTime)
+            {
+                CompleteUpgrade(b.Id);
+            }
+        }
+    }
+
     // ─── Отладка ───────────────────────────────────────────
 
     [ContextMenu("Сбросить базу")]

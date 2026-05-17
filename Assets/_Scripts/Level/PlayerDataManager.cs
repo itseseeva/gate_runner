@@ -84,11 +84,11 @@ public class PlayerDataManager : MonoBehaviour
     /// <summary>Добавляет золото и сохраняет.</summary>
     public void AddGold(int amount)
     {
-        if (amount <= 0) return;
-        Gold += amount;
+        if (amount == 0) return;
+        Gold = Mathf.Max(0, Gold + amount);
         Save();
         OnDataChanged?.Invoke();
-        Debug.Log($"[Player] +{amount} gold. Всего: {Gold}", this);
+        Debug.Log($"[Player] {(amount > 0 ? "+" : "")}{amount} gold. Всего: {Gold}", this);
     }
 
     /// <summary>Добавляет опыт и сохраняет. Проверяет level-up.</summary>

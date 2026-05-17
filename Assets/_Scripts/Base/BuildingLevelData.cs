@@ -2,24 +2,26 @@ using System;
 
 /// <summary>
 /// Данные одного уровня здания.
-/// Стоимость апгрейда до этого уровня, что производит, время постройки.
+/// Не все поля нужны для всех типов — см. подсказки.
 /// </summary>
 [Serializable]
 public class BuildingLevelData
 {
     public int Level;
 
-    // Стоимость улучшения до этого уровня
+    [UnityEngine.Header("Стоимость апгрейда до этого уровня")]
     public int CostGold;
     public int CostIron;
     public int CostFood;
 
-    // Время апгрейда (в секундах для теста; будут реальные часы потом)
+    [UnityEngine.Header("Время апгрейда (сек)")]
     public float UpgradeTimeSeconds;
 
-    // Что производит здание на этом уровне (для GoldMine/IronMine)
+    [UnityEngine.Header("ТОЛЬКО для GoldMine / IronMine")]
+    [UnityEngine.Tooltip("Сколько ресурса в секунду. У HQ/Barracks/Training/Storage = 0")]
     public int ProductionPerSecond;
 
-    // Для Storage — лимит хранилища
+    [UnityEngine.Header("ТОЛЬКО для Storage")]
+    [UnityEngine.Tooltip("Лимит хранилища. У всех остальных = 0")]
     public int StorageCapacity;
 }

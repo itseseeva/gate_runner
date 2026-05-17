@@ -15,6 +15,9 @@ public class BuildingView : MonoBehaviour
     [SerializeField] private TextMeshPro     _labelText;
     [SerializeField] private Transform       _labelAnchor;  // где будет висеть надпись над зданием
 
+    [Header("Прогресс апгрейда")]
+    [SerializeField] private TextMeshPro _progressLabel;  // отдельный текст для прогресс-инфы
+
     private BuildingInstance _instance;
     private BuildingDataSO   _data;
 
@@ -80,5 +83,37 @@ public class BuildingView : MonoBehaviour
 
         Vector3 targetScale = selected ? _baseScale * 1.05f : _baseScale;
         transform.DOScale(targetScale, 0.2f).SetEase(Ease.OutQuad);
+    }
+
+    private void Update()
+    {
+        if (_instance == null || _progressLabel == null) return;
+
+        if (_instance.IsUpgrading)
+        {
+            var remaining = _instance.UpgradeEndTime - System.DateTime.UtcNow;
+            if (remaining.TotalSeconds > 0)
+            {
+                _progressLabel.gameObject.SetActive(true);
+                _progressLabel.text = $"⚙ Lvl {_instance.Level + 1}\n{FormatTime((float)remaining.TotalSeconds)}";
+            }
+            else
+            {
+                _progressLabel.gameObject.SetActive(false);
+            }
+        }
+        else
+        {
+            if (_progressLabel.gameObject.activeSelf)
+                _progressLabel.gameObject.SetActive(false);
+        }
+    }
+
+    private string FormatTime(float seconds)
+    {
+        if (seconds < 60f) return $"{seconds:F0}s";
+        int min = Mathf.FloorToInt(seconds / 60f);
+        int sec = Mathf.FloorToInt(seconds % 60f);
+        return $"{min}:{sec:00}";
     }
 }
