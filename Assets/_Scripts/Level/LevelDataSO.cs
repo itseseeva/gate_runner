@@ -24,4 +24,5 @@ public class LevelDataSO : ScriptableObject
     [Header("Награды за победу")]
     [Min(0)] public int RewardGold = 10;
     [Min(0)] public int RewardXP   = 5;
+    [Min(0)] public int RewardIron = 3;
 }

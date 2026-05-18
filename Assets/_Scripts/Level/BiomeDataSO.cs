@@ -58,4 +58,11 @@ public class BiomeDataSO : ScriptableObject
         if (LevelTemplate == null) return 5;
         return LevelTemplate.RewardXP * (levelIndex + 1);
     }
+
+    /// <summary>Награда iron — растёт линейно от LevelTemplate.RewardIron × (1..LevelCount).</summary>
+    public int GetLevelRewardIron(int levelIndex)
+    {
+        if (LevelTemplate == null) return 3;
+        return LevelTemplate.RewardIron * (levelIndex + 1);
+    }
 }

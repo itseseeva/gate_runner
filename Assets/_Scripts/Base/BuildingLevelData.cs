@@ -1,27 +1,39 @@
 using System;
+using UnityEngine;
 
 /// <summary>
-/// Данные одного уровня здания.
-/// Не все поля нужны для всех типов — см. подсказки.
+/// Базовые данные одного уровня здания.
+/// Содержит только общие для всех типов поля: стоимость апгрейда и время.
+/// Подклассы (ProducerLevelData, StorageLevelData) добавляют специфичные поля.
 /// </summary>
 [Serializable]
 public class BuildingLevelData
 {
     public int Level;
 
-    [UnityEngine.Header("Стоимость апгрейда до этого уровня")]
+    [Header("Стоимость апгрейда")]
     public int CostGold;
     public int CostIron;
     public int CostFood;
 
-    [UnityEngine.Header("Время апгрейда (сек)")]
+    [Header("Время апгрейда (сек)")]
     public float UpgradeTimeSeconds;
+}
 
-    [UnityEngine.Header("ТОЛЬКО для GoldMine / IronMine")]
-    [UnityEngine.Tooltip("Сколько ресурса в секунду. У HQ/Barracks/Training/Storage = 0")]
+/// <summary>Уровень здания-производителя ресурсов (GoldMine, IronMine).</summary>
+[Serializable]
+public class ProducerLevelData : BuildingLevelData
+{
+    [Header("Производство")]
+    [Tooltip("Сколько ресурса в секунду")]
     public int ProductionPerSecond;
+}
 
-    [UnityEngine.Header("ТОЛЬКО для Storage")]
-    [UnityEngine.Tooltip("Лимит хранилища. У всех остальных = 0")]
+/// <summary>Уровень здания-хранилища (Storage).</summary>
+[Serializable]
+public class StorageLevelData : BuildingLevelData
+{
+    [Header("Хранилище")]
+    [Tooltip("Лимит ресурсов которые могут храниться")]
     public int StorageCapacity;
 }

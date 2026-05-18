@@ -73,16 +73,35 @@ public class VictoryUI : MonoBehaviour
         int idx   = launcher.SelectedLevelIndex;
         int gold  = biome.GetLevelRewardGold(idx);
         int xp    = biome.GetLevelRewardXP(idx);
+        int iron  = biome.GetLevelRewardIron(idx);
 
         // Имя уровня
         if (_levelLabel != null)
             _levelLabel.text = $"{biome.DisplayName} — {biome.GetLevelDisplayName(idx)} пройден!";
 
-        // Награды текст — анимация тиканья от 0 до значений
+        // Запоминаем СТАРЫЕ значения до начисления
+        int oldGoldTotal = pdm.Gold;
+        int oldIronTotal = ResourceManager.Instance != null ? ResourceManager.Instance.Iron : 0;
+
+        // Начисляем
+        pdm.AddGold(gold);
+        if (ResourceManager.Instance != null)
+        {
+            ResourceManager.Instance.AddIron(iron);
+            ResourceManager.Instance.ActivateProductionBuff(60f); // 1 минута
+            Debug.Log($"[VictoryUI] Бафф активирован, IsBuffActive={ResourceManager.Instance.IsBuffActive}");
+        }
+        else
+        {
+            Debug.LogError("[VictoryUI] ResourceManager.Instance null!");
+        }
+
+        // Анимируем плавный переход от старого к новому
         if (_rewardsLabel != null)
         {
-            _rewardsLabel.text = "+0 Gold\n+0 XP";
-            AnimateRewardsText(gold, xp);
+            AnimateRewards(oldGoldTotal, oldGoldTotal + gold,
+                           0, xp,  // XP покажем отдельно через прогресс-полоску, тут просто прирост
+                           oldIronTotal, oldIronTotal + iron);
         }
 
         // Кнопку временно отключаем — пока идут анимации
@@ -91,9 +110,6 @@ public class VictoryUI : MonoBehaviour
         // Запоминаем XP "до" для анимации полоски
         int oldXP    = pdm.XP;
         int oldLevel = pdm.AccountLevel;
-
-        // Начисляем золото сразу (на полоску оно не влияет)
-        pdm.AddGold(gold);
 
         // Запускаем анимацию полоски XP
         AnimateXPBar(oldXP, oldLevel, xp);
@@ -189,32 +205,61 @@ public class VictoryUI : MonoBehaviour
             Debug.Log($"[VictoryUI] Level-up до {newLevel} (попап не привязан)");
     }
 
-    private void AnimateRewardsText(int gold, int xp)
+    /// <summary>
+    /// Анимирует переход цифр ресурсов от старых значений к новым.
+    /// Каждый ресурс получает 0.5 сек на анимацию, идут параллельно.
+    /// </summary>
+    private void AnimateRewards(int oldGold, int newGold,
+                                int oldXP,   int newXP,
+                                int oldIron, int newIron)
     {
         if (_rewardsLabel == null) return;
 
-        int currentGold = 0;
-        int currentXP = 0;
+        int curGold = oldGold;
+        int curXP   = oldXP;
+        int curIron = oldIron;
+
+        // Начальное состояние
+        UpdateRewardsText(curGold, curXP, curIron);
+
+        _rewardsLabel.transform.localScale = Vector3.zero;
 
         Sequence seq = DOTween.Sequence();
-
-        // Появление с увеличением
-        _rewardsLabel.transform.localScale = Vector3.zero;
         seq.Append(_rewardsLabel.transform.DOScale(1f, 0.3f).SetEase(Ease.OutBack));
 
-        // Тикаем gold
-        seq.Append(DOVirtual.Float(0, gold, 0.6f, val =>
+        // Все три ресурса анимируются параллельно
+        if (newGold != oldGold)
         {
-            currentGold = Mathf.RoundToInt(val);
-            _rewardsLabel.text = $"+{currentGold} Gold\n+{currentXP} XP";
-        }));
+            seq.Join(DOVirtual.Float(oldGold, newGold, 1.5f, val =>
+            {
+                curGold = Mathf.RoundToInt(val);
+                UpdateRewardsText(curGold, curXP, curIron);
+            }).SetEase(Ease.Linear));
+        }
 
-        // Тикаем xp
-        seq.Append(DOVirtual.Float(0, xp, 0.5f, val =>
+        if (newXP != oldXP)
         {
-            currentXP = Mathf.RoundToInt(val);
-            _rewardsLabel.text = $"+{currentGold} Gold\n+{currentXP} XP";
-        }));
+            seq.Join(DOVirtual.Float(oldXP, newXP, 1.5f, val =>
+            {
+                curXP = Mathf.RoundToInt(val);
+                UpdateRewardsText(curGold, curXP, curIron);
+            }).SetEase(Ease.Linear));
+        }
+
+        if (newIron != oldIron)
+        {
+            seq.Join(DOVirtual.Float(oldIron, newIron, 1.5f, val =>
+            {
+                curIron = Mathf.RoundToInt(val);
+                UpdateRewardsText(curGold, curXP, curIron);
+            }).SetEase(Ease.Linear));
+        }
+    }
+
+    private void UpdateRewardsText(int gold, int xp, int iron)
+    {
+        if (_rewardsLabel != null)
+            _rewardsLabel.text = $"Gold: {gold}\n+{xp} XP\n Iron: {iron}";
     }
 
     private void OnContinue()

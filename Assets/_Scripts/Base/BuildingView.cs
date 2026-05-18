@@ -18,6 +18,10 @@ public class BuildingView : MonoBehaviour
     [Header("Прогресс апгрейда")]
     [SerializeField] private TextMeshPro _progressLabel;  // отдельный текст для прогресс-инфы
 
+    [Header("Бафф")]
+    [SerializeField] private GameObject _buffCanvas;    // World Space Canvas над зданием
+    [SerializeField] private TextMeshProUGUI _buffText; // текст внутри canvas
+
     private BuildingInstance _instance;
     private BuildingDataSO   _data;
 
@@ -87,6 +91,12 @@ public class BuildingView : MonoBehaviour
 
     private void Update()
     {
+        UpdateUpgradeProgress();
+        UpdateBuffLabel();
+    }
+
+    private void UpdateUpgradeProgress()
+    {
         if (_instance == null || _progressLabel == null) return;
 
         if (_instance.IsUpgrading)
@@ -106,6 +116,25 @@ public class BuildingView : MonoBehaviour
         {
             if (_progressLabel.gameObject.activeSelf)
                 _progressLabel.gameObject.SetActive(false);
+        }
+    }
+
+    private void UpdateBuffLabel()
+    {
+        if (_buffCanvas == null || _buffText == null) return;
+        if (ResourceManager.Instance == null) return;
+
+        // Бафф показываем только на Producer-зданиях (GoldMine, IronMine)
+        bool isProducer = _data is ProducerBuildingDataSO;
+        bool active = isProducer && ResourceManager.Instance.IsBuffActive;
+
+        if (_buffCanvas.activeSelf != active)
+            _buffCanvas.SetActive(active);
+
+        if (active)
+        {
+            float remaining = ResourceManager.Instance.BuffRemainingSeconds;
+            _buffText.text = $"⚡ x{ResourceManager.Instance.BuffMultiplier:F0} · {FormatTime(remaining)}";
         }
     }
 

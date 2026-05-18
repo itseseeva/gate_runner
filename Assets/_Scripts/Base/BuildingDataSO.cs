@@ -2,36 +2,29 @@ using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
-/// Шаблон здания. ScriptableObject — статичные данные.
-/// На каждый тип здания создаётся один ассет (HQ_Data, GoldMine_Data, etc.).
-/// Содержит таблицу уровней с балансом.
+/// Базовый шаблон здания (HQ, Barracks, Training).
+/// Подклассы используют свои списки уровней с дополнительными полями.
 /// </summary>
-[CreateAssetMenu(fileName = "BuildingData", menuName = "MGR/Base/Building Data")]
+[CreateAssetMenu(fileName = "BuildingData_Basic", menuName = "MGR/Base/Building Data (Basic)")]
 public class BuildingDataSO : ScriptableObject
 {
     [Header("Идентификация")]
     public BuildingType Type;
-    public string DisplayName = "Здание";
-    public string Description = "Описание";
+    public string DisplayName = "Building";
+    public string Description = "Description";
 
-    [Header("Визуал (заглушки)")]
-    [Tooltip("Цвет примитива на базе (пока нет 3D-моделей)")]
+    [Header("Визуал")]
     public Color PrimitiveColor = Color.gray;
-
-    [Tooltip("Высота примитива (для масштабирования куба)")]
     public float PrimitiveHeight = 1.5f;
 
-    [Header("Уровни (баланс)")]
-    [Tooltip("Уровни 1-10 с балансом. Элемент 0 = уровень 1.")]
-    public List<BuildingLevelData> Levels = new();
+    [Header("Уровни (баланс) — используется только для HQ/Barracks/Training")]
+    [SerializeField] protected List<BuildingLevelData> _levels = new();
 
-    /// <summary>Получает данные конкретного уровня. Защита от выхода за пределы.</summary>
-    public BuildingLevelData GetLevel(int level)
+    public virtual BuildingLevelData GetLevel(int level)
     {
-        int idx = Mathf.Clamp(level - 1, 0, Levels.Count - 1);
-        return Levels.Count > 0 ? Levels[idx] : null;
+        int idx = Mathf.Clamp(level - 1, 0, _levels.Count - 1);
+        return _levels.Count > 0 ? _levels[idx] : null;
     }
 
-    /// <summary>Максимальный уровень здания (последний в таблице).</summary>
-    public int MaxLevel => Levels.Count;
+    public virtual int MaxLevel => _levels.Count;
 }

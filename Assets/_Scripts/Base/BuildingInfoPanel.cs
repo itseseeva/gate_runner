@@ -140,17 +140,19 @@ public class BuildingInfoPanel : MonoBehaviour
 
     private string GetProductionText(BuildingDataSO data, int level)
     {
-        var levelData = data.GetLevel(level);
-        if (levelData == null) return "";
+        // Producer-здания
+        if (data is ProducerBuildingDataSO producer)
+        {
+            int prod = producer.GetProduction(level);
+            if (data.Type == BuildingType.GoldMine) return $"Production: +{prod} gold/sec";
+            if (data.Type == BuildingType.IronMine) return $"Production: +{prod} iron/sec";
+        }
 
-        if (data.Type == BuildingType.GoldMine)
-            return $"Production: +{levelData.ProductionPerSecond} gold/sec";
-
-        if (data.Type == BuildingType.IronMine)
-            return $"Production: +{levelData.ProductionPerSecond} iron/sec";
-
-        if (data.Type == BuildingType.Storage)
-            return $"Capacity: {levelData.StorageCapacity}";
+        // Storage-здания
+        if (data is StorageBuildingDataSO storage)
+        {
+            return $"Capacity: {storage.GetCapacity(level)}";
+        }
 
         return data.Description;
     }

@@ -9,47 +9,43 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4577b05055c97e44082ac72b0c17c8fb, type: 3}
+  m_Script: {fileID: 11500000, guid: c57cb726b540a9c4ebb731afb2d87821, type: 3}
   m_Name: GoldMine_Data
-  m_EditorClassIdentifier: Assembly-CSharp::BuildingDataSO
+  m_EditorClassIdentifier: Assembly-CSharp::ProducerBuildingDataSO
   Type: 1
   DisplayName: GoldMine
-  Description: The main building of the base
-  PrimitiveColor: {r: 0.9529412, g: 0.3987495, b: 0, a: 1}
-  PrimitiveHeight: 2.5
-  Levels:
+  Description: Description
+  PrimitiveColor: {r: 1, g: 0.6324958, b: 0, a: 1}
+  PrimitiveHeight: 1.5
+  _levels: []
+  _producerLevels:
   - Level: 1
     CostGold: 0
     CostIron: 0
     CostFood: 0
     UpgradeTimeSeconds: 0
-    ProductionPerSecond: 0
-    StorageCapacity: 0
+    ProductionPerSecond: 5
   - Level: 2
-    CostGold: 200
+    CostGold: 100
     CostIron: 0
     CostFood: 0
     UpgradeTimeSeconds: 5
-    ProductionPerSecond: 0
-    StorageCapacity: 0
+    ProductionPerSecond: 10
   - Level: 3
-    CostGold: 500
-    CostIron: 100
+    CostGold: 300
+    CostIron: 0
     CostFood: 0
     UpgradeTimeSeconds: 5
-    ProductionPerSecond: 0
-    StorageCapacity: 0
+    ProductionPerSecond: 25
   - Level: 4
-    CostGold: 1500
-    CostIron: 300
+    CostGold: 800
+    CostIron: 0
     CostFood: 0
     UpgradeTimeSeconds: 5
-    ProductionPerSecond: 0
-    StorageCapacity: 0
+    ProductionPerSecond: 50
   - Level: 5
-    CostGold: 5000
-    CostIron: 1000
+    CostGold: 2000
+    CostIron: 0
     CostFood: 0
-    UpgradeTimeSeconds: 0
-    ProductionPerSecond: 5
-    StorageCapacity: 0
+    UpgradeTimeSeconds: 5
+    ProductionPerSecond: 100

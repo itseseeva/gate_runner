@@ -9,47 +9,43 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4577b05055c97e44082ac72b0c17c8fb, type: 3}
+  m_Script: {fileID: 11500000, guid: 251ef60e8b084ff43a8c20c9d7f347a7, type: 3}
   m_Name: Storage_Data
-  m_EditorClassIdentifier: Assembly-CSharp::BuildingDataSO
+  m_EditorClassIdentifier: Assembly-CSharp::StorageBuildingDataSO
   Type: 5
   DisplayName: Storage
-  Description: The main building of the base
-  PrimitiveColor: {r: 0.715788, g: 1, b: 0.6462264, a: 1}
-  PrimitiveHeight: 2.5
-  Levels:
+  Description: Description
+  PrimitiveColor: {r: 0.8301887, g: 0.26237094, b: 0.26237094, a: 1}
+  PrimitiveHeight: 1.5
+  _levels: []
+  _storageLevels:
   - Level: 1
     CostGold: 0
     CostIron: 0
     CostFood: 0
     UpgradeTimeSeconds: 0
-    ProductionPerSecond: 0
-    StorageCapacity: 0
+    StorageCapacity: 2200
   - Level: 2
-    CostGold: 200
+    CostGold: 100
     CostIron: 0
     CostFood: 0
-    UpgradeTimeSeconds: 5
-    ProductionPerSecond: 0
-    StorageCapacity: 0
+    UpgradeTimeSeconds: 20
+    StorageCapacity: 3000
   - Level: 3
-    CostGold: 500
-    CostIron: 100
+    CostGold: 300
+    CostIron: 0
     CostFood: 0
-    UpgradeTimeSeconds: 5
-    ProductionPerSecond: 0
-    StorageCapacity: 0
+    UpgradeTimeSeconds: 60
+    StorageCapacity: 8000
   - Level: 4
-    CostGold: 1500
-    CostIron: 300
+    CostGold: 800
+    CostIron: 0
     CostFood: 0
-    UpgradeTimeSeconds: 5
-    ProductionPerSecond: 0
-    StorageCapacity: 0
+    UpgradeTimeSeconds: 180
+    StorageCapacity: 20000
   - Level: 5
-    CostGold: 5000
-    CostIron: 1000
+    CostGold: 2000
+    CostIron: 0
     CostFood: 0
-    UpgradeTimeSeconds: 0
-    ProductionPerSecond: 5
-    StorageCapacity: 0
+    UpgradeTimeSeconds: 600
+    StorageCapacity: 50000

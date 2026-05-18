@@ -17,39 +17,4 @@ MonoBehaviour:
   Description: The main building of the base
   PrimitiveColor: {r: 0.9529412, g: 0.16896859, b: 0, a: 1}
   PrimitiveHeight: 2.5
-  Levels:
-  - Level: 1
-    CostGold: 0
-    CostIron: 0
-    CostFood: 0
-    UpgradeTimeSeconds: 0
-    ProductionPerSecond: 0
-    StorageCapacity: 0
-  - Level: 2
-    CostGold: 200
-    CostIron: 0
-    CostFood: 0
-    UpgradeTimeSeconds: 5
-    ProductionPerSecond: 0
-    StorageCapacity: 0
-  - Level: 3
-    CostGold: 500
-    CostIron: 100
-    CostFood: 0
-    UpgradeTimeSeconds: 5
-    ProductionPerSecond: 0
-    StorageCapacity: 0
-  - Level: 4
-    CostGold: 1500
-    CostIron: 300
-    CostFood: 0
-    UpgradeTimeSeconds: 5
-    ProductionPerSecond: 0
-    StorageCapacity: 0
-  - Level: 5
-    CostGold: 5000
-    CostIron: 1000
-    CostFood: 0
-    UpgradeTimeSeconds: 0
-    ProductionPerSecond: 5
-    StorageCapacity: 0
+  _levels: []

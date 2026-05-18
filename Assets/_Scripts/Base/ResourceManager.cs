@@ -11,7 +11,30 @@ public class ResourceManager : MonoBehaviour
 {
     public static ResourceManager Instance { get; private set; }
 
+    [Header("Production Buff")]
+    [Tooltip("Множитель производства когда бафф активен")]
+    [SerializeField] private float _buffMultiplier = 2f;
+
+    // Время окончания баффа (UTC ticks)
+    private long _buffEndTicks;
+
+    public float BuffMultiplier => _buffMultiplier;
+    public bool IsBuffActive => DateTime.UtcNow.Ticks < _buffEndTicks;
+
+    /// <summary>Сколько секунд осталось до конца баффа (0 если неактивен).</summary>
+    public float BuffRemainingSeconds
+    {
+        get
+        {
+            if (!IsBuffActive) return 0f;
+            var end = new DateTime(_buffEndTicks, DateTimeKind.Utc);
+            var remaining = end - DateTime.UtcNow;
+            return (float)remaining.TotalSeconds;
+        }
+    }
+
     private const string KEY_IRON = "mgr_iron";
+    private const string KEY_BUFF_END = "mgr_buff_end";
 
     public int Iron { get; private set; }
 
@@ -36,12 +59,14 @@ public class ResourceManager : MonoBehaviour
     private void Load()
     {
         Iron = PlayerPrefs.GetInt(KEY_IRON, 0);
-        Debug.Log($"[Resource] Загружено: Gold={Gold}, Iron={Iron}", this);
+        _buffEndTicks = long.Parse(PlayerPrefs.GetString(KEY_BUFF_END, "0"));
+        Debug.Log($"[Resource] Загружено: Gold={Gold}, Iron={Iron}, BuffActive={IsBuffActive}", this);
     }
 
     private void Save()
     {
         PlayerPrefs.SetInt(KEY_IRON, Iron);
+        PlayerPrefs.SetString(KEY_BUFF_END, _buffEndTicks.ToString());
         PlayerPrefs.Save();
     }
 
@@ -93,6 +118,30 @@ public class ResourceManager : MonoBehaviour
 
         OnResourcesChanged?.Invoke();
         return true;
+    }
+
+    /// <summary>
+    /// Активирует бафф производства. Если уже активен — продлевает (стек).
+    /// </summary>
+    public void ActivateProductionBuff(float seconds)
+    {
+        DateTime newEnd;
+        if (IsBuffActive)
+        {
+            // Продлеваем от текущего конца
+            var currentEnd = new DateTime(_buffEndTicks, DateTimeKind.Utc);
+            newEnd = currentEnd.AddSeconds(seconds);
+        }
+        else
+        {
+            newEnd = DateTime.UtcNow.AddSeconds(seconds);
+        }
+
+        _buffEndTicks = newEnd.Ticks;
+        Save();
+        OnResourcesChanged?.Invoke();
+
+        Debug.Log($"[Resource] Production Buff активирован до {newEnd:HH:mm:ss}", this);
     }
 
     // ─── Отладка ────────────────────────────────────────────

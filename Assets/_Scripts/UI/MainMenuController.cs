@@ -13,6 +13,7 @@ public class MainMenuController : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _goldText;
     [SerializeField] private TextMeshProUGUI _xpText;
     [SerializeField] private TextMeshProUGUI _levelText;
+    [SerializeField] private TextMeshProUGUI _ironText;
 
     [Header("Биомы")]
     [SerializeField] private Button       _forestButton;
@@ -42,6 +43,7 @@ public class MainMenuController : MonoBehaviour
 
         // Подписываемся на изменения данных
         PlayerDataManager.OnDataChanged += UpdateUI;
+        ResourceManager.OnResourcesChanged += UpdateUI;
 
         // Кнопка биома
         if (_forestButton != null)
@@ -57,6 +59,7 @@ public class MainMenuController : MonoBehaviour
     private void OnDestroy()
     {
         PlayerDataManager.OnDataChanged -= UpdateUI;
+        ResourceManager.OnResourcesChanged -= UpdateUI;
     }
 
     /// <summary>Обновляет верхний бар. Вызывается при изменении данных.</summary>
@@ -69,6 +72,9 @@ public class MainMenuController : MonoBehaviour
         if (_goldText  != null) _goldText.text  = $"<sprite=0> {p.Gold}";
         if (_xpText    != null) _xpText.text    = $"<sprite=0> {p.XP} / {p.GetXPForNextLevel()}";
         if (_levelText != null) _levelText.text = $"<sprite=0> {p.AccountLevel}";
+
+        if (_ironText != null && ResourceManager.Instance != null)
+            _ironText.text = $"<sprite=0> {ResourceManager.Instance.Iron}";
     }
 
     private void OnForestClicked()
