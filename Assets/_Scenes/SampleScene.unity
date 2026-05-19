@@ -3477,7 +3477,7 @@ MonoBehaviour:
   _followSpeed: 10
   _startUnits:
   - heroType: 3
-    count: 0
+    count: 4
   - heroType: 1
     count: 10
   - heroType: 0

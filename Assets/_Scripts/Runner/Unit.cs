@@ -13,6 +13,10 @@ public class Unit : MonoBehaviour
     [Header("UI")]
     [SerializeField] private HealthBar _healthBar;
 
+    [Header("Визуализация (Best Practice)")]
+    [Tooltip("Сюда перетаскиваем Renderer куба или SkinnedMeshRenderer гномика")]
+    [SerializeField] private Renderer _unitRenderer;
+
     [Header("Регенерация")]
     [Tooltip("Через сколько секунд после последнего удара начинается регенерация")]
     [SerializeField] private float _regenDelay = 3f;
@@ -38,19 +42,18 @@ public class Unit : MonoBehaviour
 
     private void UpdateVisualForElement()
     {
-        var renderer = GetComponentInChildren<MeshRenderer>();
-        if (renderer == null) return;
+        // Никаких GetComponentInChildren! Используем готовую ссылку
+        if (_unitRenderer == null) return;
 
         Color color = _element switch
         {
-            ElementType.Fire      => new Color(1f, 0.4f, 0.1f),  // оранжево-красный
-            ElementType.Ice       => new Color(0.4f, 0.8f, 1f),  // голубой
-            ElementType.Lightning => new Color(1f, 0.95f, 0.3f), // жёлтый
-            _                     => Color.white,                 // None — белый (или дефолт материала)
+            ElementType.Fire      => new Color(1f, 0.4f, 0.1f),  
+            ElementType.Ice       => new Color(0.4f, 0.8f, 1f),  
+            ElementType.Lightning => new Color(1f, 0.95f, 0.3f), 
+            _                     => Color.white,                 
         };
 
-        // Создаём instance материала чтобы не менять shared
-        Material mat = renderer.material;
+        Material mat = _unitRenderer.material;
         if (mat.HasProperty("_BaseColor"))
             mat.SetColor("_BaseColor", color);
         else
