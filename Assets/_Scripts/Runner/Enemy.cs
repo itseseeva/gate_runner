@@ -158,4 +158,18 @@ public class Enemy : MonoBehaviour
             gameObject.SetActive(false);
         });
     }
+
+    /// <summary>
+    /// Смерть от отталкивания — без анимации, просто деактивация после отлёта.
+    /// Вызывается KnockbackReceiver когда враг умирает от удара танка.
+    /// </summary>
+    public void DieFromKnockback()
+    {
+        if (_isDead) return;
+        _isDead = true;
+
+        Debug.Log($"[Enemy] {gameObject.name} погиб от отталкивания!", this);
+        OnAnyEnemyDied?.Invoke(this);
+        // Деактивация произойдёт в KnockbackReceiver после завершения отлёта
+    }
 }

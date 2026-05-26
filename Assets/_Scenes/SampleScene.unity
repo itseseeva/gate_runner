@@ -3477,15 +3477,15 @@ MonoBehaviour:
   _followSpeed: 10
   _startUnits:
   - heroType: 3
-    count: 4
+    count: 1
   - heroType: 1
-    count: 10
+    count: 0
   - heroType: 0
     count: 0
   - heroType: 4
     count: 0
   - heroType: 2
-    count: 30
+    count: 0
 --- !u!114 &1554201389
 MonoBehaviour:
   m_ObjectHideFlags: 0

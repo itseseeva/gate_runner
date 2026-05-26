@@ -22,11 +22,13 @@ public abstract class MeleeAutoAttackBase : MonoBehaviour, IUnitAttack
     /// <summary>Обновляет время последнего выстрела. Вызывается наследниками.</summary>
     protected void UpdateCooldown() => _lastFireTime = Time.time;
     private Unit _unit;
+    private Animator _animator;
     protected Unit OwnerUnit => _unit;
 
     private void Awake()
     {
         _unit = GetComponent<Unit>();
+        _animator = GetComponentInChildren<Animator>();
         if (_unit == null)
             Debug.LogError($"[MeleeAutoAttackBase] {gameObject.name}: нет компонента Unit!", this);
     }
@@ -59,6 +61,9 @@ public abstract class MeleeAutoAttackBase : MonoBehaviour, IUnitAttack
             StatusEffectType statusToApply = DamageCalculator.GetStatusFromElement(element);
             status.ApplyStatus(statusToApply, finalDamage);
         }
+
+        if (_animator != null)
+            _animator.SetTrigger("Attack");
 
         // Обновляем cooldown
         UpdateCooldown();

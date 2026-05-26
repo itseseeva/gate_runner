@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Hero_Tank
   m_EditorClassIdentifier: Assembly-CSharp::HeroDefinitionSO
   _heroName: Tank
-  _maxHP: 25
+  _maxHP: 1000000
   _attack: 10
   _defense: 15
   _baseSpeed: 80
