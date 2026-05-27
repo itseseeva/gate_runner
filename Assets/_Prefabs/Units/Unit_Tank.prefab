@@ -79,7 +79,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 84f1d598af7785544a40c1efe6913500, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MeleeSpell
-  _cooldown: 1.2
+  _cooldown: 5
   _damage: 10
 --- !u!114 &-9135729230414756288
 MonoBehaviour:
@@ -93,10 +93,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 110fa897ddbd0dc48bc4b2fd39477e36, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WarriorAutoAttack
-  _attackSpeed: 0.8
+  _attackSpeed: 0.5
   _range: 1
   _baseDamage: 10
-  _knockbackForce: 0.8
+  _bashRadius: 3
+  _knockbackForce: 0.4
 --- !u!136 &9166223895941046410
 CapsuleCollider:
   m_ObjectHideFlags: 0

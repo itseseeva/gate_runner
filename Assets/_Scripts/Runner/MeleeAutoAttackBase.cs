@@ -23,6 +23,7 @@ public abstract class MeleeAutoAttackBase : MonoBehaviour, IUnitAttack
     protected void UpdateCooldown() => _lastFireTime = Time.time;
     private Unit _unit;
     private Animator _animator;
+    protected Animator Animator => _animator;
     protected Unit OwnerUnit => _unit;
 
     private void Awake()

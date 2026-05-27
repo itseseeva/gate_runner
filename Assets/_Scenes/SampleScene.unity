@@ -3481,7 +3481,7 @@ MonoBehaviour:
   - heroType: 1
     count: 0
   - heroType: 0
-    count: 0
+    count: 4
   - heroType: 4
     count: 0
   - heroType: 2
