@@ -31,6 +31,13 @@ public class Unit : MonoBehaviour
     private ElementType _element = ElementType.None;
     public  ElementType Element => _element;
 
+    private Vector3 _initialScale;
+
+    private void Awake()
+    {
+        _initialScale = transform.localScale;
+    }
+
     /// <summary>
     /// Меняет стихию юнита. Вызывается ElementGate-ом для всего отряда.
     /// Опционально меняет цвет материала для визуальной индикации.
@@ -125,32 +132,18 @@ public class Unit : MonoBehaviour
     }
 
     /// <summary>
-    /// Анимация смерти: отлёт + растворение через DOTween.
+    /// Анимация смерти: отлёт + масштабирование через DOTween.
     /// Юнит визуально умирает, потом SquadController вернёт его в пул.
     /// </summary>
     private void PlayDeathAnimation()
     {
         Vector3 flyDir = new Vector3(Random.Range(-0.5f, 0.5f), 0.3f, -1f).normalized;
+        Vector3 initialScale = transform.localScale;
 
         Sequence seq = DOTween.Sequence();
-
-        seq.Append(transform.DOMove(transform.position + flyDir * 2f, 0.3f)
-            .SetEase(Ease.OutQuad));
-
-        if (_unitRenderer != null)
-        {
-            Material mat = _unitRenderer.material;
-            if (mat.HasProperty("_BaseColor"))
-            {
-                Color startColor = mat.GetColor("_BaseColor");
-                Color endColor   = new Color(startColor.r, startColor.g, startColor.b, 0f);
-                seq.Join(DOVirtual.Color(startColor, endColor, 0.3f, c =>
-                {
-                    if (mat != null && mat.HasProperty("_BaseColor"))
-                        mat.SetColor("_BaseColor", c);
-                }));
-            }
-        }
+        seq.Append(transform.DOMove(transform.position + flyDir * 2f, 0.5f).SetEase(Ease.OutQuad));
+        seq.Join(transform.DOScale(Vector3.zero, 0.5f).SetEase(Ease.InQuad));
+        seq.OnComplete(() => transform.localScale = initialScale);
     }
 
     /// <summary>
@@ -158,6 +151,7 @@ public class Unit : MonoBehaviour
     /// </summary>
     public void ResetVisual()
     {
+        transform.localScale = _initialScale;
         if (_unitRenderer != null)
         {
             Material mat = _unitRenderer.material;

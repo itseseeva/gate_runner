@@ -128,23 +128,8 @@ public class Enemy : MonoBehaviour
 
         Sequence seq = DOTween.Sequence();
 
-        seq.Append(transform.DOMove(transform.position + flyDir * 2f, 0.3f).SetEase(Ease.OutQuad));
-
-        MeshRenderer renderer = GetComponentInChildren<MeshRenderer>();
-        if (renderer != null)
-        {
-            Material mat = renderer.material;
-            if (mat.HasProperty("_BaseColor"))
-            {
-                Color startColor = mat.GetColor("_BaseColor");
-                Color endColor   = new Color(startColor.r, startColor.g, startColor.b, 0f);
-                seq.Join(DOVirtual.Color(startColor, endColor, 0.3f, c =>
-                {
-                    if (mat != null && mat.HasProperty("_BaseColor"))
-                        mat.SetColor("_BaseColor", c);
-                }));
-            }
-        }
+        seq.Append(transform.DOMove(transform.position + flyDir * 2f, 0.5f).SetEase(Ease.OutQuad));
+        seq.Join(transform.DOScale(Vector3.zero, 0.5f).SetEase(Ease.InQuad));
 
         seq.OnComplete(() => gameObject.SetActive(false));
     }

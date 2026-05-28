@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using DG.Tweening;
 
 /// <summary>
 /// Пара "тип героя + количество" для настройки стартового отряда.
@@ -457,7 +458,11 @@ public class SquadController : MonoBehaviour
             if (list.Remove(unit))
             {
                 _flatListDirty = true;
-                unit.gameObject.SetActive(false);
+                DOVirtual.DelayedCall(0.55f, () =>
+                {
+                    if (unit != null)
+                        unit.gameObject.SetActive(false);
+                });
 
                 Debug.Log($"[Squad] Юнит {unit.gameObject.name} удалён из отряда. " +
                           $"Осталось: {CountAllUnits()}", this);
