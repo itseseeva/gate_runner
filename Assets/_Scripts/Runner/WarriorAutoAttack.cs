@@ -18,6 +18,8 @@ public class WarriorAutoAttack : MeleeAutoAttackBase
     [SerializeField] private VfxConfig _vfxConfig;
     [SerializeField] private HeroType _heroType = HeroType.Warrior;
 
+    public VfxConfig GetVfxConfig() => _vfxConfig;
+
     // Флаг — разрешён ли урон (выставляется через Animation Event)
     private bool _canDealDamage = false;
 

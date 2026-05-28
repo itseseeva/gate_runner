@@ -13,4 +13,7 @@ public class VfxConfig : ScriptableObject
     public GameObject MageHitVfx;
     public GameObject ArcherHitVfx;
     public GameObject AssassinHitVfx;
+
+    [Header("Смерть юнита")]
+    public GameObject UnitDeathVfx;
 }

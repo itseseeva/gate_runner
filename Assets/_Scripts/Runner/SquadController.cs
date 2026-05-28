@@ -202,12 +202,12 @@ public class SquadController : MonoBehaviour
             if (meleeCtrl != null)
             {
                 meleeCtrl.FormationOffset = offset;
-                if (meleeCtrl.IsInFormation)
+                if (meleeCtrl.IsInFormation && !u.IsDead)
                     u.transform.position = transform.position + offset;
             }
             else
             {
-                u.transform.position = transform.position + offset;
+                if (!u.IsDead) u.transform.position = transform.position + offset;
             }
         }
     }
@@ -458,11 +458,7 @@ public class SquadController : MonoBehaviour
             if (list.Remove(unit))
             {
                 _flatListDirty = true;
-                DOVirtual.DelayedCall(0.55f, () =>
-                {
-                    if (unit != null)
-                        unit.gameObject.SetActive(false);
-                });
+                unit.gameObject.SetActive(false);
 
                 Debug.Log($"[Squad] Юнит {unit.gameObject.name} удалён из отряда. " +
                           $"Осталось: {CountAllUnits()}", this);

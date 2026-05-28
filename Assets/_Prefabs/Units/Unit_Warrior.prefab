@@ -78,6 +78,7 @@ MonoBehaviour:
   _unitRenderer: {fileID: 6031376503190564859}
   _regenDelay: 3
   _regenTimeToFull: 3
+  _vfxConfig: {fileID: 11400000, guid: d141ab9d65326904ca1ebb6f5312989f, type: 2}
 --- !u!114 &2096177001576266159
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -126,7 +127,9 @@ MonoBehaviour:
   _baseDamage: 20
   _bashRadius: 3
   _knockbackForce: 0.4
+  _attackAnimationSpeed: 1
   _vfxConfig: {fileID: 11400000, guid: d141ab9d65326904ca1ebb6f5312989f, type: 2}
+  _heroType: 0
 --- !u!1001 &2531327567428853265
 PrefabInstance:
   m_ObjectHideFlags: 0

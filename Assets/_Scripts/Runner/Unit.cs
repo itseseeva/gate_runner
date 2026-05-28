@@ -31,11 +31,21 @@ public class Unit : MonoBehaviour
     private ElementType _element = ElementType.None;
     public  ElementType Element => _element;
 
+    public bool IsDead { get; private set; } = false;
+
+    [Header("VFX")]
+    [SerializeField] private VfxConfig _vfxConfig;
+
     private Vector3 _initialScale;
 
     private void Awake()
     {
         _initialScale = transform.localScale;
+    }
+
+    private void OnEnable()
+    {
+        IsDead = false;
     }
 
     /// <summary>
@@ -124,7 +134,16 @@ public class Unit : MonoBehaviour
         {
             _currentHP = 0;
             Debug.Log($"[Unit] {gameObject.name} ПОГИБ!", this);
-            PlayDeathAnimation();
+            IsDead = true;
+            
+            var warriorAttack = GetComponent<WarriorAutoAttack>();
+            VfxConfig vfx = warriorAttack != null ? warriorAttack.GetVfxConfig() : null;
+            
+            Debug.Log($"[Unit] warriorAttack={warriorAttack}, vfx={vfx}, UnitDeathVfx={vfx?.UnitDeathVfx}, VfxPool={VfxPool.Instance}", this);
+            
+            if (vfx != null && vfx.UnitDeathVfx != null && VfxPool.Instance != null)
+                VfxPool.Instance.Spawn(transform.position, Quaternion.identity, vfx.UnitDeathVfx);
+            
             return true;
         }
 
@@ -137,13 +156,27 @@ public class Unit : MonoBehaviour
     /// </summary>
     private void PlayDeathAnimation()
     {
+        IsDead = true; // ← SquadController больше не двигает этого юнита
+        Debug.Log($"[Unit] PlayDeathAnimation START на {gameObject.name}", this);
+
+        // Отключаем компонент движения чтобы SquadController не перезаписывал позицию
+        var worldScroller = GetComponent<WorldScroller>();
+        if (worldScroller != null) worldScroller.enabled = false;
+
+        var melee = GetComponent<MeleeUnitController>();
+        if (melee != null) melee.enabled = false;
+
         Vector3 flyDir = new Vector3(Random.Range(-0.5f, 0.5f), 0.3f, -1f).normalized;
         Vector3 initialScale = transform.localScale;
 
         Sequence seq = DOTween.Sequence();
         seq.Append(transform.DOMove(transform.position + flyDir * 2f, 0.5f).SetEase(Ease.OutQuad));
         seq.Join(transform.DOScale(Vector3.zero, 0.5f).SetEase(Ease.InQuad));
-        seq.OnComplete(() => transform.localScale = initialScale);
+        seq.OnComplete(() =>
+        {
+            Debug.Log($"[Unit] PlayDeathAnimation COMPLETE на {gameObject.name}", this);
+            transform.localScale = initialScale;
+        });
     }
 
     /// <summary>
@@ -151,7 +184,15 @@ public class Unit : MonoBehaviour
     /// </summary>
     public void ResetVisual()
     {
+        IsDead = false; // ← оживляем для пула
         transform.localScale = _initialScale;
+
+        var worldScroller = GetComponent<WorldScroller>();
+        if (worldScroller != null) worldScroller.enabled = true;
+
+        var melee = GetComponent<MeleeUnitController>();
+        if (melee != null) melee.enabled = true;
+
         if (_unitRenderer != null)
         {
             Material mat = _unitRenderer.material;
