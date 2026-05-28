@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 4431215859352217724}
   m_Layer: 0
   m_Name: Unit_Warrior
-  m_TagString: Untagged
+  m_TagString: VfxPool_Warrior
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -121,11 +121,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 110fa897ddbd0dc48bc4b2fd39477e36, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WarriorAutoAttack
-  _attackSpeed: 1.5
+  _attackSpeed: 4
   _range: 1.8
   _baseDamage: 20
   _bashRadius: 3
   _knockbackForce: 0.4
+  _vfxConfig: {fileID: 11400000, guid: d141ab9d65326904ca1ebb6f5312989f, type: 2}
 --- !u!1001 &2531327567428853265
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -357,7 +358,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8110807616563332202, guid: 294175c44fae60642aec294f56e1499f, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: -0.14
       objectReference: {fileID: 0}
     - target: {fileID: 8110807616563332202, guid: 294175c44fae60642aec294f56e1499f, type: 3}
       propertyPath: m_LocalRotation.w
@@ -377,7 +378,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8110807616563332202, guid: 294175c44fae60642aec294f56e1499f, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 0
+      value: 2.75
       objectReference: {fileID: 0}
     - target: {fileID: 8110807616563332202, guid: 294175c44fae60642aec294f56e1499f, type: 3}
       propertyPath: m_AnchoredPosition.y

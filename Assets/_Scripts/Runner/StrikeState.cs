@@ -19,7 +19,10 @@ public class StrikeState : IUnitState
 
     public void SetTarget(Enemy target) => _target = target;
 
-    public void Enter() { }
+    public void Enter()
+    {
+        _ctrl.PlayAttackRun();
+    }
 
     public void Exit()
     {

@@ -31,6 +31,8 @@ public class MeleeUnitController : MonoBehaviour
     [SerializeField] private MonoBehaviour _autoAttackComponent;
 
     private IUnitAttack _autoAttack;
+    private Animator _animator;
+    private bool _isPlayingRejoin = false;
 
     // ─── Резерв целей между воинами ──────────────────────────────
     // Статический список — общий для всех воинов в сцене.
@@ -66,6 +68,7 @@ public class MeleeUnitController : MonoBehaviour
         FormationOffset = formationOffset;
 
         _stateMachine = GetComponent<UnitStateMachine>();
+        _animator = GetComponentInChildren<Animator>();
 
         // Получаем компонент атаки через интерфейс
         _autoAttack = _autoAttackComponent as IUnitAttack;
@@ -173,5 +176,27 @@ public class MeleeUnitController : MonoBehaviour
 
         Gizmos.color = new Color(1f, 0f, 0f, 0.5f);
         Gizmos.DrawWireSphere(transform.position, _attackRange);
+    }
+
+    /// <summary>Обычный бег в формации.</summary>
+    public void PlayRun()
+    {
+        _isPlayingRejoin = false;
+        if (_animator != null) _animator.Play("Run");
+    }
+
+    /// <summary>Рывок к врагу.</summary>
+    public void PlayAttackRun()
+    {
+        _isPlayingRejoin = false;
+        if (_animator != null) _animator.Play("AttackRun");
+    }
+
+    /// <summary>Возврат в строй.</summary>
+    public void PlayRejoin()
+    {
+        if (_isPlayingRejoin) return;
+        _isPlayingRejoin = true;
+        if (_animator != null) _animator.Play("Rejoin");
     }
 }

@@ -18,6 +18,17 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
     [Range(0f, 1f)]
     [SerializeField] private float _lifestealRatio = 0.20f;
 
+    public override HitResult Hit(Enemy target)
+    {
+        HitResult result = base.Hit(target);
+        if (result.Hit && VfxPool.Instance != null)
+        {
+            Vector3 spawnPos = target.transform.position + Vector3.up * 0.5f;
+            VfxPool.Instance.Spawn(spawnPos, Quaternion.identity);
+        }
+        return result;
+    }
+
     protected override DamageCalculation CalculateDamage(int powerMultiplier)
     {
         bool isCrit = Random.value < _critChance;

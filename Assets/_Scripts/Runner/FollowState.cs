@@ -15,6 +15,11 @@ public class FollowState : IUnitState
 
     public void Enter()
     {
+        if (_ctrl.IsRejoining)
+            _ctrl.PlayRejoin();
+        else
+            _ctrl.PlayRun();
+
         // Пока идёт rejoin — НЕ позволяем SquadController двигать
         // (мы сами Lerp-им). После завершения rejoin — IsInFormation = true
         _ctrl.IsInFormation = !_ctrl.IsRejoining;
@@ -34,9 +39,12 @@ public class FollowState : IUnitState
         {
             _ctrl.UpdateRejoin();
 
-            // Завершился rejoin — отдаём управление SquadController
+            // Завершился rejoin — отдаём управление SquadController и играем Run
             if (!_ctrl.IsRejoining)
+            {
                 _ctrl.IsInFormation = true;
+                _ctrl.PlayRun();
+            }
 
             return; // во время rejoin не ищем врагов
         }

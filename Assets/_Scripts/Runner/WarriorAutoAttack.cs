@@ -14,13 +14,24 @@ public class WarriorAutoAttack : MeleeAutoAttackBase
     [Range(0f, 1f)]
     [SerializeField] private float _knockbackForce = 0.4f;
 
+    [Tooltip("Скорость анимации атаки")]
+    [SerializeField] private float _attackAnimationSpeed = 1f;
+
+    [Header("VFX")]
+    [SerializeField] private VfxConfig _vfxConfig;
+    [SerializeField] private HeroType _heroType = HeroType.Warrior;
+
     public override HitResult Hit(Enemy target)
     {
         // НЕ вызываем base.Hit — урон только через АОЕ
         if (!IsReady) return HitResult.Miss();
 
         // Анимация и cooldown
-        if (Animator != null) Animator.SetTrigger("Attack");
+        if (Animator != null)
+        {
+            Animator.SetTrigger("Attack");
+            Animator.SetFloat("AttackSpeed", _attackAnimationSpeed);
+        }
         UpdateCooldown();
 
         ElementType element    = OwnerUnit != null ? OwnerUnit.Element : ElementType.None;
@@ -56,9 +67,36 @@ public class WarriorAutoAttack : MeleeAutoAttackBase
             count++;
         }
 
-        return count > 0 
+        HitResult result = count > 0 
             ? new HitResult { Hit = true, Killed = false, DamageDealt = calc.FinalDamage }
             : HitResult.Miss();
+
+        if (result.Hit)
+        {
+            Debug.Log($"[VFX] _vfxConfig={_vfxConfig}, heroType={_heroType}", this);
+            if (_vfxConfig != null)
+            {
+                GameObject vfxPrefab = _heroType switch
+                {
+                    HeroType.Warrior => _vfxConfig.WarriorHitVfx,
+                    HeroType.Tank    => _vfxConfig.TankHitVfx,
+                    HeroType.Mage    => _vfxConfig.MageHitVfx,
+                    HeroType.Archer  => _vfxConfig.ArcherHitVfx,
+                    HeroType.Assassin => _vfxConfig.AssassinHitVfx,
+                    _ => null
+                };
+
+                Debug.Log($"[VFX] vfxPrefab={vfxPrefab}, WarriorHitVfx={_vfxConfig.WarriorHitVfx}", this);
+
+                if (vfxPrefab != null)
+                {
+                    Vector3 spawnPos = target.transform.position + Vector3.up * 0.5f;
+                    GameObject.Instantiate(vfxPrefab, spawnPos, Quaternion.identity);
+                }
+            }
+        }
+
+        return result;
     }
 
     protected override DamageCalculation CalculateDamage(int powerMultiplier)

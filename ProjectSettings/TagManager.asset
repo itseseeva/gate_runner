@@ -3,7 +3,9 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - VfxPool_Warrior
+  - VfxPool_Tank
   layers:
   - Default
   - TransparentFX

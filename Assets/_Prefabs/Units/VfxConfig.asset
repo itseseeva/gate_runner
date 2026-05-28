@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcaddafa555780a4a80121b2ea1bdbb9, type: 3}
+  m_Name: VfxConfig
+  m_EditorClassIdentifier: Assembly-CSharp::VfxConfig
+  WarriorHitVfx: {fileID: 5503505460791601945, guid: 334181d80b7407c4f912abbbc6aa0146, type: 3}
+  TankHitVfx: {fileID: 5024009746357069194, guid: ec3f674830402cc45bce805cf6493db7, type: 3}
+  MageHitVfx: {fileID: 0}
+  ArcherHitVfx: {fileID: 0}
+  AssassinHitVfx: {fileID: 0}

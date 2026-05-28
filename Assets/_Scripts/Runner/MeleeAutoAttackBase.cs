@@ -26,7 +26,7 @@ public abstract class MeleeAutoAttackBase : MonoBehaviour, IUnitAttack
     protected Animator Animator => _animator;
     protected Unit OwnerUnit => _unit;
 
-    private void Awake()
+    protected virtual void Awake()
     {
         _unit = GetComponent<Unit>();
         _animator = GetComponentInChildren<Animator>();
