@@ -1,29 +1,24 @@
 using UnityEngine;
 
 /// <summary>
-/// Компонент автоатаки для range-юнитов (Mage, Archer, Tank).
-/// Каждый кадр ищет ближайшего врага и атакует через IUnitAttack.
+/// Компонент автоатаки. Использует явную ссылку на IUnitAttack
+/// вместо слепого поиска — чтобы не подхватить не тот компонент.
 /// </summary>
 [RequireComponent(typeof(Unit))]
 public class AutoAttacker : MonoBehaviour
 {
+    [Header("Атака")]
+    [Tooltip("Перетащи сюда WarriorAutoAttack / RangedAutoAttack")]
+    [SerializeField] private MonoBehaviour _attackComponent;
+
     private IUnitAttack _attack;
 
     private void Awake()
     {
-        // Ищем компонент который реализует IUnitAttack
-        // (RangedAutoAttack, WarriorAutoAttack и т.д.)
-        foreach (var comp in GetComponents<MonoBehaviour>())
-        {
-            if (comp is IUnitAttack attack)
-            {
-                _attack = attack;
-                break;
-            }
-        }
+        _attack = _attackComponent as IUnitAttack;
 
         if (_attack == null)
-            Debug.LogError($"[AutoAttacker] {gameObject.name}: нет компонента IUnitAttack!", this);
+            Debug.LogError($"[AutoAttacker] {gameObject.name}: _attackComponent не реализует IUnitAttack!", this);
     }
 
     private void Update()

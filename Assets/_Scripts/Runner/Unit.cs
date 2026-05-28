@@ -1,4 +1,5 @@
 using UnityEngine;
+using DG.Tweening;
 
 /// <summary>
 /// Компонент одного юнита в отряде.
@@ -116,10 +117,57 @@ public class Unit : MonoBehaviour
         {
             _currentHP = 0;
             Debug.Log($"[Unit] {gameObject.name} ПОГИБ!", this);
+            PlayDeathAnimation();
             return true;
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Анимация смерти: отлёт + растворение через DOTween.
+    /// Юнит визуально умирает, потом SquadController вернёт его в пул.
+    /// </summary>
+    private void PlayDeathAnimation()
+    {
+        Vector3 flyDir = new Vector3(Random.Range(-0.5f, 0.5f), 0.3f, -1f).normalized;
+
+        Sequence seq = DOTween.Sequence();
+
+        seq.Append(transform.DOMove(transform.position + flyDir * 2f, 0.3f)
+            .SetEase(Ease.OutQuad));
+
+        if (_unitRenderer != null)
+        {
+            Material mat = _unitRenderer.material;
+            if (mat.HasProperty("_BaseColor"))
+            {
+                Color startColor = mat.GetColor("_BaseColor");
+                Color endColor   = new Color(startColor.r, startColor.g, startColor.b, 0f);
+                seq.Join(DOVirtual.Color(startColor, endColor, 0.3f, c =>
+                {
+                    if (mat != null && mat.HasProperty("_BaseColor"))
+                        mat.SetColor("_BaseColor", c);
+                }));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Восстанавливает визуал после смерти — вызывается при возврате в пул.
+    /// </summary>
+    public void ResetVisual()
+    {
+        if (_unitRenderer != null)
+        {
+            Material mat = _unitRenderer.material;
+            if (mat.HasProperty("_BaseColor"))
+            {
+                Color c = mat.GetColor("_BaseColor");
+                c.a = 1f;
+                mat.SetColor("_BaseColor", c);
+            }
+        }
     }
 
     private void Update()

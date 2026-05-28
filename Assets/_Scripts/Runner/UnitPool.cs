@@ -115,6 +115,7 @@ public class UnitPool : MonoBehaviour
             return;
         }
 
+        unit.ResetVisual(); // ← восстанавливаем визуал перед возвратом
         unit.gameObject.SetActive(false);
         _pool[key].Enqueue(unit);
     }

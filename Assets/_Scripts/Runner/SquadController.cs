@@ -457,7 +457,7 @@ public class SquadController : MonoBehaviour
             if (list.Remove(unit))
             {
                 _flatListDirty = true;
-                UnitPool.Instance.Return(unit);
+                unit.gameObject.SetActive(false);
 
                 Debug.Log($"[Squad] Юнит {unit.gameObject.name} удалён из отряда. " +
                           $"Осталось: {CountAllUnits()}", this);

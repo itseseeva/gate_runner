@@ -14,6 +14,9 @@ public class VfxPool : MonoBehaviour
     [SerializeField] private int _preloadCount = 10;
 
     private readonly Queue<ParticleSystem> _pool = new();
+    
+    // Пулы для разных prefab-ов
+    private readonly Dictionary<GameObject, Queue<ParticleSystem>> _prefabPools = new();
 
     private void Awake()
     {
@@ -25,48 +28,63 @@ public class VfxPool : MonoBehaviour
     {
         for (int i = 0; i < _preloadCount; i++)
         {
-            ParticleSystem ps = CreateOne();
+            ParticleSystem ps = CreateOne(_prefab);
             ps.gameObject.SetActive(false);
             _pool.Enqueue(ps);
         }
     }
 
-    private ParticleSystem CreateOne()
+    private ParticleSystem CreateOne(GameObject prefab)
     {
-        GameObject go = Instantiate(_prefab, transform);
+        GameObject go = Instantiate(prefab, transform);
         ParticleSystem ps = go.GetComponent<ParticleSystem>();
-
-        // Отключаем авто-уничтожение — пул сам управляет
         var main = ps.main;
         main.stopAction = ParticleSystemStopAction.None;
-
         return ps;
     }
 
-    /// <summary>Спавнит VFX в точке. Автоматически возвращает в пул.</summary>
+    /// <summary>Спавнит дефолтный VFX.</summary>
     public void Spawn(Vector3 position, Quaternion rotation)
+    {
+        SpawnFromPool(_pool, _prefab, position, rotation);
+    }
+
+    /// <summary>Спавнит конкретный VFX по prefab.</summary>
+    public void Spawn(Vector3 position, Quaternion rotation, GameObject prefab)
+    {
+        if (prefab == null)
+        {
+            Spawn(position, rotation);
+            return;
+        }
+
+        if (!_prefabPools.ContainsKey(prefab))
+            _prefabPools[prefab] = new Queue<ParticleSystem>();
+
+        SpawnFromPool(_prefabPools[prefab], prefab, position, rotation);
+    }
+
+    private void SpawnFromPool(Queue<ParticleSystem> pool, GameObject prefab, Vector3 position, Quaternion rotation)
     {
         ParticleSystem ps;
 
-        if (_pool.Count > 0)
-            ps = _pool.Dequeue();
+        if (pool.Count > 0)
+            ps = pool.Dequeue();
         else
-            ps = CreateOne();
+            ps = CreateOne(prefab);
 
         ps.gameObject.SetActive(true);
         ps.transform.position = position;
         ps.transform.rotation = rotation;
         ps.Play();
 
-        StartCoroutine(ReturnWhenDone(ps));
+        StartCoroutine(ReturnWhenDone(ps, pool));
     }
 
-    private IEnumerator ReturnWhenDone(ParticleSystem ps)
+    private IEnumerator ReturnWhenDone(ParticleSystem ps, Queue<ParticleSystem> pool)
     {
-        // Ждём пока эффект закончится
         yield return new WaitUntil(() => !ps.IsAlive(true));
-
         ps.gameObject.SetActive(false);
-        _pool.Enqueue(ps);
+        pool.Enqueue(ps);
     }
 }

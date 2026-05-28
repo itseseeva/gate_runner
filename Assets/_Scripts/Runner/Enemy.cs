@@ -121,19 +121,15 @@ public class Enemy : MonoBehaviour
     /// </summary>
     private void PlayDeathAnimation()
     {
-        // Случайный наклон вбок (как будто падает)
-        float fallAngle = Random.Range(60f, 90f) * (Random.value < 0.5f ? -1 : 1);
+        WorldScroller scroller = GetComponent<WorldScroller>();
+        if (scroller != null) scroller.Stop();
 
-        // Случайный поворот по Z (более естественно)
-        Vector3 targetEuler = transform.eulerAngles + new Vector3(fallAngle, 0f, Random.Range(-20f, 20f));
+        Vector3 flyDir = new Vector3(Random.Range(-0.5f, 0.5f), 0.3f, -1f).normalized;
 
         Sequence seq = DOTween.Sequence();
 
-        // Параллельно: наклон + сжатие
-        seq.Append(transform.DORotate(targetEuler, 0.3f).SetEase(Ease.OutQuad));
-        seq.Join(transform.DOScale(Vector3.zero, 0.4f).SetEase(Ease.InQuad));
+        seq.Append(transform.DOMove(transform.position + flyDir * 2f, 0.3f).SetEase(Ease.OutQuad));
 
-        // Затухание материала
         MeshRenderer renderer = GetComponentInChildren<MeshRenderer>();
         if (renderer != null)
         {
@@ -142,8 +138,7 @@ public class Enemy : MonoBehaviour
             {
                 Color startColor = mat.GetColor("_BaseColor");
                 Color endColor   = new Color(startColor.r, startColor.g, startColor.b, 0f);
-
-                seq.Join(DOVirtual.Color(startColor, endColor, 0.4f, c =>
+                seq.Join(DOVirtual.Color(startColor, endColor, 0.3f, c =>
                 {
                     if (mat != null && mat.HasProperty("_BaseColor"))
                         mat.SetColor("_BaseColor", c);
@@ -151,12 +146,7 @@ public class Enemy : MonoBehaviour
             }
         }
 
-        // По окончании — деактивируем
-        seq.OnComplete(() =>
-        {
-            // Перед деактивацией восстанавливаем оригинальный трансформ для следующего использования
-            gameObject.SetActive(false);
-        });
+        seq.OnComplete(() => gameObject.SetActive(false));
     }
 
     /// <summary>

@@ -132,6 +132,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Unit
   _currentHP: 0
   _healthBar: {fileID: 6250808550638978295}
+  _unitRenderer: {fileID: 0}
+  _regenDelay: 3
+  _regenTimeToFull: 3
 --- !u!114 &-4333126469607185240
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -144,6 +147,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c3d0c68cb36e918458b1ac228efd2ee5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoAttacker
+  _attackComponent: {fileID: -3407274255803289576}
 --- !u!114 &-3407274255803289576
 MonoBehaviour:
   m_ObjectHideFlags: 0
