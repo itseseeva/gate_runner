@@ -41,6 +41,18 @@ public class Unit : MonoBehaviour
     private void Awake()
     {
         _initialScale = transform.localScale;
+
+        if (Application.isPlaying)
+        {
+            // Динамически вешаем AnimationEventReceiver на всех детей с Animator, если его там нет
+            foreach (var anim in GetComponentsInChildren<Animator>(true))
+            {
+                if (anim.gameObject.GetComponent<AnimationEventReceiver>() == null)
+                {
+                    anim.gameObject.AddComponent<AnimationEventReceiver>();
+                }
+            }
+        }
     }
 
     private void OnEnable()
@@ -250,4 +262,8 @@ public class Unit : MonoBehaviour
                 _healthBar.SetHP(_currentHP, maxHP);
         }
     }
+
+    // Заглушки для Animation Events (звуки шагов)
+    public void FootL() { }
+    public void FootR() { }
 }

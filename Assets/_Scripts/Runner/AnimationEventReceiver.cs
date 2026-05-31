@@ -1,22 +1,28 @@
 using UnityEngine;
 
 /// <summary>
-/// Висит на модели и передаёт Animation Events в WarriorAutoAttack на родителе.
-/// Нужен потому что Animation Event ищет метод только на том же GameObject где Animator.
+/// Висит на модели и передаёт Animation Events в компоненты атаки на родителе.
+/// Поддерживает танка (WarriorAutoAttack) и воина (WarriorMeleeAttack).
 /// </summary>
 public class AnimationEventReceiver : MonoBehaviour
 {
-    private WarriorAutoAttack _warriorAttack;
+    private WarriorAutoAttack _tankAttack;
+    private WarriorMeleeAttack _warriorAttack;
 
     private void Awake()
     {
-        _warriorAttack = GetComponentInParent<WarriorAutoAttack>();
+        _tankAttack = GetComponentInParent<WarriorAutoAttack>();
+        _warriorAttack = GetComponentInParent<WarriorMeleeAttack>();
     }
 
-    /// <summary>Вызывается через Animation Event в момент удара щитом.</summary>
+    /// <summary>Вызывается через Animation Event — удар танка щитом.</summary>
     public void OnAttackHit()
     {
-        if (_warriorAttack != null)
-            _warriorAttack.OnAttackHit();
+        _tankAttack?.OnAttackHit();
+        _warriorAttack?.OnAttackHit();
     }
+
+    // Заглушки для Animation Events (звуки шагов)
+    public void FootL() { }
+    public void FootR() { }
 }

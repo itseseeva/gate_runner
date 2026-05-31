@@ -27,6 +27,9 @@ public class MeleeUnitController : MonoBehaviour
     private Vector3 _rejoinStartPos;
 
     [Header("Атака")]
+    [SerializeField] private float _hitLingerTime = 0.3f;
+    public float HitLingerTime => _hitLingerTime;
+
     [Tooltip("Компонент с IUnitAttack — вешается на prefab отдельно (WarriorAutoAttack, AssassinAutoAttack)")]
     [SerializeField] private MonoBehaviour _autoAttackComponent;
 
@@ -105,11 +108,15 @@ public class MeleeUnitController : MonoBehaviour
         if (t >= 1f)
         {
             _isRejoining = false;
+            if (_animator != null) _animator.applyRootMotion = false; // у нас всегда false для этого персонажа
+            transform.position = Leader.position + FormationOffset;
             return;
         }
 
-        Vector3 formationPos = Leader.position + FormationOffset;
-        transform.position = Vector3.Lerp(_rejoinStartPos, formationPos, t);
+        // Каждый кадр целимся в АКТУАЛЬНУЮ позицию формации
+        Vector3 targetPos = Leader.position + FormationOffset;
+        transform.position = Vector3.Lerp(transform.position, targetPos, 
+            _rejoinDuration > 0 ? Time.deltaTime / (_rejoinDuration * (1f - t + 0.01f)) : 1f);
     }
 
     public void ChangeState(IUnitState state) => _stateMachine.ChangeState(state);
@@ -182,7 +189,11 @@ public class MeleeUnitController : MonoBehaviour
     public void PlayRun()
     {
         _isPlayingRejoin = false;
-        if (_animator != null) _animator.Play("Run");
+        if (_animator != null)
+        {
+            _animator.ResetTrigger("Attack"); // ← сбрасываем триггер
+            _animator.Play("Run");
+        }
     }
 
     /// <summary>Рывок к врагу.</summary>
@@ -197,6 +208,9 @@ public class MeleeUnitController : MonoBehaviour
     {
         if (_isPlayingRejoin) return;
         _isPlayingRejoin = true;
-        if (_animator != null) _animator.Play("Rejoin");
+        if (_animator != null) _animator.Play("Run");
     }
+
+    public AnimatorStateInfo GetAnimatorState() => 
+        _animator != null ? _animator.GetCurrentAnimatorStateInfo(0) : default;
 }

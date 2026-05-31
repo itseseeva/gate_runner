@@ -62,11 +62,6 @@ crashlytics-build.properties
 .DS_Store
 Thumbs.db
 
-# Large asset folders (animations)
-/[Aa]ssets/Kevin\ Iglesias/
-/[Aa]ssets/Kevin\ Iglesias.meta
-/[Aa]ssets/Matthew\ Guz/
-/[Aa]ssets/Matthew\ Guz.meta
-/[Aa]ssets/DoubleL/
-/[Aa]ssets/DoubleL.meta
+# Ignore all Assets folder
+/[Aa]ssets/
 

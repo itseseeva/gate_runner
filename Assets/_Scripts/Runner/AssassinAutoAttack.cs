@@ -18,27 +18,31 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
     [Range(0f, 1f)]
     [SerializeField] private float _lifestealRatio = 0.20f;
 
+    [Header("VFX")]
+    [SerializeField] private VfxConfig _vfxConfig;
+
     public override HitResult Hit(Enemy target)
     {
         HitResult result = base.Hit(target);
-        if (result.Hit && VfxPool.Instance != null)
+
+        // Спавним эффект только если он назначен в конфиге
+        if (result.Hit && VfxPool.Instance != null
+            && _vfxConfig != null && _vfxConfig.AssassinHitVfx != null)
         {
             Vector3 spawnPos = target.transform.position + Vector3.up * 0.5f;
-            VfxPool.Instance.Spawn(spawnPos, Quaternion.identity);
+            VfxPool.Instance.Spawn(spawnPos, Quaternion.identity, _vfxConfig.AssassinHitVfx);
         }
+
         return result;
     }
 
     protected override DamageCalculation CalculateDamage(int powerMultiplier)
     {
         bool isCrit = Random.value < _critChance;
-
-        // Множитель применяется ДО крита — крит считается от усиленного урона
         int boostedDamage = _baseDamage * powerMultiplier;
         int finalDamage   = isCrit
             ? Mathf.RoundToInt(boostedDamage * _critMultiplier)
             : boostedDamage;
-
         int lifesteal = Mathf.RoundToInt(finalDamage * _lifestealRatio);
 
         return new DamageCalculation

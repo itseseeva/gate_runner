@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Hero_Warrior
   m_EditorClassIdentifier: Assembly-CSharp::HeroDefinitionSO
   _heroName: Warrior
-  _maxHP: 18
+  _maxHP: 1000
   _attack: 25
   _defense: 5
   _baseSpeed: 100

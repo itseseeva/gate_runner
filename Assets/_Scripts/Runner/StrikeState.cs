@@ -10,6 +10,8 @@ public class StrikeState : IUnitState
     private Enemy _target;
     private Enemy _lastHitEnemy;
 
+    private bool _waitingAfterHit = false;
+
     public float LastHitZ { get; private set; }
 
     public StrikeState(MeleeUnitController controller)
@@ -21,11 +23,13 @@ public class StrikeState : IUnitState
 
     public void Enter()
     {
+        _waitingAfterHit = false;
         _ctrl.PlayAttackRun();
     }
 
     public void Exit()
     {
+        _waitingAfterHit = false;
         if (_target != null)
         {
             _ctrl.ReleaseTarget(_target);
@@ -35,12 +39,28 @@ public class StrikeState : IUnitState
 
     public void Tick()
     {
+        // Ждём после удара чтобы анимация доиграла
+        if (_waitingAfterHit)
+        {
+            // Ждём пока анимация AttackRun доиграет
+            AnimatorStateInfo state = _ctrl.GetAnimatorState();
+            bool attackDone = state.IsName("AttackRun") && state.normalizedTime >= 0.9f;
+            bool notAttack = !state.IsName("AttackRun");
+            
+            if (attackDone || notAttack)
+            {
+                _waitingAfterHit = false;
+                FindNextOrReturn();
+            }
+            return;
+        }
+
         // Цель умерла во время рывка
         if (_target == null || !_target.gameObject.activeSelf)
         {
             if (_target != null) _ctrl.ReleaseTarget(_target);
             _target = null;
-            FindNextOrReturn();
+            _waitingAfterHit = true;
             return;
         }
 
@@ -56,15 +76,23 @@ public class StrikeState : IUnitState
             DiagLogger.RecordHit(_ctrl.gameObject.GetInstanceID(), _target.GetInstanceID());
             HitResult result = _ctrl.AutoAttack.Hit(_target);
 
+            // Сбрасываем триггер Attack, чтобы избежать повторного ложного срабатывания анимации удара
+            Animator animator = _ctrl.GetComponentInChildren<Animator>();
+            if (animator != null)
+            {
+                animator.ResetTrigger("Attack");
+            }
+
             if (result.WasCritical)
                 Debug.Log($"[Strike] {_ctrl.gameObject.name} КРИТ! Урон: {result.DamageDealt}", _ctrl);
 
-            // Один удар — запоминаем Z и ищем следующего
             LastHitZ = _target.transform.position.z;
             _lastHitEnemy = _target;
             _ctrl.ReleaseTarget(_target);
             _target = null;
-            FindNextOrReturn();
+
+            // Ждём перед поиском следующего
+            _waitingAfterHit = true;
             return;
         }
 
@@ -73,13 +101,8 @@ public class StrikeState : IUnitState
         _ctrl.transform.position += dir * _ctrl.ChaseSpeed * Time.deltaTime;
     }
 
-    /// <summary>
-    /// Ищет следующего врага ВПЕРЕДИ (Z больше LastHitZ).
-    /// Найден → продолжаем Strike. Нет → возврат в Follow с плавным Lerp.
-    /// </summary>
     private void FindNextOrReturn()
     {
-        // Бронируем последнего побитого чтобы не выбрать его снова
         if (_lastHitEnemy != null && _lastHitEnemy.gameObject.activeSelf)
             _ctrl.ClaimTarget(_lastHitEnemy);
 
@@ -100,7 +123,6 @@ public class StrikeState : IUnitState
             return;
         }
 
-        // Нет следующих — запускаем плавный возврат и переходим в Follow
         _ctrl.StartRejoin();
         _ctrl.ChangeState(_ctrl.FollowState);
     }
