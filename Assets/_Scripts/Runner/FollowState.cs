@@ -56,8 +56,18 @@ public class FollowState : IUnitState
         if (enemy != null)
         {
             _ctrl.ClaimTarget(enemy);
-            _ctrl.StrikeState.SetTarget(enemy);
-            _ctrl.ChangeState(_ctrl.StrikeState);
+
+            // Ассасин использует своё состояние с 3 ударами
+            if (_ctrl.AssassinStrikeState != null)
+            {
+                _ctrl.AssassinStrikeState.SetTarget(enemy);
+                _ctrl.ChangeState(_ctrl.AssassinStrikeState);
+            }
+            else
+            {
+                _ctrl.StrikeState.SetTarget(enemy);
+                _ctrl.ChangeState(_ctrl.StrikeState);
+            }
         }
     }
 }

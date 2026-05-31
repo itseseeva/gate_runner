@@ -145,6 +145,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c3d0c68cb36e918458b1ac228efd2ee5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoAttacker
+  _attackComponent: {fileID: -6332590080026023978}
 --- !u!114 &-5036847367397787173
 MonoBehaviour:
   m_ObjectHideFlags: 0

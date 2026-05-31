@@ -41,18 +41,6 @@ public class Unit : MonoBehaviour
     private void Awake()
     {
         _initialScale = transform.localScale;
-
-        if (Application.isPlaying)
-        {
-            // Динамически вешаем AnimationEventReceiver на всех детей с Animator, если его там нет
-            foreach (var anim in GetComponentsInChildren<Animator>(true))
-            {
-                if (anim.gameObject.GetComponent<AnimationEventReceiver>() == null)
-                {
-                    anim.gameObject.AddComponent<AnimationEventReceiver>();
-                }
-            }
-        }
     }
 
     private void OnEnable()
@@ -114,6 +102,16 @@ public class Unit : MonoBehaviour
 
         if (_healthBar != null)
             _healthBar.SetHP(_currentHP, data.MaxHP * multiplier);
+
+        // Динамически вешаем AnimationEventReceiver на всех детей с Animator, если его там нет.
+        // Делаем это в Initialize (сразу после Instantiate), чтобы не вызывать ошибок сериализации инспектора в Awake().
+        foreach (var anim in GetComponentsInChildren<Animator>(true))
+        {
+            if (anim.gameObject.GetComponent<AnimationEventReceiver>() == null)
+            {
+                anim.gameObject.AddComponent<AnimationEventReceiver>();
+            }
+        }
     }
 
     /// <summary>
