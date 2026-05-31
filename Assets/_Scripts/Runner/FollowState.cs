@@ -60,6 +60,12 @@ public class FollowState : IUnitState
             // Ассасин использует своё состояние с 3 ударами
             if (_ctrl.AssassinStrikeState != null)
             {
+                var assassinAttack = _ctrl.GetComponent<AssassinAutoAttack>();
+                if (assassinAttack != null && !assassinAttack.IsSeriesReady)
+                {
+                    _ctrl.ReleaseTarget(enemy);
+                    return;
+                }
                 _ctrl.AssassinStrikeState.SetTarget(enemy);
                 _ctrl.ChangeState(_ctrl.AssassinStrikeState);
             }
