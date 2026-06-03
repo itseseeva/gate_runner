@@ -1,8 +1,8 @@
 using UnityEngine;
 
 /// <summary>
-/// Автоатака ассасина: 3 удара за одну анимацию по разным врагам.
-/// Крит = урон ×2, лайфстил = % от нанесённого урона.
+/// Автоатака ассасина: серия из 3 ударов за одну анимацию по разным врагам.
+/// Удары наносятся через Animation Events OnSlash1/2/3 в моменты взмахов.
 /// </summary>
 public class AssassinAutoAttack : MeleeAutoAttackBase
 {
@@ -15,7 +15,6 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
     [Range(0f, 1f)]
     [SerializeField] private float _lifestealRatio = 0.20f;
 
-
     [Header("VFX")]
     [SerializeField] private VfxConfig _vfxConfig;
 
@@ -27,10 +26,11 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
     public bool IsSeriesReady => Time.time - _lastSeriesTime >= _seriesCooldown;
     public void StartSeriesCooldown() => _lastSeriesTime = Time.time;
 
-    /// <summary>
-    /// Вызывается из MeleeAutoAttackBase — запускает анимацию.
-    /// Урон наносится через Animation Events OnSlash1/2/3.
-    /// </summary>
+    // Ссылка на состояние — оно даёт текущую цель для удара
+    private AssassinStrikeState _strikeState;
+    public void SetStrikeState(AssassinStrikeState state) => _strikeState = state;
+
+    /// <summary>Запускает анимацию серии.</summary>
     public override HitResult Hit(Enemy target)
     {
         if (!IsReady) return HitResult.Miss();
@@ -42,13 +42,19 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
         return new HitResult { Hit = true };
     }
 
+    // ── Animation Events — три взмаха ──
+    public void OnSlash1() => DoSlashOnCurrentTarget();
+    public void OnSlash2() => DoSlashOnCurrentTarget();
+    public void OnSlash3() => DoSlashOnCurrentTarget();
 
+    private void DoSlashOnCurrentTarget()
+    {
+        if (_strikeState == null) return;
+        Enemy target = _strikeState.CurrentTarget;
+        DoSingleSlash(target);
+    }
 
-
-    /// <summary>
-    /// Публичный метод для вызова из AssassinStrikeState.
-    /// Наносит один удар по конкретной цели.
-    /// </summary>
+    /// <summary>Наносит один удар по конкретной цели.</summary>
     public void DoSingleSlash(Enemy target)
     {
         if (target == null) return;
@@ -73,10 +79,9 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
             VfxPool.Instance.Spawn(spawnPos, Quaternion.identity, _vfxConfig.AssassinHitVfx);
         }
 
-        Debug.Log($"[AssassinAutoAttack] DoSingleSlash по {target.name}, урон={finalDamage}" +
+        Debug.Log($"[AssassinAutoAttack] Слэш по {target.name}, урон={finalDamage}" +
                   $"{(calc.WasCritical ? " КРИТ!" : "")}", this);
     }
-
 
     protected override DamageCalculation CalculateDamage(int powerMultiplier)
     {

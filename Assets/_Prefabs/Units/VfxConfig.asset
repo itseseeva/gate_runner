@@ -16,5 +16,5 @@ MonoBehaviour:
   TankHitVfx: {fileID: 5024009746357069194, guid: ec3f674830402cc45bce805cf6493db7, type: 3}
   MageHitVfx: {fileID: 0}
   ArcherHitVfx: {fileID: 0}
-  AssassinHitVfx: {fileID: 0}
+  AssassinHitVfx: {fileID: 6827986182019416373, guid: 55806781dbe726742b3d8507254b8aa3, type: 3}
   UnitDeathVfx: {fileID: 7403103098228120956, guid: f56f272c7200fad46bef76cdbda2af54, type: 3}

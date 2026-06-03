@@ -2355,6 +2355,52 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1055508030}
   m_CullTransparentMesh: 1
+--- !u!1 &1067849468
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1067849470}
+  - component: {fileID: 1067849469}
+  m_Layer: 0
+  m_Name: VfxPool_Assassin
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1067849469
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1067849468}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c27f128cd47868e438f15b6caecb6dad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VfxPool
+  _prefab: {fileID: 6827986182019416373, guid: dea814c98cf196c4d90ca1ac7f54297a, type: 3}
+  _preloadCount: 10
+--- !u!4 &1067849470
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1067849468}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.9462, y: -0, z: 10.71481}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1144680990
 GameObject:
   m_ObjectHideFlags: 0
@@ -3835,9 +3881,9 @@ MonoBehaviour:
   - heroType: 1
     count: 0
   - heroType: 0
-    count: 10
-  - heroType: 4
     count: 0
+  - heroType: 4
+    count: 1
   - heroType: 2
     count: 0
 --- !u!114 &1554201389
@@ -4782,3 +4828,4 @@ SceneRoots:
   - {fileID: 2018298202}
   - {fileID: 535420401}
   - {fileID: 83392915}
+  - {fileID: 1067849470}

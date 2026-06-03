@@ -37,7 +37,9 @@ public class MeleeUnitController : MonoBehaviour
     private Animator    _animator;
     private bool        _isPlayingRejoin = false;
 
-    private static readonly HashSet<Enemy> _claimedTargets = new();
+    // Цель → сколько юнитов её атакуют. Максимум 2 на одну цель.
+    private static readonly Dictionary<Enemy, int> _claimCount = new();
+    private const int MAX_CLAIMS_PER_TARGET = 2;
 
     // ─── Свойства ────────────────────────────────────────────────
     public Transform Leader          { get; private set; }
@@ -76,7 +78,10 @@ public class MeleeUnitController : MonoBehaviour
         // Если на объекте есть AssassinAutoAttack — создаём его состояние
         var assassinAttack = GetComponent<AssassinAutoAttack>();
         if (assassinAttack != null)
+        {
             AssassinStrikeState = new AssassinStrikeState(this, assassinAttack);
+            assassinAttack.SetStrikeState(AssassinStrikeState); // ← связка для Animation Events
+        }
 
         _stateMachine.ChangeState(FollowState);
     }
@@ -117,39 +122,62 @@ public class MeleeUnitController : MonoBehaviour
     {
         Enemy[] all = Object.FindObjectsByType<Enemy>(FindObjectsSortMode.None);
 
-        List<Enemy> candidates = new();
+        List<Enemy> free    = new(); // совсем свободные (0 атакующих)
+        List<Enemy> partial = new(); // с 1 атакующим (резерв)
+
         foreach (Enemy e in all)
         {
             if (e == null || !e.gameObject.activeSelf) continue;
-            if (_claimedTargets.Contains(e)) continue;
             if (e.transform.position.z < minZ) continue;
+
             float d = Vector3.Distance(transform.position, e.transform.position);
-            if (d <= range) candidates.Add(e);
+            if (d > range) continue;
+
+            int claims = _claimCount.TryGetValue(e, out int c) ? c : 0;
+
+            if (claims == 0)
+                free.Add(e);
+            else if (claims < MAX_CLAIMS_PER_TARGET)
+                partial.Add(e);
+            // claims >= 2 — пропускаем
         }
 
-        if (candidates.Count == 0)
+        // Приоритет — свободные цели
+        List<Enemy> pool = free.Count > 0 ? free : partial;
+
+        if (pool.Count == 0)
         {
             DiagLogger.RecordFindEmpty();
             return null;
         }
 
         DiagLogger.RecordFindHit();
-        return candidates[Random.Range(0, candidates.Count)];
+        return pool[Random.Range(0, pool.Count)];
     }
 
-    public void ClaimTarget(Enemy target)
+    /// <summary>Резервирует цель. Возвращает false если на цели уже максимум юнитов.</summary>
+    public bool ClaimTarget(Enemy target)
     {
-        if (target != null)
-        {
-            bool added = _claimedTargets.Add(target);
-            if (!added) DiagLogger.RecordClaimCollision();
-        }
+        if (target == null) return false;
+
+        int current = _claimCount.TryGetValue(target, out int c) ? c : 0;
+        if (current >= MAX_CLAIMS_PER_TARGET)
+            return false; // на цели уже 2 — занято
+
+        _claimCount[target] = current + 1;
+        return true;
     }
 
+    /// <summary>Освобождает цель.</summary>
     public void ReleaseTarget(Enemy target)
     {
-        if (target != null)
-            _claimedTargets.Remove(target);
+        if (target == null) return;
+
+        if (_claimCount.TryGetValue(target, out int c))
+        {
+            if (c <= 1) _claimCount.Remove(target);
+            else        _claimCount[target] = c - 1;
+        }
     }
 
     private void OnDisable() { }
@@ -169,7 +197,7 @@ public class MeleeUnitController : MonoBehaviour
         _isPlayingRejoin = false;
         if (_animator != null)
         {
-            _animator.ResetTrigger("Attack"); // ← сбрасываем триггер
+            _animator.ResetTrigger("Attack");
             _animator.Play("Run");
         }
     }
