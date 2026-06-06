@@ -37,6 +37,16 @@ public class SquadController : MonoBehaviour
 
     [SerializeField] private float _followSpeed = 10f;
 
+    [Tooltip("Насколько куча расширяется при росте числа юнитов. Меньше = плотнее.")]
+    [SerializeField] private float _densityScale = 0.15f;
+
+    [Header("Передняя дуга танков")]
+    [Tooltip("Ширина дуги танков по X")]
+    [SerializeField] private float _tankArcWidth = 3f;
+
+    [Tooltip("Насколько дуга изогнута вперёд (горб)")]
+    [SerializeField] private float _tankArcCurve = 1f;
+
     [Header("Стартовый отряд")]
     [SerializeField] private List<StartUnitEntry> _startUnits = new()
     {
@@ -170,7 +180,51 @@ public class SquadController : MonoBehaviour
             if (zones[z].Count == 0) continue;
             // Инвертируем: зона 0 (Tank) получает максимальный Z
             float invertedZ = maxZ - zoneZ[z] + _crowdForwardOffset;
-            PlaceZone(zones[z], invertedZ);
+
+            if (z == 0)
+                PlaceTankArc(zones[z], invertedZ); // танки — передней дугой
+            else
+                PlaceZone(zones[z], invertedZ);    // остальные — кучей
+        }
+    }
+
+    /// <summary>
+    /// Расставляет танков передней дугой (изогнутый ряд спереди),
+    /// равномерно по ширине. Танки прикрывают остальную кучу.
+    /// </summary>
+    private void PlaceTankArc(List<Unit> tanks, float baseZ)
+    {
+        int total = tanks.Count;
+        if (total == 0) return;
+
+        for (int i = 0; i < total; i++)
+        {
+            Unit u = tanks[i];
+            if (u == null || u.IsDead) continue;
+
+            // Равномерно по ширине: t от -0.5 до +0.5
+            float t = total > 1 ? (i / (float)(total - 1)) - 0.5f : 0f;
+
+            float x = t * _tankArcWidth;
+            // Горб дуги: центр выдвинут вперёд, края назад (парабола)
+            float zCurve = (1f - 4f * t * t) * _tankArcCurve;
+            float z = baseZ + zCurve;
+
+            Vector3 anchorWorld = transform.position + new Vector3(x, 0f, z);
+
+            CrowdAgent agent = u.GetComponent<CrowdAgent>();
+            if (agent == null) agent = u.gameObject.AddComponent<CrowdAgent>();
+            agent.Anchor = anchorWorld;
+            agent.DensityScale = 1f; // у дуги фиксированный шаг, не раздуваем
+
+            MeleeUnitController meleeCtrl = u.GetComponent<MeleeUnitController>();
+            if (meleeCtrl != null)
+            {
+                meleeCtrl.FormationOffset = anchorWorld - transform.position;
+                if (!meleeCtrl.IsInFormation) continue;
+            }
+
+            agent.Step(GetNeighborPositions(u), Time.deltaTime);
         }
     }
 
@@ -179,37 +233,48 @@ public class SquadController : MonoBehaviour
         int total = units.Count;
         if (total == 0) return;
 
-        List<Unit> sorted = new List<Unit>(total);
-        foreach (Unit u in units) if (u.Tier == UnitTier.T2) sorted.Add(u);
-        foreach (Unit u in units) if (u.Tier == UnitTier.T1) sorted.Add(u);
+        // Множитель плотности: 1.0 для маленького отряда, плавно растёт с числом.
+        // 0.25 — насколько агрессивно расширяется (меньше = компактнее).
+        float densityScale = 1f + Mathf.Sqrt(total) * _densityScale;
 
-        for (int i = 0; i < sorted.Count; i++)
+        // Общий центр зоны — все юниты зоны тянутся СЮДА,
+        // а расталкивание раскидывает их в живую кучу вокруг центра.
+        Vector3 zoneCenter = transform.position + new Vector3(0f, 0f, baseZ);
+
+        foreach (Unit u in units)
         {
-            Unit u = sorted[i];
-            if (u == null) continue;
+            if (u == null || u.IsDead) continue;
 
-            int col = i % _maxPerRow;
-            int row = i / _maxPerRow;
-            int countInRow = Mathf.Min(_maxPerRow, sorted.Count - row * _maxPerRow);
-
-            float rowWidth = (countInRow - 1) * _crowdSpacing;
-            float x = -rowWidth / 2f + col * _crowdSpacing;
-            float z = baseZ - row * _crowdSpacing;
-
-            Vector3 offset = new Vector3(x, 0f, z);
+            CrowdAgent agent = u.GetComponent<CrowdAgent>();
+            if (agent == null) agent = u.gameObject.AddComponent<CrowdAgent>();
+            agent.Anchor = zoneCenter;
+            agent.DensityScale = densityScale;
 
             MeleeUnitController meleeCtrl = u.GetComponent<MeleeUnitController>();
             if (meleeCtrl != null)
             {
-                meleeCtrl.FormationOffset = offset;
-                if (meleeCtrl.IsInFormation && !u.IsDead)
-                    u.transform.position = transform.position + offset;
+                // offset уже не сетка — просто текущее смещение от лидера (для rejoin)
+                meleeCtrl.FormationOffset = u.transform.position - transform.position;
+                if (!meleeCtrl.IsInFormation) continue;
             }
-            else
-            {
-                if (!u.IsDead) u.transform.position = transform.position + offset;
-            }
+
+            agent.Step(GetNeighborPositions(u), Time.deltaTime);
         }
+    }
+
+    // Временный список соседей, переиспользуем чтобы не плодить мусор
+    private readonly List<Vector3> _neighborBuffer = new();
+
+    /// <summary>Собирает позиции соседей для расталкивания (всех живых, кроме себя).</summary>
+    private List<Vector3> GetNeighborPositions(Unit self)
+    {
+        _neighborBuffer.Clear();
+        foreach (Unit u in _allUnits)
+        {
+            if (u == null || u == self || u.IsDead) continue;
+            _neighborBuffer.Add(u.transform.position);
+        }
+        return _neighborBuffer;
     }
 
     private void Start()
@@ -282,7 +347,15 @@ public class SquadController : MonoBehaviour
 
         foreach (Unit u in _allUnits)
         {
-            if (u != null) u.SetElement(element);
+            if (u == null) continue;
+            try
+            {
+                u.SetElement(element);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[Crowd] Не удалось сменить стихию у {u.name}: {e.Message}", this);
+            }
         }
 
         Debug.Log($"[Crowd] Стихия отряда → {element}", this);

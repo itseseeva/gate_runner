@@ -36,7 +36,7 @@ public class EnemySpawner : MonoBehaviour
                 float x = -totalWidth / 2f + i * _enemySpreadX;
 
                 GameObject go = Instantiate(_enemyPrefab,
-                    new Vector3(x, 1f, waveZ),
+                    new Vector3(x, 0f, waveZ),
                     Quaternion.identity);
             }
         }

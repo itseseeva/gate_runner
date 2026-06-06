@@ -22,6 +22,9 @@ public class Enemy : MonoBehaviour
 
     public bool IsBoss => false; // TODO: вынести в EnemyDefinitionSO когда будем делать боссов
 
+    /// <summary>Высота спавна врага (из EnemyDefinitionSO).</summary>
+    public float SpawnHeight => _data != null ? _data.SpawnHeight : 0.5f;
+
     private Vector3 _initialScale;
 
     private void Awake()
@@ -35,6 +38,10 @@ public class Enemy : MonoBehaviour
         _maxHP     = _data != null ? _data.MaxHP : 50;
         _currentHP = _maxHP;
 
+        // Враг сам ставит свою высоту из данных — спавнерам не нужно знать про Y
+        Vector3 pos = transform.position;
+        pos.y = SpawnHeight;
+        transform.position = pos;
         // Восстанавливаем трансформ (после смерти он был искажён)
         transform.localScale = _initialScale;
         // Rotation — оставляем стартовое значение что было в Prefab

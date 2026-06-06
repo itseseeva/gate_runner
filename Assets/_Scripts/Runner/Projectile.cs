@@ -16,6 +16,9 @@ public class Projectile : MonoBehaviour
     private bool        _active;
     private ElementType _element = ElementType.None;
 
+    /// <summary>Стихия снаряда — нужна пулу, чтобы вернуть в правильную очередь.</summary>
+    public ElementType Element => _element;
+
     /// <summary>Запускает снаряд с указанным уроном, дистанцией и стихией.</summary>
     public void Launch(int damage, float maxDistance, ElementType element)
     {
@@ -79,6 +82,10 @@ public class Projectile : MonoBehaviour
             StatusEffectType statusToApply = DamageCalculator.GetStatusFromElement(_element);
             status.ApplyStatus(statusToApply, finalDamage);
         }
+
+        // Эффект попадания в точке столкновения
+        if (HitEffectPool.Instance != null)
+            HitEffectPool.Instance.Play(_element, transform.position);
 
         ReturnToPool();
     }

@@ -3,35 +3,51 @@ using System.Collections;
 using System.Collections.Generic;
 
 /// <summary>
-/// Пул VFX эффектов. Один на сцену.
+/// Пул VFX эффектов. ОДИН на сцену.
+/// Все конкретные эффекты приходят из VfxConfig — дефолтный prefab не нужен.
 /// Спавнит эффект, ждёт окончания Particle System, возвращает в пул.
 /// </summary>
 public class VfxPool : MonoBehaviour
 {
     public static VfxPool Instance { get; private set; }
 
-    [SerializeField] private GameObject _prefab;
-    [SerializeField] private int _preloadCount = 10;
+    [Tooltip("Сколько экземпляров каждого эффекта создать заранее при первом использовании")]
+    [SerializeField] private int _preloadCount = 5;
 
-    private readonly Queue<ParticleSystem> _pool = new();
-    
-    // Пулы для разных prefab-ов
+    // Отдельная очередь под каждый префаб эффекта
     private readonly Dictionary<GameObject, Queue<ParticleSystem>> _prefabPools = new();
 
     private void Awake()
     {
+        // Singleton — один на сцену
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
         Instance = this;
-        Preload();
     }
 
-    private void Preload()
+    /// <summary>Спавнит конкретный VFX по префабу из VfxConfig.</summary>
+    public void Spawn(Vector3 position, Quaternion rotation, GameObject prefab)
     {
-        for (int i = 0; i < _preloadCount; i++)
+        if (prefab == null) return; // нет эффекта — ничего не делаем
+
+        if (!_prefabPools.TryGetValue(prefab, out Queue<ParticleSystem> pool))
         {
-            ParticleSystem ps = CreateOne(_prefab);
-            ps.gameObject.SetActive(false);
-            _pool.Enqueue(ps);
+            pool = new Queue<ParticleSystem>();
+            _prefabPools[prefab] = pool;
+
+            // Прелоадим заранее чтобы не было Instantiate в первый удар
+            for (int i = 0; i < _preloadCount; i++)
+            {
+                ParticleSystem preloaded = CreateOne(prefab);
+                preloaded.gameObject.SetActive(false);
+                pool.Enqueue(preloaded);
+            }
         }
+
+        SpawnFromPool(pool, prefab, position, rotation);
     }
 
     private ParticleSystem CreateOne(GameObject prefab)
@@ -43,35 +59,10 @@ public class VfxPool : MonoBehaviour
         return ps;
     }
 
-    /// <summary>Спавнит дефолтный VFX.</summary>
-    public void Spawn(Vector3 position, Quaternion rotation)
+    private void SpawnFromPool(Queue<ParticleSystem> pool, GameObject prefab,
+                               Vector3 position, Quaternion rotation)
     {
-        SpawnFromPool(_pool, _prefab, position, rotation);
-    }
-
-    /// <summary>Спавнит конкретный VFX по prefab.</summary>
-    public void Spawn(Vector3 position, Quaternion rotation, GameObject prefab)
-    {
-        if (prefab == null)
-        {
-            Spawn(position, rotation);
-            return;
-        }
-
-        if (!_prefabPools.ContainsKey(prefab))
-            _prefabPools[prefab] = new Queue<ParticleSystem>();
-
-        SpawnFromPool(_prefabPools[prefab], prefab, position, rotation);
-    }
-
-    private void SpawnFromPool(Queue<ParticleSystem> pool, GameObject prefab, Vector3 position, Quaternion rotation)
-    {
-        ParticleSystem ps;
-
-        if (pool.Count > 0)
-            ps = pool.Dequeue();
-        else
-            ps = CreateOne(prefab);
+        ParticleSystem ps = pool.Count > 0 ? pool.Dequeue() : CreateOne(prefab);
 
         ps.gameObject.SetActive(true);
         ps.transform.position = position;

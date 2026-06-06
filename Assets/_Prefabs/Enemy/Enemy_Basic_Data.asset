@@ -17,3 +17,4 @@ MonoBehaviour:
   Damage: 10
   AttackRange: 1.5
   AttackSpeed: 1
+  SpawnHeight: 0.3

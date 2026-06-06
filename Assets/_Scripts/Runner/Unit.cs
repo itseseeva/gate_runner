@@ -63,15 +63,20 @@ public class Unit : MonoBehaviour
         // Никаких GetComponentInChildren! Используем готовую ссылку
         if (_unitRenderer == null) return;
 
+        // Material нельзя трогать на неактивном объекте/префабе — пропускаем
+        if (!gameObject.activeInHierarchy) return;
+
         Color color = _element switch
         {
-            ElementType.Fire      => new Color(1f, 0.4f, 0.1f),  
-            ElementType.Ice       => new Color(0.4f, 0.8f, 1f),  
-            ElementType.Lightning => new Color(1f, 0.95f, 0.3f), 
-            _                     => Color.white,                 
+            ElementType.Fire      => new Color(1f, 0.4f, 0.1f),
+            ElementType.Ice       => new Color(0.4f, 0.8f, 1f),
+            ElementType.Lightning => new Color(1f, 0.95f, 0.3f),
+            _                     => Color.white,
         };
 
         Material mat = _unitRenderer.material;
+        if (mat == null) return;
+
         if (mat.HasProperty("_BaseColor"))
             mat.SetColor("_BaseColor", color);
         else

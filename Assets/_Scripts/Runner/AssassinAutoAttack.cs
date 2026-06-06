@@ -1,8 +1,8 @@
 using UnityEngine;
 
 /// <summary>
-/// Автоатака ассасина: серия из 3 ударов за одну анимацию по разным врагам.
-/// Удары наносятся через Animation Events OnSlash1/2/3 в моменты взмахов.
+/// Автоатака ассасина: 3 удара за одну анимацию через Animation Events.
+/// OnSlash1/2/3 бьют текущую цель состояния в моменты взмахов.
 /// </summary>
 public class AssassinAutoAttack : MeleeAutoAttackBase
 {
@@ -26,18 +26,15 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
     public bool IsSeriesReady => Time.time - _lastSeriesTime >= _seriesCooldown;
     public void StartSeriesCooldown() => _lastSeriesTime = Time.time;
 
-    // Ссылка на состояние — оно даёт текущую цель для удара
+    // Состояние даёт текущую цель для удара в момент взмаха
     private AssassinStrikeState _strikeState;
     public void SetStrikeState(AssassinStrikeState state) => _strikeState = state;
 
-    /// <summary>Запускает анимацию серии.</summary>
+    /// <summary>Запускает анимацию серии (триггер Attack).</summary>
     public override HitResult Hit(Enemy target)
     {
         if (!IsReady) return HitResult.Miss();
-
-        if (Animator != null)
-            Animator.SetTrigger("Attack");
-
+        if (Animator != null) Animator.SetTrigger("Attack");
         UpdateCooldown();
         return new HitResult { Hit = true };
     }
@@ -50,11 +47,11 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
     private void DoSlashOnCurrentTarget()
     {
         if (_strikeState == null) return;
-        Enemy target = _strikeState.CurrentTarget;
-        DoSingleSlash(target);
+        DoSingleSlash(_strikeState.CurrentTarget);
+        _strikeState.NotifySlashDone(); // сообщаем состоянию что взмах случился
     }
 
-    /// <summary>Наносит один удар по конкретной цели.</summary>
+    /// <summary>Наносит один удар по цели + эффект между ассасином и врагом.</summary>
     public void DoSingleSlash(Enemy target)
     {
         if (target == null) return;
@@ -73,10 +70,11 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
             status.ApplyStatus(statusToApply, finalDamage);
         }
 
+        // Эффект ПОСЕРЕДИНЕ между ассасином и врагом
         if (VfxPool.Instance != null && _vfxConfig != null && _vfxConfig.AssassinHitVfx != null)
         {
-            Vector3 spawnPos = target.transform.position + Vector3.up * 0.5f;
-            VfxPool.Instance.Spawn(spawnPos, Quaternion.identity, _vfxConfig.AssassinHitVfx);
+            Vector3 mid = (transform.position + target.transform.position) * 0.5f + Vector3.up * 0.5f;
+            VfxPool.Instance.Spawn(mid, Quaternion.identity, _vfxConfig.AssassinHitVfx);
         }
 
         Debug.Log($"[AssassinAutoAttack] Слэш по {target.name}, урон={finalDamage}" +

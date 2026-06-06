@@ -1,2 +1,15 @@
 fileFormatVersion: 2
 guid: 70b07fad04d7bf54da4921ee59d8daa8
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - _projectileNone: {instanceID: 0}
+  - _projectileFire: {instanceID: 0}
+  - _projectileIce: {instanceID: 0}
+  - _projectileLightning: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

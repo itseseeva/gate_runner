@@ -8,12 +8,14 @@ public class AnimationEventReceiver : MonoBehaviour
     private WarriorAutoAttack  _tankAttack;
     private WarriorMeleeAttack _warriorAttack;
     private AssassinAutoAttack _assassinAttack;
+    private RangedAutoAttack   _rangedAttack;
 
     private void Awake()
     {
         _tankAttack     = GetComponentInParent<WarriorAutoAttack>();
         _warriorAttack  = GetComponentInParent<WarriorMeleeAttack>();
         _assassinAttack = GetComponentInParent<AssassinAutoAttack>();
+        _rangedAttack   = GetComponentInParent<RangedAutoAttack>();
     }
 
     public void OnAttackHit()
@@ -26,6 +28,9 @@ public class AnimationEventReceiver : MonoBehaviour
     public void OnSlash1() => _assassinAttack?.OnSlash1();
     public void OnSlash2() => _assassinAttack?.OnSlash2();
     public void OnSlash3() => _assassinAttack?.OnSlash3();
+
+    // Момент выстрела лучника/мага
+    public void OnShoot() => _rangedAttack?.OnShoot();
 
     public void FootL() { }
     public void FootR() { }

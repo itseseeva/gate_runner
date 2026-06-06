@@ -16,4 +16,8 @@ public class EnemyDefinitionSO : ScriptableObject
     public int   Damage        = 10;
     public float AttackRange   = 1.5f;
     public float AttackSpeed   = 1f;   // атак в секунду
+
+    [Header("Спавн")]
+    [Tooltip("Высота (Y), на которой враг появляется. Подбери так, чтобы снаряд попадал в тело.")]
+    public float SpawnHeight   = 0.5f;
 }
