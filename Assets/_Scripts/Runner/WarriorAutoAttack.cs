@@ -1,4 +1,5 @@
 using UnityEngine;
+using DG.Tweening;
 
 /// <summary>
 /// Атака танка щитом — АОЕ урон + отталкивание всех врагов в радиусе.
@@ -13,6 +14,13 @@ public class WarriorAutoAttack : MeleeAutoAttackBase
     [SerializeField] private float _knockbackForce = 0.4f;
 
     [SerializeField] private float _attackAnimationSpeed = 1f;
+
+    [Header("Выпад щитом")]
+    [Tooltip("На сколько танк делает рывок вперёд при ударе")]
+    [SerializeField] private float _lungeDistance = 0.6f;
+
+    [Tooltip("Длительность рывка туда-обратно (сек)")]
+    [SerializeField] private float _lungeDuration = 0.2f;
 
     [Header("VFX")]
     [SerializeField] private VfxConfig _vfxConfig;
@@ -45,6 +53,18 @@ public class WarriorAutoAttack : MeleeAutoAttackBase
     public void OnAttackHit()
     {
         Debug.Log("[WarriorAutoAttack] OnAttackHit сработал!", this);
+
+        // Короткий выпад вперёд в момент удара щитом
+        if (_heroType == HeroType.Tank && _lungeDistance > 0f)
+        {
+            Vector3 lungeTarget = transform.position + Vector3.forward * _lungeDistance;
+            transform.DOMove(lungeTarget, _lungeDuration * 0.5f)
+                     .SetEase(Ease.OutQuad)
+                     .OnComplete(() =>
+                         transform.DOMove(
+                             transform.position - Vector3.forward * _lungeDistance,
+                             _lungeDuration * 0.5f).SetEase(Ease.InQuad));
+        }
 
         ElementType element = OwnerUnit != null ? OwnerUnit.Element : ElementType.None;
         int multiplier      = OwnerUnit != null ? OwnerUnit.PowerMultiplier : 1;

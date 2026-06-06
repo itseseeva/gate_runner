@@ -40,12 +40,8 @@ public class SquadController : MonoBehaviour
     [Tooltip("Насколько куча расширяется при росте числа юнитов. Меньше = плотнее.")]
     [SerializeField] private float _densityScale = 0.15f;
 
-    [Header("Передняя дуга танков")]
-    [Tooltip("Ширина дуги танков по X")]
-    [SerializeField] private float _tankArcWidth = 3f;
-
-    [Tooltip("Насколько дуга изогнута вперёд (горб)")]
-    [SerializeField] private float _tankArcCurve = 1f;
+    [Tooltip("Радиус подковы танков вокруг переда кучи")]
+    [SerializeField] private float _tankRingRadius = 0.8f;
 
     [Header("Стартовый отряд")]
     [SerializeField] private List<StartUnitEntry> _startUnits = new()
@@ -128,14 +124,14 @@ public class SquadController : MonoBehaviour
     {
         return type switch
         {
-            HeroType.Warrior   => 0,  // впереди
-            HeroType.Assassin  => 0,  // впереди
-            HeroType.Tank      => 0,
-            HeroType.Mage      => 2,  // Стрелки
-            HeroType.Archer    => 2,  // Стрелки
-            HeroType.Healer    => 3,  // Тыл
-            HeroType.Support   => 3,  // Тыл
-            _                  => 2,
+            HeroType.Tank      => 0,  // подкова вокруг переда кучи
+            HeroType.Warrior   => 0,  // ближний бой — в той же куче
+            HeroType.Assassin  => 0,
+            HeroType.Archer    => 1,  // стрелки позади
+            HeroType.Mage      => 1,
+            HeroType.Healer    => 2,  // тыл
+            HeroType.Support   => 2,
+            _                  => 1,
         };
     }
 
@@ -180,51 +176,7 @@ public class SquadController : MonoBehaviour
             if (zones[z].Count == 0) continue;
             // Инвертируем: зона 0 (Tank) получает максимальный Z
             float invertedZ = maxZ - zoneZ[z] + _crowdForwardOffset;
-
-            if (z == 0)
-                PlaceTankArc(zones[z], invertedZ); // танки — передней дугой
-            else
-                PlaceZone(zones[z], invertedZ);    // остальные — кучей
-        }
-    }
-
-    /// <summary>
-    /// Расставляет танков передней дугой (изогнутый ряд спереди),
-    /// равномерно по ширине. Танки прикрывают остальную кучу.
-    /// </summary>
-    private void PlaceTankArc(List<Unit> tanks, float baseZ)
-    {
-        int total = tanks.Count;
-        if (total == 0) return;
-
-        for (int i = 0; i < total; i++)
-        {
-            Unit u = tanks[i];
-            if (u == null || u.IsDead) continue;
-
-            // Равномерно по ширине: t от -0.5 до +0.5
-            float t = total > 1 ? (i / (float)(total - 1)) - 0.5f : 0f;
-
-            float x = t * _tankArcWidth;
-            // Горб дуги: центр выдвинут вперёд, края назад (парабола)
-            float zCurve = (1f - 4f * t * t) * _tankArcCurve;
-            float z = baseZ + zCurve;
-
-            Vector3 anchorWorld = transform.position + new Vector3(x, 0f, z);
-
-            CrowdAgent agent = u.GetComponent<CrowdAgent>();
-            if (agent == null) agent = u.gameObject.AddComponent<CrowdAgent>();
-            agent.Anchor = anchorWorld;
-            agent.DensityScale = 1f; // у дуги фиксированный шаг, не раздуваем
-
-            MeleeUnitController meleeCtrl = u.GetComponent<MeleeUnitController>();
-            if (meleeCtrl != null)
-            {
-                meleeCtrl.FormationOffset = anchorWorld - transform.position;
-                if (!meleeCtrl.IsInFormation) continue;
-            }
-
-            agent.Step(GetNeighborPositions(u), Time.deltaTime);
+            PlaceZone(zones[z], invertedZ);
         }
     }
 
@@ -233,13 +185,18 @@ public class SquadController : MonoBehaviour
         int total = units.Count;
         if (total == 0) return;
 
-        // Множитель плотности: 1.0 для маленького отряда, плавно растёт с числом.
-        // 0.25 — насколько агрессивно расширяется (меньше = компактнее).
         float densityScale = 1f + Mathf.Sqrt(total) * _densityScale;
-
-        // Общий центр зоны — все юниты зоны тянутся СЮДА,
-        // а расталкивание раскидывает их в живую кучу вокруг центра.
         Vector3 zoneCenter = transform.position + new Vector3(0f, 0f, baseZ);
+
+        // Считаем танков отдельно — им нужны индексы для раскладки по дуге
+        List<Unit> tanks = new();
+        foreach (Unit u in units)
+            if (u != null && !u.IsDead && u.HeroType == HeroType.Tank)
+                tanks.Add(u);
+
+        // Радиус подковы растёт с размером кучи
+        float ringRadius = _tankRingRadius * densityScale;
+        int tankIndex = 0;
 
         foreach (Unit u in units)
         {
@@ -247,13 +204,29 @@ public class SquadController : MonoBehaviour
 
             CrowdAgent agent = u.GetComponent<CrowdAgent>();
             if (agent == null) agent = u.gameObject.AddComponent<CrowdAgent>();
-            agent.Anchor = zoneCenter;
             agent.DensityScale = densityScale;
+
+            if (u.HeroType == HeroType.Tank && tanks.Count > 0)
+            {
+                // Танк — якорь на переднем полукруге (подкова)
+                // angle от -90° (левый бок) через 0° (перёд) до +90° (правый бок)
+                float t = tanks.Count > 1 ? tankIndex / (float)(tanks.Count - 1) : 0.5f;
+                float angle = Mathf.Lerp(-90f, 90f, t) * Mathf.Deg2Rad;
+
+                float x = Mathf.Sin(angle) * ringRadius;
+                float z = Mathf.Cos(angle) * ringRadius; // перёд = +Z
+                agent.Anchor = zoneCenter + new Vector3(x, 0f, z);
+                tankIndex++;
+            }
+            else
+            {
+                // Остальные — центр кучи
+                agent.Anchor = zoneCenter;
+            }
 
             MeleeUnitController meleeCtrl = u.GetComponent<MeleeUnitController>();
             if (meleeCtrl != null)
             {
-                // offset уже не сетка — просто текущее смещение от лидера (для rejoin)
                 meleeCtrl.FormationOffset = u.transform.position - transform.position;
                 if (!meleeCtrl.IsInFormation) continue;
             }

@@ -37,9 +37,13 @@ public class MeleeUnitController : MonoBehaviour
     private Animator    _animator;
     private bool        _isPlayingRejoin = false;
 
-    // Цель → сколько юнитов её атакуют. Максимум 2 на одну цель.
+    // Общий счётчик для воинов/ассассинов (могут наваливаться по 2)
     private static readonly Dictionary<Enemy, int> _claimCount = new();
     private const int MAX_CLAIMS_PER_TARGET = 2;
+
+    // Отдельный счётчик для танков — 1 танк на врага
+    private static readonly Dictionary<Enemy, int> _tankClaimCount = new();
+    private const int MAX_TANK_CLAIMS_PER_TARGET = 1;
 
     // ─── Свойства ────────────────────────────────────────────────
     public Transform Leader          { get; private set; }
@@ -51,6 +55,9 @@ public class MeleeUnitController : MonoBehaviour
     public float ReturnDistance      => _returnDistance;
     public float ChaseSpeed          => _chaseSpeed;
     public float DriftSpeed          => _chaseSpeed * _driftSpeedRatio;
+
+    private Unit _ownerUnit;
+    private bool IsTank => _ownerUnit != null && _ownerUnit.HeroType == HeroType.Tank;
 
     private UnitStateMachine _stateMachine;
 
@@ -67,6 +74,7 @@ public class MeleeUnitController : MonoBehaviour
 
         _stateMachine = GetComponent<UnitStateMachine>();
         _animator     = GetComponentInChildren<Animator>();
+        _ownerUnit    = GetComponent<Unit>();
 
         _autoAttack = _autoAttackComponent as IUnitAttack;
         if (_autoAttack == null)
@@ -133,13 +141,23 @@ public class MeleeUnitController : MonoBehaviour
             float d = Vector3.Distance(transform.position, e.transform.position);
             if (d > range) continue;
 
-            int claims = _claimCount.TryGetValue(e, out int c) ? c : 0;
-
-            if (claims == 0)
-                free.Add(e);
-            else if (claims < MAX_CLAIMS_PER_TARGET)
-                partial.Add(e);
-            // claims >= 2 — пропускаем
+            if (IsTank)
+            {
+                // Танк: смотрит танковый счётчик — 1 танк на врага
+                int tankClaims = _tankClaimCount.TryGetValue(e, out int tc) ? tc : 0;
+                if (tankClaims < MAX_TANK_CLAIMS_PER_TARGET)
+                    free.Add(e);
+                // иначе враг уже занят танком — пропускаем
+            }
+            else
+            {
+                // Воин/ассассин: общий счётчик, до 2 на врага
+                int claims = _claimCount.TryGetValue(e, out int c) ? c : 0;
+                if (claims == 0)
+                    free.Add(e);
+                else if (claims < MAX_CLAIMS_PER_TARGET)
+                    partial.Add(e);
+            }
         }
 
         // Приоритет — свободные цели
@@ -160,12 +178,20 @@ public class MeleeUnitController : MonoBehaviour
     {
         if (target == null) return false;
 
-        int current = _claimCount.TryGetValue(target, out int c) ? c : 0;
-        if (current >= MAX_CLAIMS_PER_TARGET)
-            return false; // на цели уже 2 — занято
-
-        _claimCount[target] = current + 1;
-        return true;
+        if (IsTank)
+        {
+            int cur = _tankClaimCount.TryGetValue(target, out int tc) ? tc : 0;
+            if (cur >= MAX_TANK_CLAIMS_PER_TARGET) return false;
+            _tankClaimCount[target] = cur + 1;
+            return true;
+        }
+        else
+        {
+            int current = _claimCount.TryGetValue(target, out int c) ? c : 0;
+            if (current >= MAX_CLAIMS_PER_TARGET) return false;
+            _claimCount[target] = current + 1;
+            return true;
+        }
     }
 
     /// <summary>Освобождает цель.</summary>
@@ -173,11 +199,50 @@ public class MeleeUnitController : MonoBehaviour
     {
         if (target == null) return;
 
-        if (_claimCount.TryGetValue(target, out int c))
+        if (IsTank)
         {
-            if (c <= 1) _claimCount.Remove(target);
-            else        _claimCount[target] = c - 1;
+            if (_tankClaimCount.TryGetValue(target, out int tc))
+            {
+                if (tc <= 1) _tankClaimCount.Remove(target);
+                else         _tankClaimCount[target] = tc - 1;
+            }
         }
+        else
+        {
+            if (_claimCount.TryGetValue(target, out int c))
+            {
+                if (c <= 1) _claimCount.Remove(target);
+                else        _claimCount[target] = c - 1;
+            }
+        }
+    }
+
+    private Enemy _myClaimedTarget; // какого врага держит этот танк
+
+    /// <summary>
+    /// Для AutoAttacker: можно ли танку бить эту цель.
+    /// Танк бьёт только если успел заклеймить врага (1 танк на врага).
+    /// Не-танки бьют всегда (их ограничивает обычный claim).
+    /// </summary>
+    public bool CanAutoAttack(Enemy target)
+    {
+        if (!IsTank) return true;          // воины/ассассины — без ограничения здесь
+        if (target == null) return false;
+
+        // Уже клеймили этого врага этим танком? Тогда можно.
+        if (_myClaimedTarget == target) return true;
+
+        // Пытаемся заклеймить. Получилось — цель наша, бьём.
+        if (ClaimTarget(target))
+        {
+            // Освобождаем прошлую цель, если была другая
+            if (_myClaimedTarget != null && _myClaimedTarget != target)
+                ReleaseTarget(_myClaimedTarget);
+            _myClaimedTarget = target;
+            return true;
+        }
+
+        return false; // врага уже держит другой танк — не бьём
     }
 
     private void OnDisable() { }
