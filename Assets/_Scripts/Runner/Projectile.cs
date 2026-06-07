@@ -11,6 +11,7 @@ public class Projectile : MonoBehaviour
     [SerializeField] private float _speed       = 15f;
     [SerializeField] private float _maxDistance = 16f;
 
+    private GameObject  _hitEffect;   // эффект попадания от стрелка
     private int         _damage;
     private float       _distanceTravelled;
     private bool        _active;
@@ -19,12 +20,16 @@ public class Projectile : MonoBehaviour
     /// <summary>Стихия снаряда — нужна пулу, чтобы вернуть в правильную очередь.</summary>
     public ElementType Element => _element;
 
-    /// <summary>Запускает снаряд с указанным уроном, дистанцией и стихией.</summary>
-    public void Launch(int damage, float maxDistance, ElementType element)
+    /// <summary>Префаб, из которого создан снаряд — для возврата в нужную очередь пула.</summary>
+    public GameObject SourcePrefab { get; set; }
+
+    /// <summary>Запускает снаряд с указанным уроном, дистанцией, стихией и опциональным хит-эффектом.</summary>
+    public void Launch(int damage, float maxDistance, ElementType element, GameObject hitEffect = null)
     {
         _damage            = damage;
         _maxDistance       = maxDistance;
         _element           = element;
+        _hitEffect         = hitEffect;
         _distanceTravelled = 0f;
         _active            = true;
 
@@ -83,8 +88,10 @@ public class Projectile : MonoBehaviour
             status.ApplyStatus(statusToApply, finalDamage);
         }
 
-        // Эффект попадания в точке столкновения
-        if (HitEffectPool.Instance != null)
+        // Эффект попадания: сначала пробуем свой (из SO стрелка), иначе старый общий пул.
+        if (_hitEffect != null && VfxPool.Instance != null)
+            VfxPool.Instance.Spawn(transform.position, Quaternion.identity, _hitEffect);
+        else if (HitEffectPool.Instance != null)
             HitEffectPool.Instance.Play(_element, transform.position);
 
         ReturnToPool();

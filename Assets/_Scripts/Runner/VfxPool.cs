@@ -42,6 +42,7 @@ public class VfxPool : MonoBehaviour
             for (int i = 0; i < _preloadCount; i++)
             {
                 ParticleSystem preloaded = CreateOne(prefab);
+                if (preloaded == null) break;
                 preloaded.gameObject.SetActive(false);
                 pool.Enqueue(preloaded);
             }
@@ -53,7 +54,17 @@ public class VfxPool : MonoBehaviour
     private ParticleSystem CreateOne(GameObject prefab)
     {
         GameObject go = Instantiate(prefab, transform);
+
+        // ParticleSystem может быть на корне ИЛИ на дочернем объекте.
         ParticleSystem ps = go.GetComponent<ParticleSystem>();
+        if (ps == null) ps = go.GetComponentInChildren<ParticleSystem>();
+
+        if (ps == null)
+        {
+            Debug.LogError($"[VfxPool] На префабе {prefab.name} нет ParticleSystem (ни на корне, ни в детях).", this);
+            return null;
+        }
+
         var main = ps.main;
         main.stopAction = ParticleSystemStopAction.None;
         return ps;
@@ -63,6 +74,7 @@ public class VfxPool : MonoBehaviour
                                Vector3 position, Quaternion rotation)
     {
         ParticleSystem ps = pool.Count > 0 ? pool.Dequeue() : CreateOne(prefab);
+        if (ps == null) return; // префаб без ParticleSystem — не падаем
 
         ps.gameObject.SetActive(true);
         ps.transform.position = position;

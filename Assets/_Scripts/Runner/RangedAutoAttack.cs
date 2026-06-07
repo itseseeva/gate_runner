@@ -51,10 +51,25 @@ public class RangedAutoAttack : MeleeAutoAttackBase
 
         ElementType element = OwnerUnit != null ? OwnerUnit.Element : ElementType.None;
 
+        // Префаб снаряда берём из данных юнита (у мага и лучника — разные).
+        GameObject projectilePrefab = OwnerUnit != null && OwnerUnit.Data != null
+            ? OwnerUnit.Data.GetProjectile(element)
+            : null;
+
+        if (projectilePrefab == null)
+        {
+            Debug.LogWarning($"[RangedAutoAttack] {name}: нет префаба снаряда для стихии {element} в HeroDefinitionSO.", this);
+            return;
+        }
+
         Vector3 spawnPos = transform.position + Vector3.up * _spawnHeightOffset;
-        Projectile p = ProjectilePool.Instance.Get(element, spawnPos, Quaternion.identity);
+        Projectile p = ProjectilePool.Instance.Get(projectilePrefab, spawnPos, Quaternion.identity);
         if (p == null) return;
 
-        p.Launch(calc.FinalDamage, _range, element);
+        GameObject hitEffect = OwnerUnit != null && OwnerUnit.Data != null
+            ? OwnerUnit.Data.GetHitEffect(element)
+            : null;
+
+        p.Launch(calc.FinalDamage, _range, element, hitEffect);
     }
 }

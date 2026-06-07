@@ -2,98 +2,56 @@ using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
-/// Пул снарядов, разделённый по стихии (None/Fire/Ice/Lightning).
-/// Никаких Instantiate в бою — всё преложено.
-/// Каждая стихия имеет свой префаб снаряда (со своим трейлом) и свою очередь.
-/// Снаряд возвращается в очередь той же стихии, с которой был выпущен.
+/// Универсальный пул снарядов — очередь на каждый ПРЕФАБ (как VfxPool).
+/// Префаб снаряда приходит от стрелка (из его HeroDefinitionSO),
+/// поэтому маг и лучник используют разные снаряды, а пул переиспользует
+/// любые без Instantiate в бою.
+/// Снаряд помнит свой исходный префаб, чтобы вернуться в правильную очередь.
 /// </summary>
 public class ProjectilePool : MonoBehaviour
 {
     public static ProjectilePool Instance;
 
-    [Header("Префабы снарядов по стихии")]
-    [Tooltip("Снаряд для нейтральных стрелков (ElementType.None)")]
-    [SerializeField] private GameObject _projectileNone;
-
-    [Tooltip("Огненный снаряд")]
-    [SerializeField] private GameObject _projectileFire;
-
-    [Tooltip("Ледяной снаряд")]
-    [SerializeField] private GameObject _projectileIce;
-
-    [Tooltip("Молниевый снаряд")]
-    [SerializeField] private GameObject _projectileLightning;
-
     [Header("Настройки")]
-    [Tooltip("Сколько снарядов каждой стихии создать заранее")]
-    [SerializeField] private int _preloadCount = 30;
+    [Tooltip("Сколько снарядов каждого префаба создать заранее при первом использовании")]
+    [SerializeField] private int _preloadCount = 20;
 
-    // Каждая стихия имеет свою очередь готовых снарядов.
-    private readonly Dictionary<ElementType, Queue<Projectile>> _pool = new();
+    // Очередь готовых снарядов на каждый префаб.
+    private readonly Dictionary<GameObject, Queue<Projectile>> _pool = new();
 
     private void Awake()
     {
         Instance = this;
-        Preload();
-    }
-
-    private void Preload()
-    {
-        CreatePoolForElement(ElementType.None,      _projectileNone);
-        CreatePoolForElement(ElementType.Fire,      _projectileFire);
-        CreatePoolForElement(ElementType.Ice,       _projectileIce);
-        CreatePoolForElement(ElementType.Lightning, _projectileLightning);
-
-        Debug.Log("[ProjectilePool] Пул снарядов готов!", this);
-    }
-
-    private void CreatePoolForElement(ElementType element, GameObject prefab)
-    {
-        // Если префаб не назначен — пропускаем стихию (не падаем).
-        if (prefab == null)
-        {
-            Debug.LogWarning($"[ProjectilePool] Нет префаба снаряда для стихии {element} — снаряды этой стихии не будут вылетать.", this);
-            return;
-        }
-
-        _pool[element] = new Queue<Projectile>();
-
-        for (int i = 0; i < _preloadCount; i++)
-        {
-            Projectile p = CreateProjectile(prefab, element);
-            p.gameObject.SetActive(false);
-            _pool[element].Enqueue(p);
-        }
-    }
-
-    private Projectile CreateProjectile(GameObject prefab, ElementType element)
-    {
-        GameObject go = Instantiate(prefab, transform);
-        Projectile p = go.GetComponent<Projectile>();
-        if (p == null)
-        {
-            Debug.LogError($"[ProjectilePool] На префабе снаряда {prefab.name} нет компонента Projectile!", this);
-        }
-        return p;
     }
 
     /// <summary>
-    /// Берёт снаряд нужной стихии из пула и ставит в позицию стрелка.
-    /// Если для стихии нет пула — пробует нейтральный как запасной.
+    /// Берёт снаряд указанного префаба из пула (создаёт пул для префаба при первом обращении).
     /// </summary>
-    public Projectile Get(ElementType element, Vector3 position, Quaternion rotation)
+    public Projectile Get(GameObject prefab, Vector3 position, Quaternion rotation)
     {
-        // Нет пула для стихии — fallback на нейтральный.
-        if (!_pool.ContainsKey(element))
+        if (prefab == null)
         {
-            if (!_pool.ContainsKey(ElementType.None)) return null;
-            element = ElementType.None;
+            Debug.LogWarning("[ProjectilePool] Запрошен снаряд с null-префабом.", this);
+            return null;
         }
 
-        Queue<Projectile> queue = _pool[element];
+        // Первое обращение к этому префабу — создаём очередь и прелоадим.
+        if (!_pool.TryGetValue(prefab, out Queue<Projectile> queue))
+        {
+            queue = new Queue<Projectile>();
+            _pool[prefab] = queue;
 
-        Projectile p = queue.Count > 0 ? queue.Dequeue() : null;
-        if (p == null) return null; // пул пуст в этот кадр
+            for (int i = 0; i < _preloadCount; i++)
+            {
+                Projectile pre = CreateProjectile(prefab);
+                if (pre == null) break;
+                pre.gameObject.SetActive(false);
+                queue.Enqueue(pre);
+            }
+        }
+
+        Projectile p = queue.Count > 0 ? queue.Dequeue() : CreateProjectile(prefab);
+        if (p == null) return null;
 
         p.transform.position = position;
         p.transform.rotation = rotation;
@@ -101,25 +59,34 @@ public class ProjectilePool : MonoBehaviour
         return p;
     }
 
-    /// <summary>
-    /// Возвращает снаряд в очередь его стихии.
-    /// Стихию берём у самого снаряда — он помнит её после Launch.
-    /// </summary>
+    private Projectile CreateProjectile(GameObject prefab)
+    {
+        GameObject go = Instantiate(prefab, transform);
+        Projectile p = go.GetComponent<Projectile>();
+        if (p == null)
+        {
+            Debug.LogError($"[ProjectilePool] На префабе снаряда {prefab.name} нет компонента Projectile!", this);
+            return null;
+        }
+        p.SourcePrefab = prefab; // запоминаем, в какую очередь возвращать
+        return p;
+    }
+
+    /// <summary>Возвращает снаряд в очередь его префаба.</summary>
     public void Return(Projectile p)
     {
         if (p == null) return;
 
         p.gameObject.SetActive(false);
 
-        ElementType element = p.Element;
-
-        // Если очереди для стихии нет — кладём в нейтральную, чтобы не потерять снаряд.
-        if (!_pool.ContainsKey(element))
+        GameObject prefab = p.SourcePrefab;
+        if (prefab == null || !_pool.ContainsKey(prefab))
         {
-            if (!_pool.ContainsKey(ElementType.None)) return;
-            element = ElementType.None;
+            // Источник неизвестен (не должно случаться) — уничтожаем, чтобы не копить мусор.
+            Destroy(p.gameObject);
+            return;
         }
 
-        _pool[element].Enqueue(p);
+        _pool[prefab].Enqueue(p);
     }
 }

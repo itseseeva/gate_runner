@@ -23,6 +23,19 @@ public class HeroDefinitionSO : ScriptableObject
     [Tooltip("Prefab T2 (после слияния 15 T1). Может быть null — тогда тип не апается.")]
     [SerializeField] private GameObject _prefabT2;
 
+    [Header("Снаряды (для дальников: маг/лучник)")]
+    [Tooltip("Снаряд без стихии")]
+    [SerializeField] private GameObject _projectileNone;
+    [SerializeField] private GameObject _projectileFire;
+    [SerializeField] private GameObject _projectileIce;
+    [SerializeField] private GameObject _projectileLightning;
+
+    [Header("Эффекты попадания снаряда")]
+    [SerializeField] private GameObject _hitNone;
+    [SerializeField] private GameObject _hitFire;
+    [SerializeField] private GameObject _hitIce;
+    [SerializeField] private GameObject _hitLightning;
+
     [SerializeField] private float _attackRange = 5f;
 
     public string     HeroName    => _heroName;
@@ -44,5 +57,29 @@ public class HeroDefinitionSO : ScriptableObject
 
     /// <summary>True если у этого типа есть T2-версия (можно апать).</summary>
     public bool CanUpgradeToT2 => _prefabT2 != null;
+
+    /// <summary>Префаб снаряда для стихии (для дальников).</summary>
+    public GameObject GetProjectile(ElementType element)
+    {
+        return element switch
+        {
+            ElementType.Fire      => _projectileFire,
+            ElementType.Ice       => _projectileIce,
+            ElementType.Lightning => _projectileLightning,
+            _                     => _projectileNone,
+        };
+    }
+
+    /// <summary>Префаб эффекта попадания для стихии.</summary>
+    public GameObject GetHitEffect(ElementType element)
+    {
+        return element switch
+        {
+            ElementType.Fire      => _hitFire,
+            ElementType.Ice       => _hitIce,
+            ElementType.Lightning => _hitLightning,
+            _                     => _hitNone,
+        };
+    }
 
 }
