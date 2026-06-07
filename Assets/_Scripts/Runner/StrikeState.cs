@@ -96,6 +96,17 @@ public class StrikeState : IUnitState
             return;
         }
 
+        // Поводок: убежали от места в строю слишком далеко — бросаем погоню
+        Vector3 homePos = _ctrl.Leader.position + _ctrl.FormationOffset;
+        if (Vector3.Distance(_ctrl.transform.position, homePos) > _ctrl.MaxChaseDistance)
+        {
+            if (_target != null) _ctrl.ReleaseTarget(_target);
+            _target = null;
+            _ctrl.StartRejoin();
+            _ctrl.ChangeState(_ctrl.FollowState);
+            return;
+        }
+
         // Двигаемся к врагу
         Vector3 dir = toEnemy.normalized;
         _ctrl.transform.position += dir * _ctrl.ChaseSpeed * Time.deltaTime;

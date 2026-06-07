@@ -3835,9 +3835,11 @@ MonoBehaviour:
   _maxPerRow: 8
   _crowdForwardOffset: 2
   _followSpeed: 10
+  _densityScale: 0.1
+  _tankRingRadius: 0.3
   _startUnits:
   - heroType: 3
-    count: 0
+    count: 14
   - heroType: 1
     count: 0
   - heroType: 0
@@ -3845,7 +3847,7 @@ MonoBehaviour:
   - heroType: 4
     count: 0
   - heroType: 2
-    count: 11
+    count: 0
 --- !u!114 &1554201389
 MonoBehaviour:
   m_ObjectHideFlags: 0

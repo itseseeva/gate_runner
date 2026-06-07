@@ -79,9 +79,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b750bdda2e6d924e82a5dd5512f75ce, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MeleeUnitController
-  _detectionRange: 4
-  _attackRange: 0.5
+  _detectionRange: 5
+  _attackRange: 4
   _returnDistance: 0.5
+  _maxChaseDistance: 4
   _chaseSpeed: 8
   _driftSpeedRatio: 2
   _rejoinDuration: 0.4

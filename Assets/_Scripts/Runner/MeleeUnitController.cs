@@ -13,6 +13,8 @@ public class MeleeUnitController : MonoBehaviour
     [SerializeField] private float _detectionRange   = 5f;
     [SerializeField] private float _attackRange      = 1.8f;
     [SerializeField] private float _returnDistance   = 0.5f;
+    [Tooltip("Макс. расстояние от места в строю, дальше которого юнит бросает погоню")]
+    [SerializeField] private float _maxChaseDistance = 5f;
 
     [Header("Скорости")]
     [SerializeField] private float _chaseSpeed       = 8f;
@@ -53,11 +55,13 @@ public class MeleeUnitController : MonoBehaviour
     public float DetectionRange      => _detectionRange;
     public float AttackRange         => _attackRange;
     public float ReturnDistance      => _returnDistance;
+    public float MaxChaseDistance    => _maxChaseDistance;
     public float ChaseSpeed          => _chaseSpeed;
     public float DriftSpeed          => _chaseSpeed * _driftSpeedRatio;
 
     private Unit _ownerUnit;
     private bool IsTank => _ownerUnit != null && _ownerUnit.HeroType == HeroType.Tank;
+    public bool IsTankUnit => IsTank;
 
     private UnitStateMachine _stateMachine;
 

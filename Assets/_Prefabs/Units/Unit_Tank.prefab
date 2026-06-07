@@ -72,6 +72,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoAttacker
   _attackComponent: {fileID: -9135729230414756288}
+  _backCutoff: 0.5
 --- !u!114 &-5036847367397787173
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -98,7 +99,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 110fa897ddbd0dc48bc4b2fd39477e36, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WarriorAutoAttack
-  _attackSpeed: 0.5
+  _attackSpeed: 0.2
   _range: 3
   _baseDamage: 10
   _bashRadius: 3
@@ -158,6 +159,7 @@ MonoBehaviour:
   _detectionRange: 5
   _attackRange: 1.8
   _returnDistance: 0.5
+  _maxChaseDistance: 4
   _chaseSpeed: 10
   _driftSpeedRatio: 0.3
   _rejoinDuration: 0.4
