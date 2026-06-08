@@ -21,4 +21,12 @@ MonoBehaviour:
   _heroType: 1
   _prefab: {fileID: 1970454060845482337, guid: 36885a05a0579fd46ab840b42eeee3ae, type: 3}
   _prefabT2: {fileID: 1970454060845482337, guid: ae041f135445de84fae8f47593850a2b, type: 3}
+  _projectileNone: {fileID: 8989303560256481706, guid: 74aca4c4fee683940bff0f9b591bdfb9, type: 3}
+  _projectileFire: {fileID: 0}
+  _projectileIce: {fileID: 0}
+  _projectileLightning: {fileID: 0}
+  _hitNone: {fileID: 4856460214833235983, guid: 8cdbee176c250504db20e32a1476ba45, type: 3}
+  _hitFire: {fileID: 0}
+  _hitIce: {fileID: 0}
+  _hitLightning: {fileID: 0}
   _attackRange: 8

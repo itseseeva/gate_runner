@@ -81,7 +81,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RangedAutoAttack
   _attackSpeed: 1.2
-  _range: 8
+  _range: 15
   _baseDamage: 15
   _spawnHeightOffset: 0
 --- !u!1001 &1653862812901105200
@@ -159,13 +159,33 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: ac79892791d0b284797e951ea2d814e5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4971819514757751467}
   m_SourcePrefab: {fileID: 100100000, guid: ac79892791d0b284797e951ea2d814e5, type: 3}
 --- !u!4 &1259048609975876059 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: ac79892791d0b284797e951ea2d814e5, type: 3}
   m_PrefabInstance: {fileID: 1653862812901105200}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1887811603982705505 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: ac79892791d0b284797e951ea2d814e5, type: 3}
+  m_PrefabInstance: {fileID: 1653862812901105200}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4971819514757751467
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1887811603982705505}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 929f1cff266a04f4e9e8f3cf0e34fab9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimationEventReceiver
 --- !u!1001 &8558808738395752170
 PrefabInstance:
   m_ObjectHideFlags: 0

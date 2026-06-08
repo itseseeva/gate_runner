@@ -25,7 +25,7 @@ MonoBehaviour:
   _projectileFire: {fileID: 0}
   _projectileIce: {fileID: 0}
   _projectileLightning: {fileID: 0}
-  _hitNone: {fileID: 0}
+  _hitNone: {fileID: 3017430761128806937, guid: c66cc86ab2d040546aa9b425fc0e4d9c, type: 3}
   _hitFire: {fileID: 0}
   _hitIce: {fileID: 0}
   _hitLightning: {fileID: 0}

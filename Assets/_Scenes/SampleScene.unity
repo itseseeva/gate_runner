@@ -304,6 +304,7 @@ GameObject:
   - component: {fileID: 271985896}
   - component: {fileID: 271985895}
   - component: {fileID: 271985894}
+  - component: {fileID: 271985897}
   m_Layer: 5
   m_Name: SlowMoButton
   m_TagString: Untagged
@@ -413,6 +414,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 271985892}
   m_CullTransparentMesh: 1
+--- !u!114 &271985897
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 271985892}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 617373270afb5c44fbe3ec1f05f915c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ElementCheat
 --- !u!1 &285200346
 GameObject:
   m_ObjectHideFlags: 0
@@ -3654,10 +3667,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70b07fad04d7bf54da4921ee59d8daa8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectilePool
-  _projectileNone: {fileID: 8989303560256481706, guid: 8f75d8115f863ac4f82c2353ee871698, type: 3}
-  _projectileFire: {fileID: 8989303560256481706, guid: cbb52031e4f09524e9f7b62dfc801475, type: 3}
-  _projectileIce: {fileID: 8989303560256481706, guid: 0f49373931f8f73429a17110fd1a4506, type: 3}
-  _projectileLightning: {fileID: 8989303560256481706, guid: e6ad0fd29547d084393871ee39315d17, type: 3}
   _preloadCount: 30
 --- !u!4 &1532651088
 Transform:
@@ -3841,11 +3850,11 @@ MonoBehaviour:
   - heroType: 3
     count: 0
   - heroType: 1
-    count: 0
+    count: 4
   - heroType: 0
-    count: 11
+    count: 0
   - heroType: 4
-    count: 12
+    count: 0
   - heroType: 2
     count: 0
 --- !u!114 &1554201389

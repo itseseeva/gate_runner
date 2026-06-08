@@ -88,11 +88,9 @@ public class Projectile : MonoBehaviour
             status.ApplyStatus(statusToApply, finalDamage);
         }
 
-        // Эффект попадания: сначала пробуем свой (из SO стрелка), иначе старый общий пул.
+        // Эффект попадания только из SO стрелка. Пусто — эффекта нет.
         if (_hitEffect != null && VfxPool.Instance != null)
             VfxPool.Instance.Spawn(transform.position, Quaternion.identity, _hitEffect);
-        else if (HitEffectPool.Instance != null)
-            HitEffectPool.Instance.Play(_element, transform.position);
 
         ReturnToPool();
     }

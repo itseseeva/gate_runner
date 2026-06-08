@@ -30,7 +30,11 @@ public class AnimationEventReceiver : MonoBehaviour
     public void OnSlash3() => _assassinAttack?.OnSlash3();
 
     // Момент выстрела лучника/мага
-    public void OnShoot() => _rangedAttack?.OnShoot();
+    public void OnShoot()
+    {
+        Debug.Log($"[Receiver] OnShoot, объект={name}, ranged={_rangedAttack}", this);
+        _rangedAttack?.OnShoot();
+    }
 
     public void FootL() { }
     public void FootR() { }
