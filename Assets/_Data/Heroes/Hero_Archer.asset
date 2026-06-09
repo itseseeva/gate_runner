@@ -22,11 +22,11 @@ MonoBehaviour:
   _prefab: {fileID: 7607463943539219709, guid: 74c9595443ce13f4d994614dda2a657a, type: 3}
   _prefabT2: {fileID: 7607463943539219709, guid: 36691d40284c36f4b806ee85862af3c4, type: 3}
   _projectileNone: {fileID: 8989303560256481706, guid: 0b996a93613440c4d8173e54154d21b9, type: 3}
-  _projectileFire: {fileID: 0}
+  _projectileFire: {fileID: 8989303560256481706, guid: 88da0f27e9a3fd6489fd9ac92da02ecc, type: 3}
   _projectileIce: {fileID: 0}
   _projectileLightning: {fileID: 0}
   _hitNone: {fileID: 3017430761128806937, guid: c66cc86ab2d040546aa9b425fc0e4d9c, type: 3}
-  _hitFire: {fileID: 0}
+  _hitFire: {fileID: 8509476954776975093, guid: 392b81272baba7c4f933f45da97d0402, type: 3}
   _hitIce: {fileID: 0}
   _hitLightning: {fileID: 0}
   _attackRange: 6

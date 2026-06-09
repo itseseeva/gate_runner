@@ -16,12 +16,18 @@ public class Projectile : MonoBehaviour
     private float       _distanceTravelled;
     private bool        _active;
     private ElementType _element = ElementType.None;
+    private ParticleSystem[] _particles; // трейлы/эффекты снаряда
 
     /// <summary>Стихия снаряда — нужна пулу, чтобы вернуть в правильную очередь.</summary>
     public ElementType Element => _element;
 
     /// <summary>Префаб, из которого создан снаряд — для возврата в нужную очередь пула.</summary>
     public GameObject SourcePrefab { get; set; }
+
+    private void Awake()
+    {
+        _particles = GetComponentsInChildren<ParticleSystem>(true);
+    }
 
     /// <summary>Запускает снаряд с указанным уроном, дистанцией, стихией и опциональным хит-эффектом.</summary>
     public void Launch(int damage, float maxDistance, ElementType element, GameObject hitEffect = null)
@@ -34,6 +40,17 @@ public class Projectile : MonoBehaviour
         _active            = true;
 
         UpdateVisualForElement();
+        RestartParticles();
+    }
+
+    private void RestartParticles()
+    {
+        if (_particles == null) return;
+        foreach (var ps in _particles)
+        {
+            ps.Clear(true);
+            ps.Play(true);
+        }
     }
 
     private void UpdateVisualForElement()
@@ -98,6 +115,11 @@ public class Projectile : MonoBehaviour
     private void ReturnToPool()
     {
         _active = false;
+
+        if (_particles != null)
+            foreach (var ps in _particles)
+                ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
         ProjectilePool.Instance.Return(this);
     }
 }

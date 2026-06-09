@@ -30,6 +30,9 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
 
     public void OnShoot()
     {
+        Debug.Log($"[Ranged] OnShoot вызван, {name}", this);
+
+        if (_projectilePool == null) _projectilePool = ProjectilePool.Instance;
         if (_projectilePool == null || _unit == null) return;
 
         ElementType element = _unit.Element;
@@ -42,7 +45,9 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
 
         GameObject hitEffect = _unit.Data != null ? _unit.Data.GetHitEffect(element) : null;
 
-        Vector3 spawnPos = transform.position + Vector3.up * _spawnHeightOffset;
+        Vector3 spawnPos = transform.position
+                         + Vector3.up * _spawnHeightOffset
+                         + transform.forward * 1.0f;
         Projectile projectile = _projectilePool.Get(prefab, spawnPos, transform.rotation);
         if (projectile == null) return;
 
@@ -52,7 +57,12 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
     public HitResult Hit(Enemy target)
     {
         if (!IsReady || target == null) return HitResult.Miss();
-        if (_animator != null) _animator.SetTrigger("Attack");
+
+        Debug.Log($"[Ranged] Hit вызван, {name}, триггер Attack", this);
+
+        if (_animator != null) _animator.SetTrigger("Shoot");
+        else Debug.LogWarning($"[Ranged] {name}: _animator == null!", this);
+
         UpdateCooldown();
         return new HitResult { Hit = true };
     }
