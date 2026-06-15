@@ -30,11 +30,6 @@ public class HeroDefinitionSO : ScriptableObject
     [SerializeField] private GameObject _projectileIce;
     [SerializeField] private GameObject _projectileLightning;
 
-    [Header("Эффекты попадания снаряда")]
-    [SerializeField] private GameObject _hitNone;
-    [SerializeField] private GameObject _hitFire;
-    [SerializeField] private GameObject _hitIce;
-    [SerializeField] private GameObject _hitLightning;
 
     [SerializeField] private float _attackRange = 5f;
 
@@ -70,16 +65,5 @@ public class HeroDefinitionSO : ScriptableObject
         };
     }
 
-    /// <summary>Префаб эффекта попадания для стихии.</summary>
-    public GameObject GetHitEffect(ElementType element)
-    {
-        return element switch
-        {
-            ElementType.Fire      => _hitFire,
-            ElementType.Ice       => _hitIce,
-            ElementType.Lightning => _hitLightning,
-            _                     => _hitNone,
-        };
-    }
 
 }

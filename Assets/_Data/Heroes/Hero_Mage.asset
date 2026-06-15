@@ -23,10 +23,6 @@ MonoBehaviour:
   _prefabT2: {fileID: 1970454060845482337, guid: ae041f135445de84fae8f47593850a2b, type: 3}
   _projectileNone: {fileID: 8989303560256481706, guid: 74aca4c4fee683940bff0f9b591bdfb9, type: 3}
   _projectileFire: {fileID: 8989303560256481706, guid: e67e006f4813e684d9c420a5ad9ccf62, type: 3}
-  _projectileIce: {fileID: 0}
-  _projectileLightning: {fileID: 0}
-  _hitNone: {fileID: 4856460214833235983, guid: 8cdbee176c250504db20e32a1476ba45, type: 3}
-  _hitFire: {fileID: 0}
-  _hitIce: {fileID: 0}
-  _hitLightning: {fileID: 0}
+  _projectileIce: {fileID: 8989303560256481706, guid: b74c224475e0cc54cb0c70a40f82b75e, type: 3}
+  _projectileLightning: {fileID: 8989303560256481706, guid: 22dc4dae8e35fb940bbfcfa1926dd629, type: 3}
   _attackRange: 8

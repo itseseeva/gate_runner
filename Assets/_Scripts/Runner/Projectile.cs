@@ -3,7 +3,8 @@ using UnityEngine;
 /// <summary>
 /// Летящий снаряд. Движется вперёд по Z на заданной скорости.
 /// При попадании во врага наносит урон и возвращается в пул.
-/// Несёт стихию от стрелка — она применяется при попадании.
+/// Самодостаточный: сам спавнит muzzle при запуске и hit при попадании.
+/// Эффекты задаются прямо на префабе снаряда (SerializeField).
 /// </summary>
 public class Projectile : MonoBehaviour
 {
@@ -11,12 +12,15 @@ public class Projectile : MonoBehaviour
     [SerializeField] private float _speed       = 15f;
     [SerializeField] private float _maxDistance = 16f;
 
-    private GameObject  _hitEffect;   // эффект попадания от стрелка
+    [Header("Эффекты снаряда (на каждом префабе свои)")]
+    [Tooltip("Взрыв при попадании — спавнится в точке удара.")]
+    [SerializeField] private GameObject _hitEffect;
+
     private int         _damage;
     private float       _distanceTravelled;
     private bool        _active;
     private ElementType _element = ElementType.None;
-    private ParticleSystem[] _particles; // трейлы/эффекты снаряда
+    private ParticleSystem[] _particles; // трейлы/эффекты самого снаряда
 
     /// <summary>Стихия снаряда — нужна пулу, чтобы вернуть в правильную очередь.</summary>
     public ElementType Element => _element;
@@ -29,17 +33,15 @@ public class Projectile : MonoBehaviour
         _particles = GetComponentsInChildren<ParticleSystem>(true);
     }
 
-    /// <summary>Запускает снаряд с указанным уроном, дистанцией, стихией и опциональным хит-эффектом.</summary>
-    public void Launch(int damage, float maxDistance, ElementType element, GameObject hitEffect = null)
+    /// <summary>Запускает снаряд. Урон, дистанция, стихия. Спавнит muzzle в точке старта.</summary>
+    public void Launch(int damage, float maxDistance, ElementType element)
     {
         _damage            = damage;
         _maxDistance       = maxDistance;
         _element           = element;
-        _hitEffect         = hitEffect;
         _distanceTravelled = 0f;
         _active            = true;
 
-        UpdateVisualForElement();
         RestartParticles();
     }
 
@@ -51,26 +53,6 @@ public class Projectile : MonoBehaviour
             ps.Clear(true);
             ps.Play(true);
         }
-    }
-
-    private void UpdateVisualForElement()
-    {
-        var renderer = GetComponentInChildren<MeshRenderer>();
-        if (renderer == null) return;
-
-        Color color = _element switch
-        {
-            ElementType.Fire      => new Color(1f, 0.4f, 0.1f),
-            ElementType.Ice       => new Color(0.4f, 0.8f, 1f),
-            ElementType.Lightning => new Color(1f, 0.95f, 0.3f),
-            _                     => Color.white,
-        };
-
-        Material mat = renderer.material;
-        if (mat.HasProperty("_BaseColor"))
-            mat.SetColor("_BaseColor", color);
-        else
-            mat.color = color;
     }
 
     private void Update()
@@ -92,20 +74,18 @@ public class Projectile : MonoBehaviour
         Enemy enemy = other.GetComponent<Enemy>();
         if (enemy == null) return;
 
-        // Применяем урон через DamageCalculator (учитывает стихию и Shocked-статус)
         StatusController status = enemy.GetComponent<StatusController>();
         int finalDamage = DamageCalculator.CalculateFinalDamage(_damage, _element, status);
 
         bool died = enemy.TakeDamage(finalDamage);
 
-        // Если враг жив и атакующий со стихией — накладываем статус
         if (!died && _element != ElementType.None && status != null)
         {
             StatusEffectType statusToApply = DamageCalculator.GetStatusFromElement(_element);
             status.ApplyStatus(statusToApply, finalDamage);
         }
 
-        // Эффект попадания только из SO стрелка. Пусто — эффекта нет.
+        // Взрыв при попадании — из поля снаряда.
         if (_hitEffect != null && VfxPool.Instance != null)
             VfxPool.Instance.Spawn(transform.position, Quaternion.identity, _hitEffect);
 

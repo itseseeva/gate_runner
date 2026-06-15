@@ -36,6 +36,9 @@ public class AnimationEventReceiver : MonoBehaviour
         _rangedAttack?.OnShoot();
     }
 
+    // Момент вспышки мазла — отдельный event для точного тайминга
+    public void mazy() => _rangedAttack?.SpawnMuzzle();
+
     public void FootL() { }
     public void FootR() { }
 }

@@ -62,6 +62,7 @@ public class Unit : MonoBehaviour
     {
         // Никаких GetComponentInChildren! Используем готовую ссылку
         if (_unitRenderer == null) return;
+        if (!gameObject.scene.IsValid()) return; // префаб-ассет из пула — не трогаем материал
 
         // Material нельзя трогать на неактивном объекте/префабе — пропускаем
         if (!gameObject.activeInHierarchy) return;

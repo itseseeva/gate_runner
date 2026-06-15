@@ -83,7 +83,14 @@ MonoBehaviour:
   _attackSpeed: 1.2
   _range: 15
   _baseDamage: 15
+  _projectilePool: {fileID: 0}
+  _projectilePrefab: {fileID: 0}
   _spawnHeightOffset: 0
+  _muzzlePoint: {fileID: 7056201435843820858}
+  _muzzleEffectBase: {fileID: 1262928022307954080, guid: da74cbfa3f814ea4cbe2f8963a66aa0f, type: 3}
+  _muzzleEffectFire: {fileID: 1262928022307954080, guid: 8b45d6ba72c9e07418aaec3dc7c30ba5, type: 3}
+  _muzzleEffectIce: {fileID: 1227067792111776, guid: a6f3cf71bfa48b44486194bdb84a54c3, type: 3}
+  _muzzleEffectLightning: {fileID: 0}
 --- !u!1001 &1653862812901105200
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -186,6 +193,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 929f1cff266a04f4e9e8f3cf0e34fab9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AnimationEventReceiver
+--- !u!4 &7056201435843820858 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -639763325267172598, guid: ac79892791d0b284797e951ea2d814e5, type: 3}
+  m_PrefabInstance: {fileID: 1653862812901105200}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &8558808738395752170
 PrefabInstance:
   m_ObjectHideFlags: 0

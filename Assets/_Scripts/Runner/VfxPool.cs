@@ -88,6 +88,7 @@ public class VfxPool : MonoBehaviour
         // Двигаем КОРЕНЬ — позиция эффекта = точка попадания, без смещений.
         inst.Root.transform.position = position;
         inst.Root.transform.rotation = rotation;
+        inst.Root.transform.localScale = prefab.transform.localScale; // ← scale с префаба
         inst.Root.SetActive(true);
 
         inst.Particles.Clear(true); // сбрасываем хвост от прошлого использования

@@ -12,6 +12,14 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
     [Header("Дальнобойная атака")]
     [SerializeField] private float _spawnHeightOffset = 0.5f;
 
+    [Header("Muzzle-эффект")]
+    [Tooltip("Кость/точка руки мага — сюда перетащи hand-bone из иерархии.")]
+    [SerializeField] private Transform  _muzzlePoint;
+    [SerializeField] private GameObject _muzzleEffectBase;      // None / без стихии
+    [SerializeField] private GameObject _muzzleEffectFire;      // Fire
+    [SerializeField] private GameObject _muzzleEffectIce;       // Ice
+    [SerializeField] private GameObject _muzzleEffectLightning; // Lightning
+
     private float _lastFireTime = -999f;
     private Unit _unit;
     private Animator _animator;
@@ -28,6 +36,16 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
     public void UpdateCooldown() => _lastFireTime = Time.time;
     public void ForceCooldown() => UpdateCooldown();
 
+    /// <summary>Вызывается читом — триггерит анимацию, снаряд вылетит по animation event OnShoot.</summary>
+    public void ForceShoot()
+    {
+        if (_animator != null)
+            _animator.SetTrigger("Shoot");
+        else
+            OnShoot(); // fallback если аниматора нет
+        UpdateCooldown();
+    }
+
     public void OnShoot()
     {
         Debug.Log($"[Ranged] OnShoot вызван, {name}", this);
@@ -36,14 +54,25 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
         if (_projectilePool == null || _unit == null) return;
 
         ElementType element = _unit.Element;
-        GameObject prefab = _unit.Data != null ? _unit.Data.GetProjectile(element) : _projectilePrefab;
-        if (prefab == null)
+
+        // Unity fake-null safe: используем != null явно
+        GameObject prefab = null;
+        if (_unit.Data != null)
         {
-            Debug.LogWarning($"[RangedAutoAttack] {name}: нет префаба снаряда для {element}.", this);
-            return;
+            prefab = _unit.Data.GetProjectile(element);
+            Debug.Log($"[Ranged] element={element}, Data={_unit.Data.name}, prefab={( prefab != null ? prefab.name : "NULL")}", this);
+        }
+        else
+        {
+            prefab = _projectilePrefab;
+            Debug.Log($"[Ranged] element={element}, Data=NULL → fallback _projectilePrefab={( prefab != null ? prefab.name : "NULL")}", this);
         }
 
-        GameObject hitEffect = _unit.Data != null ? _unit.Data.GetHitEffect(element) : null;
+        if (prefab == null)
+        {
+            Debug.LogWarning($"[RangedAutoAttack] {name}: нет префаба снаряда для {element}. Назначьте его в HeroDefinitionSO или в поле _projectilePrefab.", this);
+            return;
+        }
 
         Vector3 spawnPos = transform.position
                          + Vector3.up * _spawnHeightOffset
@@ -51,8 +80,27 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
         Projectile projectile = _projectilePool.Get(prefab, spawnPos, transform.rotation);
         if (projectile == null) return;
 
-        projectile.Launch(_baseDamage * _unit.PowerMultiplier, _range, element, hitEffect);
+        projectile.Launch(_baseDamage * _unit.PowerMultiplier, _range, element);
     }
+
+    /// <summary>Вызывается по Animation Event «Mazy» — спавнит вспышку из руки мага.</summary>
+    public void SpawnMuzzle()
+    {
+        if (_unit == null) return;
+        ElementType element = _unit.Element;
+        GameObject muzzle = GetMuzzleEffect(element);
+        if (muzzle == null || VfxPool.Instance == null) return;
+        Transform origin = _muzzlePoint != null ? _muzzlePoint : transform;
+        VfxPool.Instance.Spawn(origin.position, origin.rotation, muzzle);
+    }
+
+    private GameObject GetMuzzleEffect(ElementType element) => element switch
+    {
+        ElementType.Fire      => _muzzleEffectFire      != null ? _muzzleEffectFire      : _muzzleEffectBase,
+        ElementType.Ice       => _muzzleEffectIce       != null ? _muzzleEffectIce       : _muzzleEffectBase,
+        ElementType.Lightning => _muzzleEffectLightning != null ? _muzzleEffectLightning : _muzzleEffectBase,
+        _                     => _muzzleEffectBase,
+    };
 
     public HitResult Hit(Enemy target)
     {
