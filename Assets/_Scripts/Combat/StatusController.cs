@@ -10,17 +10,35 @@ using System.Collections.Generic;
 /// - Если статус уже есть и накладывают тот же — обновляется expiry (не стакается).
 /// - При истечении статус снимается, эффект убирается.
 /// - Burning тикает уроном раз в секунду пока активен.
-/// - Frozen меняет _speedMultiplier у WorldScroller врага.
-/// - Shocked — флаг для DamageCalculator (никаких локальных эффектов).
+/// - Frozen меняет SpeedMultiplier у WorldScroller врага.
+/// - Shocked — флаг для DamageCalculator.
+///
+/// Визуал статусов:
+/// - В слоты кидается ПРЕФАБ эффекта (Burning/Frozen/Shocked).
+/// - Скрипт по имени префаба находит дочерний объект-эффект внутри врага
+///   (например префаб FireAura → дочерний "FireAura") и включает/выключает его.
+/// - Эффект создаётся лениво из префаба при первом наложении статуса и переиспользуется.
 /// </summary>
 [RequireComponent(typeof(Enemy))]
 public class StatusController : MonoBehaviour
 {
-    private Enemy          _enemy;
-    private WorldScroller  _scroller;
-    private MeshRenderer   _renderer;
-    private Color          _originalColor;
-    private bool           _originalColorCached;
+    [Header("Префабы эффектов — по имени ищется дочерний объект врага")]
+    [Tooltip("Префаб эффекта горения. Скрипт найдёт дочерний объект с таким же именем.")]
+    [SerializeField] private GameObject _burningPrefab;
+
+    [Tooltip("Префаб эффекта заморозки.")]
+    [SerializeField] private GameObject _frozenPrefab;
+
+    [Tooltip("Префаб эффекта электризации.")]
+    [SerializeField] private GameObject _shockedPrefab;
+
+    private Enemy         _enemy;
+    private WorldScroller _scroller;
+
+    // Созданные экземпляры эффектов (инстанцируются один раз из префаба, переиспользуются)
+    private GameObject _burningEffect;
+    private GameObject _frozenEffect;
+    private GameObject _shockedEffect;
 
     // ─── Активные статусы ────────────────────────────────────────
     // Ключ = тип статуса, Значение = время когда статус истекает (Time.time)
@@ -34,17 +52,9 @@ public class StatusController : MonoBehaviour
     {
         _enemy    = GetComponent<Enemy>();
         _scroller = GetComponent<WorldScroller>();
-        _renderer = GetComponentInChildren<MeshRenderer>();
 
-        // Кешируем оригинальный цвет один раз
-        if (_renderer != null && !_originalColorCached)
-        {
-            Material mat = _renderer.material;
-            _originalColor = mat.HasProperty("_BaseColor")
-                ? mat.GetColor("_BaseColor")
-                : mat.color;
-            _originalColorCached = true;
-        }
+        // Эффекты создаются лениво — при первом наложении статуса (см. UpdateStatusEffects).
+        // Враг, которого не задело стихией, не плодит лишние объекты.
     }
 
     private void OnDisable()
@@ -52,7 +62,10 @@ public class StatusController : MonoBehaviour
         // Сбрасываем все статусы при возврате в пул
         _expiryTime.Clear();
         if (_scroller != null) _scroller.SpeedMultiplier = 1f;
-        RestoreOriginalColor();
+
+        SetEffectActive(ref _burningEffect, _burningPrefab, false);
+        SetEffectActive(ref _frozenEffect,  _frozenPrefab,  false);
+        SetEffectActive(ref _shockedEffect, _shockedPrefab, false);
     }
 
     /// <summary>Есть ли указанный статус на враге?</summary>
@@ -74,11 +87,9 @@ public class StatusController : MonoBehaviour
         bool isNew = !HasStatus(status);
         _expiryTime[status] = Time.time + DamageCalculator.STATUS_DURATION;
 
-        // Применяем эффекты конкретных статусов
         switch (status)
         {
             case StatusEffectType.Burning:
-                // Урон тика = % от удара. Обновляется при каждом ударе.
                 _burnDamagePerTick = Mathf.Max(1,
                     Mathf.RoundToInt(hitDamage * DamageCalculator.BURN_DAMAGE_PERCENT));
                 _nextBurnTickTime = Time.time + (1f / DamageCalculator.BURN_TICKS_PER_SECOND);
@@ -86,10 +97,9 @@ public class StatusController : MonoBehaviour
                 break;
 
             case StatusEffectType.Frozen:
-                if (_scroller != null) 
+                if (_scroller != null)
                 {
                     _scroller.SpeedMultiplier = DamageCalculator.FROZEN_SPEED_MULTIPLIER;
-                    Debug.Log($"[Status] {gameObject.name} _scroller.SpeedMultiplier = {_scroller.SpeedMultiplier}", this);
                 }
                 else
                 {
@@ -103,7 +113,7 @@ public class StatusController : MonoBehaviour
                 break;
         }
 
-        UpdateColorByStatus();
+        UpdateStatusEffects();
     }
 
     private void Update()
@@ -115,11 +125,9 @@ public class StatusController : MonoBehaviour
         {
             _enemy.TakeDamage(_burnDamagePerTick);
             _nextBurnTickTime = Time.time + (1f / DamageCalculator.BURN_TICKS_PER_SECOND);
-            Debug.Log($"[Status] {gameObject.name} тик поджога: -{_burnDamagePerTick} HP", this);
         }
 
         // ─── Очищаем истёкшие статусы ───────────────────────────
-        // Используем list чтобы не модифицировать словарь во время итерации
         List<StatusEffectType> toRemove = null;
         foreach (var kv in _expiryTime)
         {
@@ -133,9 +141,7 @@ public class StatusController : MonoBehaviour
         if (toRemove != null)
         {
             foreach (var status in toRemove)
-            {
                 RemoveStatus(status);
-            }
         }
     }
 
@@ -143,59 +149,70 @@ public class StatusController : MonoBehaviour
     {
         _expiryTime.Remove(status);
 
-        // Убираем эффект конкретного статуса
         switch (status)
         {
             case StatusEffectType.Frozen:
                 if (_scroller != null) _scroller.SpeedMultiplier = 1f;
-                Debug.Log($"[Status] {gameObject.name} разморожен", this);
                 break;
 
             case StatusEffectType.Burning:
-                Debug.Log($"[Status] {gameObject.name} перестал гореть", this);
                 break;
 
             case StatusEffectType.Shocked:
-                Debug.Log($"[Status] {gameObject.name} больше не шокирован", this);
                 break;
         }
 
-        UpdateColorByStatus();
+        UpdateStatusEffects();
     }
 
     /// <summary>
-    /// Обновляет цвет врага в зависимости от активного статуса.
-    /// Приоритет: Burning > Frozen > Shocked > Original.
+    /// Включает/выключает эффекты статусов по их активности.
+    /// Эффект виден ровно пока статус активен.
     /// </summary>
-    private void UpdateColorByStatus()
+    private void UpdateStatusEffects()
     {
-        if (_renderer == null) return;
-
-        Color targetColor;
-
-        if (HasStatus(StatusEffectType.Burning))
-            targetColor = new Color(1f, 0.4f, 0.1f);    // оранжевый
-        else if (HasStatus(StatusEffectType.Frozen))
-            targetColor = new Color(0.4f, 0.8f, 1f);    // голубой
-        else if (HasStatus(StatusEffectType.Shocked))
-            targetColor = new Color(1f, 0.95f, 0.3f);   // жёлтый
-        else
-            targetColor = _originalColor;
-
-        Material mat = _renderer.material;
-        if (mat.HasProperty("_BaseColor"))
-            mat.SetColor("_BaseColor", targetColor);
-        else
-            mat.color = targetColor;
+        SetEffectActive(ref _burningEffect, _burningPrefab, HasStatus(StatusEffectType.Burning));
+        SetEffectActive(ref _frozenEffect,  _frozenPrefab,  HasStatus(StatusEffectType.Frozen));
+        SetEffectActive(ref _shockedEffect, _shockedPrefab, HasStatus(StatusEffectType.Shocked));
     }
 
-    private void RestoreOriginalColor()
+    /// <summary>
+    /// Вкл/выкл эффект. Создаёт экземпляр из префаба ЛЕНИВО — только при первом включении.
+    /// Дальше переиспользует тот же объект.
+    /// </summary>
+    private void SetEffectActive(ref GameObject instance, GameObject prefab, bool active)
     {
-        if (_renderer == null || !_originalColorCached) return;
-        Material mat = _renderer.material;
-        if (mat.HasProperty("_BaseColor"))
-            mat.SetColor("_BaseColor", _originalColor);
-        else
-            mat.color = _originalColor;
+        // Нечего включать — и экземпляра ещё нет: не создаём зря.
+        if (!active && instance == null) return;
+        if (prefab == null) return;
+
+        // Создаём при первом включении.
+        if (instance == null)
+        {
+            instance = Instantiate(prefab, transform);
+            instance.transform.localPosition = prefab.transform.localPosition;
+        }
+
+        if (instance.activeSelf != active)
+        {
+            instance.SetActive(active);
+            if (active) PlayDesynced(instance);
+        }
+    }
+
+    /// <summary>
+    /// Запускает партиклы эффекта со случайного кадра,
+    /// чтобы у толпы эффекты не были синхронными.
+    /// </summary>
+    private void PlayDesynced(GameObject effect)
+    {
+        ParticleSystem[] systems = effect.GetComponentsInChildren<ParticleSystem>(true);
+        foreach (var ps in systems)
+        {
+            ps.Clear(true);
+            float randomOffset = Random.Range(0f, ps.main.duration);
+            ps.Simulate(randomOffset, true, true);
+            ps.Play(true);
+        }
     }
 }

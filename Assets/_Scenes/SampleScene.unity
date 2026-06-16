@@ -242,56 +242,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8230334}
   m_CullTransparentMesh: 1
---- !u!1 &200888639
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 200888641}
-  - component: {fileID: 200888640}
-  m_Layer: 0
-  m_Name: HitEffectPool
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &200888640
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 200888639}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 04bd920ae7a4c2840a33e6f5d5a030d9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HitEffectPool
-  _hitNone: {fileID: 3017430761128806937, guid: e2c7173ca6c84bf46a15fff274005dee, type: 3}
-  _hitFire: {fileID: 3017430761128806937, guid: e2c7173ca6c84bf46a15fff274005dee, type: 3}
-  _hitIce: {fileID: 3017430761128806937, guid: e2c7173ca6c84bf46a15fff274005dee, type: 3}
-  _hitLightning: {fileID: 3017430761128806937, guid: e2c7173ca6c84bf46a15fff274005dee, type: 3}
-  _preloadCount: 10
-  _effectLifetime: 2
---- !u!4 &200888641
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 200888639}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -4.11839, y: 0.39306, z: 11.31707}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &271985892
 GameObject:
   m_ObjectHideFlags: 0
@@ -4798,4 +4748,3 @@ SceneRoots:
   - {fileID: 1964602099}
   - {fileID: 2018298202}
   - {fileID: 1462759293}
-  - {fileID: 200888641}

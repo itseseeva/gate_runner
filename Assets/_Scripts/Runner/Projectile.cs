@@ -12,6 +12,10 @@ public class Projectile : MonoBehaviour
     [SerializeField] private float _speed       = 15f;
     [SerializeField] private float _maxDistance = 16f;
 
+    [Header("AoE — урон по площади")]
+    [Tooltip("Радиус урона по площади. Не связан с визуалом эффекта.")]
+    [SerializeField] private float _aoeRadius = 2f;
+
     [Header("Эффекты снаряда (на каждом префабе свои)")]
     [Tooltip("Взрыв при попадании — спавнится в точке удара.")]
     [SerializeField] private GameObject _hitEffect;
@@ -71,25 +75,44 @@ public class Projectile : MonoBehaviour
     {
         if (!_active) return;
 
-        Enemy enemy = other.GetComponent<Enemy>();
-        if (enemy == null) return;
+        // Попали хотя бы в одного врага?
+        Enemy firstEnemy = other.GetComponent<Enemy>();
+        if (firstEnemy == null) return;
 
-        StatusController status = enemy.GetComponent<StatusController>();
-        int finalDamage = DamageCalculator.CalculateFinalDamage(_damage, _element, status);
+        // Точка попадания — центр зоны урона
+        Vector3 hitPoint = transform.position;
 
-        bool died = enemy.TakeDamage(finalDamage);
-
-        if (!died && _element != ElementType.None && status != null)
+        // Находим всех врагов в радиусе AoE
+        Collider[] hits = Physics.OverlapSphere(hitPoint, _aoeRadius, ~0, QueryTriggerInteraction.Collide);
+        foreach (Collider col in hits)
         {
-            StatusEffectType statusToApply = DamageCalculator.GetStatusFromElement(_element);
-            status.ApplyStatus(statusToApply, finalDamage);
+            Enemy enemy = col.GetComponent<Enemy>();
+            if (enemy == null) continue;
+
+            // Урон каждому врагу в радиусе (со стихией и статусами)
+            StatusController status = enemy.GetComponent<StatusController>();
+            int finalDamage = DamageCalculator.CalculateFinalDamage(_damage, _element, status);
+
+            bool died = enemy.TakeDamage(finalDamage);
+
+            if (!died && _element != ElementType.None && status != null)
+            {
+                StatusEffectType statusToApply = DamageCalculator.GetStatusFromElement(_element);
+                status.ApplyStatus(statusToApply, finalDamage);
+            }
         }
 
-        // Взрыв при попадании — из поля снаряда.
+        // Хит-эффект — ОДИН раз, в точке попадания (не на каждом враге)
         if (_hitEffect != null && VfxPool.Instance != null)
-            VfxPool.Instance.Spawn(transform.position, Quaternion.identity, _hitEffect);
+            VfxPool.Instance.Spawn(hitPoint, Quaternion.identity, _hitEffect);
 
         ReturnToPool();
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, _aoeRadius);
     }
 
     private void ReturnToPool()

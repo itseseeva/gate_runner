@@ -55,6 +55,9 @@ MonoBehaviour:
   _regenDelay: 3
   _regenTimeToFull: 3
   _vfxConfig: {fileID: 11400000, guid: d141ab9d65326904ca1ebb6f5312989f, type: 2}
+  _fireAuraPrefab: {fileID: 2302704109669948756, guid: d2cb0ed2bfb519b41a6aff0f54cb6467, type: 3}
+  _iceAuraPrefab: {fileID: 2183416989660054372, guid: 12227dcd5a2dad9438d339a7df918ba8, type: 3}
+  _lightningAuraPrefab: {fileID: 187184980351138327, guid: 6b2543f88cdc8904583630f08f01be59, type: 3}
 --- !u!114 &2096177001576266159
 MonoBehaviour:
   m_ObjectHideFlags: 0

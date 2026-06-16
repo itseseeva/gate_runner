@@ -36,6 +36,21 @@ public class Unit : MonoBehaviour
     [Header("VFX")]
     [SerializeField] private VfxConfig _vfxConfig;
 
+    [Header("Ауры стихий на герое (префабы)")]
+    [Tooltip("Аура огня — включается при Fire")]
+    [SerializeField] private GameObject _fireAuraPrefab;
+
+    [Tooltip("Аура льда — включается при Ice")]
+    [SerializeField] private GameObject _iceAuraPrefab;
+
+    [Tooltip("Аура молнии — включается при Lightning")]
+    [SerializeField] private GameObject _lightningAuraPrefab;
+
+    // Ленивые экземпляры аур (создаются один раз при первой смене на эту стихию)
+    private GameObject _fireAura;
+    private GameObject _iceAura;
+    private GameObject _lightningAura;
+
     private Vector3 _initialScale;
 
     private void Awake()
@@ -46,6 +61,8 @@ public class Unit : MonoBehaviour
     private void OnEnable()
     {
         IsDead = false;
+        _element = ElementType.None;
+        UpdateAuras(); // гасим все ауры при выдаче из пула
     }
 
     /// <summary>
@@ -55,34 +72,57 @@ public class Unit : MonoBehaviour
     public void SetElement(ElementType element)
     {
         _element = element;
-        UpdateVisualForElement();
+        UpdateAuras();
     }
 
-    private void UpdateVisualForElement()
+    /// <summary>
+    /// Включает ауру текущей стихии, выключает остальные.
+    /// Аура постоянна, пока не сменится стихия (в отличие от временных статусов врага).
+    /// </summary>
+    private void UpdateAuras()
     {
-        // Никаких GetComponentInChildren! Используем готовую ссылку
-        if (_unitRenderer == null) return;
-        if (!gameObject.scene.IsValid()) return; // префаб-ассет из пула — не трогаем материал
-
-        // Material нельзя трогать на неактивном объекте/префабе — пропускаем
-        if (!gameObject.activeInHierarchy) return;
-
-        Color color = _element switch
-        {
-            ElementType.Fire      => new Color(1f, 0.4f, 0.1f),
-            ElementType.Ice       => new Color(0.4f, 0.8f, 1f),
-            ElementType.Lightning => new Color(1f, 0.95f, 0.3f),
-            _                     => Color.white,
-        };
-
-        Material mat = _unitRenderer.material;
-        if (mat == null) return;
-
-        if (mat.HasProperty("_BaseColor"))
-            mat.SetColor("_BaseColor", color);
-        else
-            mat.color = color;
+        SetAura(ref _fireAura,      _fireAuraPrefab,      _element == ElementType.Fire);
+        SetAura(ref _iceAura,       _iceAuraPrefab,       _element == ElementType.Ice);
+        SetAura(ref _lightningAura, _lightningAuraPrefab, _element == ElementType.Lightning);
     }
+
+    /// <summary>
+    /// Вкл/выкл ауру. Создаёт из префаба лениво — только при первом включении.
+    /// </summary>
+    private void SetAura(ref GameObject instance, GameObject prefab, bool active)
+    {
+        if (!active && instance == null) return;
+        if (prefab == null) return;
+
+        if (instance == null)
+        {
+            instance = Instantiate(prefab, transform);
+            instance.transform.localPosition = prefab.transform.localPosition;
+        }
+
+        if (instance.activeSelf != active)
+        {
+            instance.SetActive(active);
+            if (active) PlayDesynced(instance);
+        }
+    }
+
+    /// <summary>
+    /// Запускает партиклы эффекта со случайного кадра,
+    /// чтобы у толпы эффекты не были синхронными.
+    /// </summary>
+    private void PlayDesynced(GameObject effect)
+    {
+        ParticleSystem[] systems = effect.GetComponentsInChildren<ParticleSystem>(true);
+        foreach (var ps in systems)
+        {
+            ps.Clear(true);
+            float randomOffset = Random.Range(0f, ps.main.duration);
+            ps.Simulate(randomOffset, true, true);
+            ps.Play(true);
+        }
+    }
+
     private float            _regenAccumulator = 0f;
     private float            _lastDamageTime  = -999f;
     private bool             _wasRegenerating = false;

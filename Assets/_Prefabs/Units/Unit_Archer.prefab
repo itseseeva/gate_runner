@@ -55,6 +55,9 @@ MonoBehaviour:
   _regenDelay: 3
   _regenTimeToFull: 3
   _vfxConfig: {fileID: 11400000, guid: d141ab9d65326904ca1ebb6f5312989f, type: 2}
+  _fireAuraPrefab: {fileID: 2302704109669948756, guid: d2cb0ed2bfb519b41a6aff0f54cb6467, type: 3}
+  _iceAuraPrefab: {fileID: 2183416989660054372, guid: 12227dcd5a2dad9438d339a7df918ba8, type: 3}
+  _lightningAuraPrefab: {fileID: 187184980351138327, guid: 6b2543f88cdc8904583630f08f01be59, type: 3}
 --- !u!114 &937969653322110299
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -95,10 +98,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a64268e98ba55234f8eebb3ccdc35fcf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RangedAutoAttack
-  _attackSpeed: 0.8
-  _range: 12
+  _attackSpeed: 1.5
+  _range: 16
   _baseDamage: 12
+  _projectilePool: {fileID: 0}
+  _projectilePrefab: {fileID: 0}
   _spawnHeightOffset: 0
+  _muzzlePoint: {fileID: 0}
+  _muzzleEffectBase: {fileID: 0}
+  _muzzleEffectFire: {fileID: 0}
+  _muzzleEffectIce: {fileID: 0}
+  _muzzleEffectLightning: {fileID: 0}
 --- !u!1001 &1013513030343358512
 PrefabInstance:
   m_ObjectHideFlags: 0

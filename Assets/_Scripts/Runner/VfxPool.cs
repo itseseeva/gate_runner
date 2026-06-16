@@ -92,7 +92,11 @@ public class VfxPool : MonoBehaviour
         inst.Root.SetActive(true);
 
         inst.Particles.Clear(true); // сбрасываем хвост от прошлого использования
-        inst.Particles.Play(true);
+
+        // Запускаем все партиклы эффекта с начала (muzzle/hit играют как задумано)
+        ParticleSystem[] systems = inst.Root.GetComponentsInChildren<ParticleSystem>(true);
+        foreach (var ps in systems)
+            ps.Play(true);
 
         StartCoroutine(ReturnWhenDone(inst, pool));
     }
