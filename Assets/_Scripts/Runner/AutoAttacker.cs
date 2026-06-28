@@ -71,9 +71,7 @@ public class AutoAttacker : MonoBehaviour
         {
             bool iOwn = _tankClaims.TryGetValue(target, out var h) && h == this;
             if (!iOwn) return;
-
-            float since = Time.time - _lastHitLogTime;
-            Debug.Log($"[TankCD] танк={gameObject.GetInstanceID()} интервал={since:F2}с", this);
+ 
             _lastHitLogTime = Time.time;
         }
 

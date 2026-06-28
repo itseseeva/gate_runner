@@ -93,7 +93,6 @@ public class StatusController : MonoBehaviour
                 _burnDamagePerTick = Mathf.Max(1,
                     Mathf.RoundToInt(hitDamage * DamageCalculator.BURN_DAMAGE_PERCENT));
                 _nextBurnTickTime = Time.time + (1f / DamageCalculator.BURN_TICKS_PER_SECOND);
-                if (isNew) Debug.Log($"[Status] {gameObject.name} ПОДОЖЖЁН ({_burnDamagePerTick}/тик)", this);
                 break;
 
             case StatusEffectType.Frozen:
@@ -105,11 +104,9 @@ public class StatusController : MonoBehaviour
                 {
                     Debug.LogError($"[Status] {gameObject.name} НЕТ WorldScroller! Заморозка не работает.", this);
                 }
-                if (isNew) Debug.Log($"[Status] {gameObject.name} ЗАМОРОЖЕН (×{DamageCalculator.FROZEN_SPEED_MULTIPLIER})", this);
                 break;
 
             case StatusEffectType.Shocked:
-                if (isNew) Debug.Log($"[Status] {gameObject.name} ШОКИРОВАН (+{(DamageCalculator.SHOCK_DAMAGE_MULTIPLIER - 1f) * 100:F0}% урона)", this);
                 break;
         }
 
@@ -191,28 +188,27 @@ public class StatusController : MonoBehaviour
         {
             instance = Instantiate(prefab, transform);
             instance.transform.localPosition = prefab.transform.localPosition;
+            DesyncOnce(instance);
         }
 
         if (instance.activeSelf != active)
-        {
             instance.SetActive(active);
-            if (active) PlayDesynced(instance);
-        }
     }
 
     /// <summary>
-    /// Запускает партиклы эффекта со случайного кадра,
-    /// чтобы у толпы эффекты не были синхронными.
+    /// Задаёт партиклам случайную стартовую фазу ОДИН раз при создании.
+    /// Каждая аура с рождения в своей точке цикла → толпа вразнобой.
     /// </summary>
-    private void PlayDesynced(GameObject effect)
+    private void DesyncOnce(GameObject effect)
     {
         ParticleSystem[] systems = effect.GetComponentsInChildren<ParticleSystem>(true);
         foreach (var ps in systems)
         {
-            ps.Clear(true);
-            float randomOffset = Random.Range(0f, ps.main.duration);
-            ps.Simulate(randomOffset, true, true);
-            ps.Play(true);
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            ps.randomSeed = (uint)Random.Range(1, 999999);
+            float phase = Random.Range(0f, ps.main.duration);
+            ps.Simulate(phase, false, true);
+            ps.Play(false);
         }
     }
 }

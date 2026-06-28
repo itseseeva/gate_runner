@@ -77,8 +77,6 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
             VfxPool.Instance.Spawn(mid, Quaternion.identity, _vfxConfig.AssassinHitVfx);
         }
 
-        Debug.Log($"[AssassinAutoAttack] Слэш по {target.name}, урон={finalDamage}" +
-                  $"{(calc.WasCritical ? " КРИТ!" : "")}", this);
     }
 
     protected override DamageCalculation CalculateDamage(int powerMultiplier)

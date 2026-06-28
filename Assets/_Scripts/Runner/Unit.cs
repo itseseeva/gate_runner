@@ -98,28 +98,27 @@ public class Unit : MonoBehaviour
         {
             instance = Instantiate(prefab, transform);
             instance.transform.localPosition = prefab.transform.localPosition;
+            DesyncOnce(instance); // сразу задаём случайную фазу при создании
         }
 
         if (instance.activeSelf != active)
-        {
             instance.SetActive(active);
-            if (active) PlayDesynced(instance);
-        }
     }
 
     /// <summary>
-    /// Запускает партиклы эффекта со случайного кадра,
-    /// чтобы у толпы эффекты не были синхронными.
+    /// Задаёт партиклам случайную стартовую фазу ОДИН раз при создании.
+    /// Каждая аура с рождения в своей точке цикла → толпа вразнобой.
     /// </summary>
-    private void PlayDesynced(GameObject effect)
+    private void DesyncOnce(GameObject effect)
     {
         ParticleSystem[] systems = effect.GetComponentsInChildren<ParticleSystem>(true);
         foreach (var ps in systems)
         {
-            ps.Clear(true);
-            float randomOffset = Random.Range(0f, ps.main.duration);
-            ps.Simulate(randomOffset, true, true);
-            ps.Play(true);
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            ps.randomSeed = (uint)Random.Range(1, 999999);
+            float phase = Random.Range(0f, ps.main.duration);
+            ps.Simulate(phase, false, true);
+            ps.Play(false);
         }
     }
 
@@ -180,22 +179,16 @@ public class Unit : MonoBehaviour
 
         int maxHP = _data.MaxHP * _powerMultiplier;
 
-        Debug.Log($"[Unit] {gameObject.name} получил {amount} урона. " +
-                  $"HP: {hpBefore} → {_currentHP} / {maxHP} (multiplier={_powerMultiplier})", this);
-
         if (_healthBar != null)
             _healthBar.SetHP(_currentHP, maxHP);
 
         if (_currentHP <= 0)
         {
             _currentHP = 0;
-            Debug.Log($"[Unit] {gameObject.name} ПОГИБ!", this);
             IsDead = true;
             
             var warriorAttack = GetComponent<WarriorAutoAttack>();
             VfxConfig vfx = warriorAttack != null ? warriorAttack.GetVfxConfig() : null;
-            
-            Debug.Log($"[Unit] warriorAttack={warriorAttack}, vfx={vfx}, UnitDeathVfx={vfx?.UnitDeathVfx}, VfxPool={VfxPool.Instance}", this);
             
             if (vfx != null && vfx.UnitDeathVfx != null && VfxPool.Instance != null)
                 VfxPool.Instance.Spawn(transform.position, Quaternion.identity, vfx.UnitDeathVfx);
@@ -213,7 +206,6 @@ public class Unit : MonoBehaviour
     private void PlayDeathAnimation()
     {
         IsDead = true; // ← SquadController больше не двигает этого юнита
-        Debug.Log($"[Unit] PlayDeathAnimation START на {gameObject.name}", this);
 
         // Отключаем компонент движения чтобы SquadController не перезаписывал позицию
         var worldScroller = GetComponent<WorldScroller>();
@@ -230,7 +222,6 @@ public class Unit : MonoBehaviour
         seq.Join(transform.DOScale(Vector3.zero, 0.5f).SetEase(Ease.InQuad));
         seq.OnComplete(() =>
         {
-            Debug.Log($"[Unit] PlayDeathAnimation COMPLETE на {gameObject.name}", this);
             transform.localScale = initialScale;
         });
     }
@@ -276,15 +267,12 @@ public class Unit : MonoBehaviour
         if (canRegen && needsRegen && !_wasRegenerating)
         {
             _wasRegenerating = true;
-            Debug.Log($"[Unit] {gameObject.name} начал регенерацию. HP: {_currentHP}/{maxHP}", this);
         }
 
         // Лог когда регенерация закончилась (HP=max или пришёл удар)
         if (_wasRegenerating && (!canRegen || !needsRegen))
         {
             _wasRegenerating = false;
-            if (_currentHP >= maxHP)
-                Debug.Log($"[Unit] {gameObject.name} полностью восстановился. HP: {maxHP}", this);
         }
 
         // Не регенимся

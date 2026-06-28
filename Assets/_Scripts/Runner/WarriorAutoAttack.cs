@@ -2,8 +2,8 @@ using UnityEngine;
 using DG.Tweening;
 
 /// <summary>
-/// Атака танка щитом — АОЕ урон + отталкивание всех врагов в радиусе.
-/// Урон наносится через Animation Event (OnAttackHit) в момент удара.
+/// Атака воина/танка — АОЕ урон + отталкивание + слеш-эффект по стихии.
+/// Урон и слеш спавнятся через Animation Event (OnAttackHit) в момент удара.
 /// </summary>
 public class WarriorAutoAttack : MeleeAutoAttackBase
 {
@@ -35,26 +35,20 @@ public class WarriorAutoAttack : MeleeAutoAttackBase
     {
         if (!IsReady) return HitResult.Miss();
 
-        // Только запускаем анимацию — урон будет в OnAttackHit()
         if (Animator != null)
-        {
             Animator.SetTrigger("Attack");
-        }
 
         UpdateCooldown();
-
         return new HitResult { Hit = true };
     }
 
     /// <summary>
-    /// Вызывается через Animation Event в момент удара щитом.
-    /// Добавь этот метод как событие на анимацию атаки.
+    /// Вызывается через Animation Event в момент удара.
+    /// Наносит АОЕ урон + спавнит слеш-эффект по текущей стихии.
     /// </summary>
     public void OnAttackHit()
     {
-        Debug.Log("[WarriorAutoAttack] OnAttackHit сработал!", this);
-
-        // Короткий выпад вперёд в момент удара щитом
+        // Короткий выпад вперёд в момент удара (только для Tank)
         if (_heroType == HeroType.Tank && _lungeDistance > 0f)
         {
             Vector3 lungeTarget = transform.position + Vector3.forward * _lungeDistance;
@@ -66,10 +60,22 @@ public class WarriorAutoAttack : MeleeAutoAttackBase
                              _lungeDuration * 0.5f).SetEase(Ease.InQuad));
         }
 
-        ElementType element = OwnerUnit != null ? OwnerUnit.Element : ElementType.None;
-        int multiplier      = OwnerUnit != null ? OwnerUnit.PowerMultiplier : 1;
+        ElementType element    = OwnerUnit != null ? OwnerUnit.Element : ElementType.None;
+        int multiplier         = OwnerUnit != null ? OwnerUnit.PowerMultiplier : 1;
         DamageCalculation calc = CalculateDamage(multiplier);
 
+        // ── Слеш-эффект на герое по стихии и типу героя ──
+        if (_vfxConfig != null && VfxPool.Instance != null)
+        {
+            GameObject slashPrefab = _heroType == HeroType.Tank
+                ? _vfxConfig.GetTankSlash(element)
+                : _vfxConfig.GetWarriorSlash(element);
+
+            if (slashPrefab != null)
+                VfxPool.Instance.Spawn(transform.position, transform.rotation, slashPrefab);
+        }
+
+        // ── АОЕ урон по всем врагам в радиусе ──
         Enemy[] allEnemies = FindObjectsByType<Enemy>(
             FindObjectsInactive.Exclude, FindObjectsSortMode.None);
 
@@ -97,12 +103,13 @@ public class WarriorAutoAttack : MeleeAutoAttackBase
             }
         }
 
+        // ── Эффект попадания на позиции героя (HitVfx) ──
         if (VfxPool.Instance != null && _vfxConfig != null)
         {
-            GameObject vfxPrefab = _heroType == HeroType.Tank 
-                ? _vfxConfig.TankHitVfx 
+            GameObject vfxPrefab = _heroType == HeroType.Tank
+                ? _vfxConfig.TankHitVfx
                 : _vfxConfig.WarriorHitVfx;
-                
+
             if (vfxPrefab != null)
                 VfxPool.Instance.Spawn(transform.position + Vector3.up * 0.5f, Quaternion.identity, vfxPrefab);
         }

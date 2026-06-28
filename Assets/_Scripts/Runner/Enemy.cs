@@ -96,7 +96,7 @@ public class Enemy : MonoBehaviour
             DamageNumberPool.Instance.Spawn(amount, spawnPos, false);
         }
 
-        Debug.Log($"[Enemy] {gameObject.name} получил {amount} урона. HP={_currentHP}", this);
+
 
         // Обновляем бар
         if (_healthBar != null)
@@ -114,7 +114,7 @@ public class Enemy : MonoBehaviour
     private void Die()
     {
         _isDead = true;
-        Debug.Log($"[Enemy] {gameObject.name} погиб!", this);
+
 
         OnAnyEnemyDied?.Invoke(this);
 
@@ -150,7 +150,7 @@ public class Enemy : MonoBehaviour
         if (_isDead) return;
         _isDead = true;
 
-        Debug.Log($"[Enemy] {gameObject.name} погиб от отталкивания!", this);
+
         OnAnyEnemyDied?.Invoke(this);
         // Деактивация произойдёт в KnockbackReceiver после завершения отлёта
     }

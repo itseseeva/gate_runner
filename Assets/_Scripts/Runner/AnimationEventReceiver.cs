@@ -32,7 +32,6 @@ public class AnimationEventReceiver : MonoBehaviour
     // Момент выстрела лучника/мага
     public void OnShoot()
     {
-        Debug.Log($"[Receiver] OnShoot, объект={name}, ranged={_rangedAttack}", this);
         _rangedAttack?.OnShoot();
     }
 
