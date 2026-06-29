@@ -61,7 +61,10 @@ crashlytics-build.properties
 # OS generated files
 .DS_Store
 Thumbs.db
+# Игнорируем всё в папке Assets (чтобы не пушить тяжелые модели и префабы)
+/[Aa]ssets/*
 
-# Ignore all Assets folder
-/[Aa]ssets/
+# НО разрешаем пушить папку со скриптами и её meta-файл
+!/[Aa]ssets/_Scripts/
+!/[Aa]ssets/_Scripts.meta
 
