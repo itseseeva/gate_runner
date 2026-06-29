@@ -31,17 +31,17 @@ public class KnockbackReceiver : MonoBehaviour
     }
 
     /// <summary>
-    /// Вызывается танком при ударе.
+    /// Вызывается при ударе.
     /// killedByHit = true если этот удар убил врага.
     /// </summary>
-    public void ApplyKnockback(Vector3 direction, float force, bool killedByHit)
+    public void ApplyKnockback(Vector3 direction, float distance, bool killedByHit)
     {
         if (_isBeingKnockedBack) return;
         _isBeingKnockedBack = true;
-        StartCoroutine(KnockbackCoroutine(direction, force, killedByHit));
+        StartCoroutine(KnockbackCoroutine(direction, distance, killedByHit));
     }
 
-    private IEnumerator KnockbackCoroutine(Vector3 direction, float force, bool killedByHit)
+    private IEnumerator KnockbackCoroutine(Vector3 direction, float distance, bool killedByHit)
     {
         // Если враг убит — перехватываем смерть
         if (killedByHit && _enemy != null)
@@ -50,9 +50,11 @@ public class KnockbackReceiver : MonoBehaviour
         if (_worldScroller != null) _worldScroller.Stop();
 
         Vector3 startPos  = transform.position;
-        Vector3 targetPos = startPos + direction * (_maxDistance * force);
-        float   duration  = _maxDistance * force / _knockbackSpeed;
+        Vector3 targetPos = startPos + direction * distance;
+        float   duration  = distance / _knockbackSpeed;
         float   elapsed   = 0f;
+
+        Debug.Log($"[Knockback Debug] {gameObject.name} flying from {startPos} to {targetPos}. Direction: {direction}");
 
         while (elapsed < duration)
         {
@@ -76,6 +78,6 @@ public class KnockbackReceiver : MonoBehaviour
         if (killedByHit)
             gameObject.SetActive(false);
 
-        Debug.Log($"[KnockbackReceiver] {gameObject.name} отлетел на {_maxDistance * force:F1}м", this);
+        Debug.Log($"[KnockbackReceiver] {gameObject.name} отлетел на {distance:F1}м", this);
     }
 }

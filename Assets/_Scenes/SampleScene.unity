@@ -3798,13 +3798,13 @@ MonoBehaviour:
   _tankRingRadius: 0.3
   _startUnits:
   - heroType: 3
-    count: 1
+    count: 0
   - heroType: 1
     count: 0
   - heroType: 0
     count: 0
   - heroType: 4
-    count: 0
+    count: 1
   - heroType: 2
     count: 0
 --- !u!114 &1554201389

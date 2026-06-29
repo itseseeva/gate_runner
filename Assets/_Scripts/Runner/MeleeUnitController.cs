@@ -38,6 +38,7 @@ public class MeleeUnitController : MonoBehaviour
     private IUnitAttack _autoAttack;
     private Animator    _animator;
     private bool        _isPlayingRejoin = false;
+    private AutoAttacker _autoAttacker;
 
     // Общий счётчик для воинов/ассассинов (могут наваливаться по 2)
     private static readonly Dictionary<Enemy, int> _claimCount = new();
@@ -96,6 +97,21 @@ public class MeleeUnitController : MonoBehaviour
         }
 
         _stateMachine.ChangeState(FollowState);
+
+        // Кешируем AutoAttacker для управления во время рывка
+        _autoAttacker = GetComponent<AutoAttacker>();
+    }
+
+    /// <summary>Отключает AutoAttacker на время рывка танка.</summary>
+    public void DisableAutoAttacker()
+    {
+        if (_autoAttacker != null) _autoAttacker.enabled = false;
+    }
+
+    /// <summary>Включает AutoAttacker обратно (стоячий режим).</summary>
+    public void EnableAutoAttacker()
+    {
+        if (_autoAttacker != null) _autoAttacker.enabled = true;
     }
 
     public float RejoinDuration => _rejoinDuration;
@@ -110,6 +126,7 @@ public class MeleeUnitController : MonoBehaviour
 
     public void UpdateRejoin()
     {
+        Debug.Log($"[Rejoin] t={_rejoinTimer/_rejoinDuration:F2}, isRejoining={_isRejoining}", this);
         if (!_isRejoining) return;
 
         _rejoinTimer += Time.deltaTime;
@@ -295,6 +312,12 @@ public class MeleeUnitController : MonoBehaviour
     {
         if (_isPlayingRejoin) return;
         _isPlayingRejoin = true;
+
+        // Если играет анимация удара — не прерываем, она сама перейдёт в Run
+        if (_animator != null
+            && _animator.GetCurrentAnimatorStateInfo(0).IsName("AttackRun"))
+            return;
+
         if (_animator != null) _animator.Play("Run");
     }
 

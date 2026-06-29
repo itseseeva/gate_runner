@@ -22,6 +22,9 @@ public class Enemy : MonoBehaviour
 
     public bool IsBoss => false; // TODO: вынести в EnemyDefinitionSO когда будем делать боссов
 
+    /// <summary>Танк, который уже взял этого врага в цель (для предотвращения двойных ударов)</summary>
+    public TankContactAttack TargetedByTank { get; set; }
+
     /// <summary>Высота спавна врага (из EnemyDefinitionSO).</summary>
     public float SpawnHeight => _data != null ? _data.SpawnHeight : 0.5f;
 

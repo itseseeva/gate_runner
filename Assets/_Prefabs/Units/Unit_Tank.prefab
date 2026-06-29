@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 9166223895941046410}
   - component: {fileID: 1659218221236735622}
   - component: {fileID: 82373864903986767}
+  - component: {fileID: 1838474870399380665}
   m_Layer: 0
   m_Name: Unit_Tank
   m_TagString: VfxPool_Tank
@@ -69,7 +70,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1970454060845482337}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c3d0c68cb36e918458b1ac228efd2ee5, type: 3}
   m_Name: 
@@ -103,13 +104,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WarriorAutoAttack
   _attackSpeed: 0.2
-  _range: 3
+  _range: 2
   _baseDamage: 10
-  _bashRadius: 3
-  _knockbackForce: 0.4
-  _attackAnimationSpeed: 2
-  _lungeDistance: 2
-  _lungeDuration: 0.2
+  _bashRadius: 2
+  _knockbackForce: 0.003
   _vfxConfig: {fileID: 11400000, guid: d141ab9d65326904ca1ebb6f5312989f, type: 2}
   _heroType: 3
 --- !u!136 &9166223895941046410
@@ -127,7 +125,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -159,15 +157,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b750bdda2e6d924e82a5dd5512f75ce, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MeleeUnitController
-  _detectionRange: 6
-  _attackRange: 1.4
+  _detectionRange: 2
+  _attackRange: 0.5
   _returnDistance: 0.5
   _maxChaseDistance: 4
   _chaseSpeed: 10
   _driftSpeedRatio: 0.3
-  _rejoinDuration: 0.4
-  _hitLingerTime: 0.3
+  _rejoinDuration: 0.2
+  _hitLingerTime: 0.1
   _autoAttackComponent: {fileID: -9135729230414756288}
+--- !u!114 &1838474870399380665
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1970454060845482337}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31452b5077e09e048a8b8501111ae121, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TankContactAttack
+  _contactCooldown: 4
+  _targetSelectionRange: 4
+  _animAnticipationRange: 1.5
+  _animDuration: 0.7
+  _maxRotationAngle: 35
+  _dashSpeed: 15
+  _maxDashDistance: 2
 --- !u!1001 &1273750529074364963
 PrefabInstance:
   m_ObjectHideFlags: 0

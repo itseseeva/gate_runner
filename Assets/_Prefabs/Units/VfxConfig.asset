@@ -18,9 +18,9 @@ MonoBehaviour:
   WarriorSlashFire: {fileID: 8375397338541890676, guid: d53cf8ec3484293408cfd1aea2993a80, type: 3}
   WarriorSlashIce: {fileID: 8332669465479727273, guid: a141d2d2debb982428386c55f14085ca, type: 3}
   WarriorSlashLightning: {fileID: 158789456559184324, guid: 6b443dc7dadec9d45a79cee853746253, type: 3}
-  TankSlashFire: {fileID: 0}
-  TankSlashIce: {fileID: 0}
-  TankSlashLightning: {fileID: 0}
+  TankSlashFire: {fileID: 4856460214833235983, guid: 52a2780733825a84190d68033409c22d, type: 3}
+  TankSlashIce: {fileID: 1612255617566175962, guid: 2ecef2ef2aa6de640a142188e357aadb, type: 3}
+  TankSlashLightning: {fileID: 8509476954776975093, guid: 20dc5babfbd148d4e808b9e212db8780, type: 3}
   AssassinSlashFire: {fileID: 0}
   AssassinSlashIce: {fileID: 0}
   AssassinSlashLightning: {fileID: 0}

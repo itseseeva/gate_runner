@@ -49,12 +49,14 @@ public class FollowState : IUnitState
             return; // во время rejoin не ищем врагов
         }
 
-        // Танк не бегает рывком — он бьёт через AutoAttacker, стоя в строю.
-        if (_ctrl.IsTankUnit)
-            return;
+
 
         // Обычный режим — ищем рандомного врага
         // Ищем врага только впереди по Z (не возвращаемся к мёртвой волне)
+
+        // Танк не бегает рывком — стоит в строю и бьёт через AutoAttacker
+        if (_ctrl.IsTankUnit) return;
+
         float minZ = _ctrl.transform.position.z + 1f;
         Enemy enemy = _ctrl.FindRandomEnemyInRange(_ctrl.DetectionRange, minZ: minZ);
         if (enemy != null)

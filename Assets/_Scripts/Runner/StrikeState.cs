@@ -25,6 +25,10 @@ public class StrikeState : IUnitState
     {
         _waitingAfterHit = false;
         _ctrl.PlayAttackRun();
+
+        // Танк: отключаем AutoAttacker чтобы он не сжигал кулдаун во время рывка
+        if (_ctrl.IsTankUnit)
+            _ctrl.DisableAutoAttacker();
     }
 
     public void Exit()
@@ -35,6 +39,10 @@ public class StrikeState : IUnitState
             _ctrl.ReleaseTarget(_target);
             _target = null;
         }
+
+        // Танк: возвращаем AutoAttacker при выходе из состояния
+        if (_ctrl.IsTankUnit)
+            _ctrl.EnableAutoAttacker();
     }
 
     public void Tick()
@@ -60,6 +68,15 @@ public class StrikeState : IUnitState
         {
             if (_target != null) _ctrl.ReleaseTarget(_target);
             _target = null;
+
+            // Танк: сразу домой, не ищем следующую цель
+            if (_ctrl.IsTankUnit)
+            {
+                _ctrl.StartRejoin();
+                _ctrl.ChangeState(_ctrl.FollowState);
+                return;
+            }
+
             _waitingAfterHit = true;
             return;
         }
@@ -70,28 +87,46 @@ public class StrikeState : IUnitState
 
         if (distance <= _ctrl.AttackRange)
         {
+            if (_ctrl.IsTankUnit)
+            {
+                Debug.Log($"[Tank] Контакт. IsReady={_ctrl.AutoAttack?.IsReady}, dist={distance:F2}, target={_target.name}", _ctrl);
+                if (_ctrl.AutoAttack == null || !_ctrl.AutoAttack.IsReady) return;
+
+                _ctrl.AutoAttack.Hit(_target);
+
+                LastHitZ = _target.transform.position.z;
+                _lastHitEnemy = _target;
+                _ctrl.ReleaseTarget(_target);
+                _target = null;
+
+                // Сразу уходим домой — анимация доиграет на ходу, OnAttackHit сработает через Event
+                _ctrl.StartRejoin();
+                _ctrl.ChangeState(_ctrl.FollowState);
+                return;
+            }
+
             if (_ctrl.AutoAttack == null) return;
             if (!_ctrl.AutoAttack.IsReady) return;
 
             DiagLogger.RecordHit(_ctrl.gameObject.GetInstanceID(), _target.GetInstanceID());
             HitResult result = _ctrl.AutoAttack.Hit(_target);
 
-            // Сбрасываем триггер Attack, чтобы избежать повторного ложного срабатывания анимации удара
             Animator animator = _ctrl.GetComponentInChildren<Animator>();
             if (animator != null)
-            {
                 animator.ResetTrigger("Attack");
-            }
-
-            if (result.WasCritical)
-                Debug.Log($"[Strike] {_ctrl.gameObject.name} КРИТ! Урон: {result.DamageDealt}", _ctrl);
 
             LastHitZ = _target.transform.position.z;
             _lastHitEnemy = _target;
             _ctrl.ReleaseTarget(_target);
             _target = null;
 
-            // Ждём перед поиском следующего
+            if (_ctrl.IsTankUnit)
+            {
+                _ctrl.StartRejoin();
+                _ctrl.ChangeState(_ctrl.FollowState);
+                return;
+            }
+
             _waitingAfterHit = true;
             return;
         }
@@ -114,6 +149,16 @@ public class StrikeState : IUnitState
 
     private void FindNextOrReturn()
     {
+        Debug.Log($"[Strike] FindNextOrReturn: IsTankUnit={_ctrl.IsTankUnit}", _ctrl);
+
+        // Танк всегда возвращается в строй — не ищет следующую цель
+        if (_ctrl.IsTankUnit)
+        {
+            _ctrl.StartRejoin();
+            _ctrl.ChangeState(_ctrl.FollowState);
+            return;
+        }
+
         if (_lastHitEnemy != null && _lastHitEnemy.gameObject.activeSelf)
             _ctrl.ClaimTarget(_lastHitEnemy);
 
