@@ -58,6 +58,13 @@ public class VfxPool : MonoBehaviour
         SpawnFromPool(pool, prefab, position, rotation);
     }
 
+    /// <summary>Спавнит VFX с позицией/ротацией из самого префаба.</summary>
+    public void SpawnAtPrefabTransform(GameObject prefab)
+    {
+        if (prefab == null) return;
+        Spawn(prefab.transform.position, prefab.transform.rotation, prefab);
+    }
+
     private VfxInstance CreateOne(GameObject prefab)
     {
         GameObject root = Instantiate(prefab, transform);
@@ -87,7 +94,7 @@ public class VfxPool : MonoBehaviour
 
         // Двигаем КОРЕНЬ — позиция эффекта = точка попадания, без смещений.
         inst.Root.transform.position = position;
-        inst.Root.transform.rotation = rotation;
+        inst.Root.transform.rotation = prefab.transform.rotation;
         inst.Root.transform.localScale = prefab.transform.localScale; // ← scale с префаба
         inst.Root.SetActive(true);
 

@@ -120,12 +120,24 @@ public class MeleeUnitController : MonoBehaviour
             _isRejoining = false;
             if (_animator != null) _animator.applyRootMotion = false;
             transform.position = Leader.position + FormationOffset;
-            return;
+        }
+        else
+        {
+            Vector3 targetPos = Leader.position + FormationOffset;
+            transform.position = Vector3.Lerp(transform.position, targetPos,
+                _rejoinDuration > 0 ? Time.deltaTime / (_rejoinDuration * (1f - t + 0.01f)) : 1f);
         }
 
-        Vector3 targetPos = Leader.position + FormationOffset;
-        transform.position = Vector3.Lerp(transform.position, targetPos,
-            _rejoinDuration > 0 ? Time.deltaTime / (_rejoinDuration * (1f - t + 0.01f)) : 1f);
+        // Сбрасываем localPosition всех дочерних аур обратно в ноль
+        foreach (Transform child in transform)
+        {
+            if (child.name.Contains("Clone") && child.GetComponent<ParticleSystem>() != null)
+                child.localPosition = Vector3.zero;
+        }
+
+        var ice = GetComponentInChildren<ParticleSystem>();
+        if (ice != null)
+            Debug.Log($"[Rejoin] aura localPos={ice.transform.localPosition}, heroPos={transform.position}");
     }
 
     public void ChangeState(IUnitState state) => _stateMachine.ChangeState(state);

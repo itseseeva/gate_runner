@@ -97,7 +97,7 @@ public class Unit : MonoBehaviour
         if (instance == null)
         {
             instance = Instantiate(prefab, transform);
-            instance.transform.localPosition = prefab.transform.localPosition;
+            instance.transform.localPosition = Vector3.zero;
             DesyncOnce(instance); // сразу задаём случайную фазу при создании
         }
 
@@ -298,4 +298,5 @@ public class Unit : MonoBehaviour
     // Заглушки для Animation Events (звуки шагов)
     public void FootL() { }
     public void FootR() { }
+
 }

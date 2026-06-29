@@ -71,8 +71,16 @@ public class WarriorAutoAttack : MeleeAutoAttackBase
                 ? _vfxConfig.GetTankSlash(element)
                 : _vfxConfig.GetWarriorSlash(element);
 
+            Debug.Log($"[WarriorAutoAttack] element={element}, heroType={_heroType}, " +
+                      $"slashPrefab={( slashPrefab != null ? slashPrefab.name : "NULL")}", this);
+
             if (slashPrefab != null)
                 VfxPool.Instance.Spawn(transform.position, transform.rotation, slashPrefab);
+        }
+        else
+        {
+            Debug.LogWarning($"[WarriorAutoAttack] Слеш не спавнится! " +
+                             $"_vfxConfig={_vfxConfig}, VfxPool={VfxPool.Instance}", this);
         }
 
         // ── АОЕ урон по всем врагам в радиусе ──

@@ -133,6 +133,9 @@ MonoBehaviour:
   _baseDamage: 20
   _slashRadius: 1
   _vfxConfig: {fileID: 11400000, guid: d141ab9d65326904ca1ebb6f5312989f, type: 2}
+  _slashForward: 0.3
+  _slashHeight: 0.3
+  _slashRotation: {x: 0, y: 0, z: 0}
 --- !u!114 &-5793145940803831541
 MonoBehaviour:
   m_ObjectHideFlags: 0
