@@ -1,8 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// Автоатака ассасина: 3 удара за одну анимацию через Animation Events.
-/// OnSlash1/2/3 бьют текущую цель состояния в моменты взмахов.
+/// Автоатака ассасина: удар через Animation Events.
 /// </summary>
 public class AssassinAutoAttack : MeleeAutoAttackBase
 {
@@ -18,6 +17,14 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
     [Header("VFX")]
     [SerializeField] private VfxConfig _vfxConfig;
 
+    [Tooltip("Смещение слеш-эффекта вперёд от героя")]
+    [SerializeField] private float _slashForward = 0.5f;
+
+    [Tooltip("Высота спавна слеш-эффекта")]
+    [SerializeField] private float _slashHeight = 0.5f;
+
+
+
     [Header("Кулдаун серии")]
     [Tooltip("Пауза между сериями ударов в секундах")]
     [SerializeField] private float _seriesCooldown = 2f;
@@ -26,35 +33,37 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
     public bool IsSeriesReady => Time.time - _lastSeriesTime >= _seriesCooldown;
     public void StartSeriesCooldown() => _lastSeriesTime = Time.time;
 
-    // Состояние даёт текущую цель для удара в момент взмаха
-    private AssassinStrikeState _strikeState;
-    public void SetStrikeState(AssassinStrikeState state) => _strikeState = state;
+    public override bool IsReady => base.IsReady && IsSeriesReady;
 
-    /// <summary>Запускает анимацию серии (триггер Attack).</summary>
+    private Enemy _currentTarget;
+    public Enemy GetCurrentTarget() => _currentTarget;
+    public void SetCurrentTarget(Enemy target) => _currentTarget = target;
+
     public override HitResult Hit(Enemy target)
     {
         if (!IsReady) return HitResult.Miss();
-        if (Animator != null) Animator.SetTrigger("Attack");
-        UpdateCooldown();
+        Debug.Log($"[Assassin] Hit() target={target.name}, frame={Time.frameCount}", this);
         return new HitResult { Hit = true };
     }
 
-    // ── Animation Events — три взмаха ──
-    public void OnSlash1() => DoSlashOnCurrentTarget();
-    public void OnSlash2() => DoSlashOnCurrentTarget();
-    public void OnSlash3() => DoSlashOnCurrentTarget();
-
-    private void DoSlashOnCurrentTarget()
+    // ── Animation Events ──
+    public void OnAttackHit()
     {
-        if (_strikeState == null) return;
-        DoSingleSlash(_strikeState.CurrentTarget);
-        _strikeState.NotifySlashDone(); // сообщаем состоянию что взмах случился
+        Debug.Log($"[Assassin] OnAttackHit triggered, frame={Time.frameCount}, target={(_currentTarget != null ? _currentTarget.name : "NULL")}", this);
+        if (_currentTarget != null)
+        {
+            UpdateCooldown();
+            StartSeriesCooldown();
+            DoSingleSlash(_currentTarget);
+            _currentTarget = null;
+        }
     }
 
-    /// <summary>Наносит один удар по цели + эффект между ассасином и врагом.</summary>
+    /// <summary>Наносит удар по цели + VFX слеша.</summary>
     public void DoSingleSlash(Enemy target)
     {
         if (target == null) return;
+        Debug.Log($"[Assassin] DoSingleSlash EXECUTED on {target.name}, frame={Time.frameCount}", this);
 
         ElementType element  = OwnerUnit != null ? OwnerUnit.Element : ElementType.None;
         int multiplier       = OwnerUnit != null ? OwnerUnit.PowerMultiplier : 1;
@@ -70,13 +79,24 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
             status.ApplyStatus(statusToApply, finalDamage);
         }
 
-        // Эффект ПОСЕРЕДИНЕ между ассасином и врагом
-        if (VfxPool.Instance != null && _vfxConfig != null && _vfxConfig.AssassinHitVfx != null)
+        // VFX
+        if (VfxPool.Instance != null && _vfxConfig != null)
         {
-            Vector3 mid = (transform.position + target.transform.position) * 0.5f + Vector3.up * 0.5f;
-            VfxPool.Instance.Spawn(mid, Quaternion.identity, _vfxConfig.AssassinHitVfx);
-        }
+            GameObject slashPrefab = _vfxConfig.GetAssassinSlash(element);
+            Vector3 spawnPos = transform.position
+                             + transform.forward * _slashForward
+                             + Vector3.up * _slashHeight;
 
+            if (slashPrefab != null)
+            {
+                // Умножаем ротацию героя на локальную ротацию префаба. 
+                // Теперь поворот из префаба работает как отступ относительно того, куда смотрит герой.
+                Quaternion spawnRot = transform.rotation * slashPrefab.transform.localRotation;
+                VfxPool.Instance.Spawn(spawnPos, spawnRot, slashPrefab);
+            }
+            else if (_vfxConfig.AssassinHitVfx != null)
+                VfxPool.Instance.Spawn(spawnPos, Quaternion.identity, _vfxConfig.AssassinHitVfx);
+        }
     }
 
     protected override DamageCalculation CalculateDamage(int powerMultiplier)

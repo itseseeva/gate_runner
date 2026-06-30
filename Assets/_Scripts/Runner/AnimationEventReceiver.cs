@@ -20,14 +20,13 @@ public class AnimationEventReceiver : MonoBehaviour
 
     public void OnAttackHit()
     {
+        var target = _assassinAttack != null ? _assassinAttack.GetCurrentTarget() : null;
+        string tName = target != null ? target.name : "NULL";
+        Debug.Log($"[Event] OnAttackHit на {gameObject.name}, currentTarget={tName}, frame={Time.frameCount}", this);
         _tankAttack?.OnAttackHit();
         _warriorAttack?.OnAttackHit();
+        _assassinAttack?.OnAttackHit();
     }
-
-    // Три взмаха ассасина
-    public void OnSlash1() => _assassinAttack?.OnSlash1();
-    public void OnSlash2() => _assassinAttack?.OnSlash2();
-    public void OnSlash3() => _assassinAttack?.OnSlash3();
 
     // Момент выстрела лучника/мага
     public void OnShoot()

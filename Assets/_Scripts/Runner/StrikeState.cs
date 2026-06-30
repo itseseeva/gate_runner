@@ -19,7 +19,13 @@ public class StrikeState : IUnitState
         _ctrl = controller;
     }
 
-    public void SetTarget(Enemy target) => _target = target;
+    public void SetTarget(Enemy target)
+    {
+        _target = target;
+        var assassin = _ctrl.GetComponent<AssassinAutoAttack>();
+        if (assassin != null)
+            assassin.SetCurrentTarget(target);
+    }
 
     public void Enter()
     {
@@ -81,8 +87,9 @@ public class StrikeState : IUnitState
             return;
         }
 
-        // Бежим к цели
+        // Бежим к цели — только в плоскости XZ, игнорируем разницу по Y
         Vector3 toEnemy  = _target.transform.position - _ctrl.transform.position;
+        toEnemy.y = 0f;
         float   distance = toEnemy.magnitude;
 
         if (distance <= _ctrl.AttackRange)
@@ -99,17 +106,15 @@ public class StrikeState : IUnitState
                 _ctrl.ReleaseTarget(_target);
                 _target = null;
 
-                // Сразу уходим домой — анимация доиграет на ходу, OnAttackHit сработает через Event
                 _ctrl.StartRejoin();
                 _ctrl.ChangeState(_ctrl.FollowState);
                 return;
             }
 
-            if (_ctrl.AutoAttack == null) return;
-            if (!_ctrl.AutoAttack.IsReady) return;
+            // Для Ассасина и Воина (Подход 1)
+            if (_ctrl.AutoAttack == null || !_ctrl.AutoAttack.IsReady) return;
 
             DiagLogger.RecordHit(_ctrl.gameObject.GetInstanceID(), _target.GetInstanceID());
-            HitResult result = _ctrl.AutoAttack.Hit(_target);
 
             Animator animator = _ctrl.GetComponentInChildren<Animator>();
             if (animator != null)
@@ -119,13 +124,6 @@ public class StrikeState : IUnitState
             _lastHitEnemy = _target;
             _ctrl.ReleaseTarget(_target);
             _target = null;
-
-            if (_ctrl.IsTankUnit)
-            {
-                _ctrl.StartRejoin();
-                _ctrl.ChangeState(_ctrl.FollowState);
-                return;
-            }
 
             _waitingAfterHit = true;
             return;
@@ -142,17 +140,19 @@ public class StrikeState : IUnitState
             return;
         }
 
-        // Двигаемся к врагу
+        // Двигаемся к врагу только по XZ
         Vector3 dir = toEnemy.normalized;
-        _ctrl.transform.position += dir * _ctrl.ChaseSpeed * Time.deltaTime;
+        Vector3 newPos = _ctrl.transform.position + dir * _ctrl.ChaseSpeed * Time.deltaTime;
+        newPos.y = _ctrl.transform.position.y; // Y не меняем!
+        _ctrl.transform.position = newPos;
     }
 
     private void FindNextOrReturn()
     {
         Debug.Log($"[Strike] FindNextOrReturn: IsTankUnit={_ctrl.IsTankUnit}", _ctrl);
 
-        // Танк всегда возвращается в строй — не ищет следующую цель
-        if (_ctrl.IsTankUnit)
+        // Танк и Ассасин возвращаются в строй сразу — не ищут следующую цель
+        if (_ctrl.IsTankUnit || _ctrl.GetComponent<AssassinAutoAttack>() != null)
         {
             _ctrl.StartRejoin();
             _ctrl.ChangeState(_ctrl.FollowState);
@@ -175,7 +175,7 @@ public class StrikeState : IUnitState
         {
             Debug.Log($"[Strike] Найден next на Z={next.transform.position.z:F1}");
             _ctrl.ClaimTarget(next);
-            _target = next;
+            SetTarget(next);
             return;
         }
 

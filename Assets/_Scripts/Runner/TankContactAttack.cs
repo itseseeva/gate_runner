@@ -34,6 +34,9 @@ public class TankContactAttack : MonoBehaviour
     [Tooltip("Максимальная дистанция рывка")]
     [SerializeField] private float _maxDashDistance = 2.5f;
 
+    [Tooltip("Дистанция при которой считается что танк коснулся врага")]
+    [SerializeField] private float _hitDistance = 0.6f;
+
     private WarriorAutoAttack   _attack;
     private Animator            _animator;
     private MeleeUnitController _meleeCtrl;
@@ -165,22 +168,41 @@ public class TankContactAttack : MonoBehaviour
     private void LateUpdate()
     {
         // Активный самонаводящийся рывок
-        if (_isDashing && _targetedEnemy != null && _targetedEnemy.gameObject.activeSelf)
+        if (_isDashing)
         {
-            _dashTimeLeft -= Time.deltaTime;
-            
-            // Двигаемся прямо к текущей позиции врага (вплотную)
-            transform.position = Vector3.MoveTowards(transform.position, _targetedEnemy.transform.position, _dashSpeed * Time.deltaTime);
-
-            // Прекращаем рывок только по истечению времени (или когда сработает физический триггер удара)
-            if (_dashTimeLeft <= 0)
+            // Цель умерла во время рывка — пробуем найти соседнего врага
+            if (_targetedEnemy == null || !_targetedEnemy.gameObject.activeSelf)
             {
-                _isDashing = false;
+                Enemy replacement = FindNearbyReplacement();
+                if (replacement != null)
+                {
+                    _targetedEnemy = replacement;
+                    replacement.TargetedByTank = this;
+                }
+                else
+                {
+                    _isDashing = false;
+                    return;
+                }
             }
-        }
-        else
-        {
-            _isDashing = false;
+
+            _dashTimeLeft -= Time.deltaTime;
+
+            // Двигаемся к врагу
+            transform.position = Vector3.MoveTowards(
+                transform.position, _targetedEnemy.transform.position, _dashSpeed * Time.deltaTime);
+
+            // Дистанционная проверка попадания — не ждём OnTriggerEnter
+            float dist = Vector3.Distance(transform.position, _targetedEnemy.transform.position);
+            if (dist <= _hitDistance)
+            {
+                TryHitDuringDash(_targetedEnemy);
+                return;
+            }
+
+            // Время рывка вышло
+            if (_dashTimeLeft <= 0)
+                _isDashing = false;
         }
     }
 
@@ -232,6 +254,65 @@ public class TankContactAttack : MonoBehaviour
             _meleeCtrl.IsInFormation = true;
 
         // Останавливаем рывок
+        _isDashing = false;
+    }
+
+    /// <summary>
+    /// Ищет ближайшего живого врага в радиусе _animAnticipationRange.
+    /// Используется когда основная цель умерла во время рывка.
+    /// </summary>
+    private Enemy FindNearbyReplacement()
+    {
+        Enemy[] all = Object.FindObjectsByType<Enemy>(FindObjectsSortMode.None);
+        Enemy best = null;
+        float bestDist = float.MaxValue;
+
+        foreach (Enemy e in all)
+        {
+            if (e == null || !e.gameObject.activeSelf) continue;
+            if (e.TargetedByTank != null && e.TargetedByTank != this) continue;
+
+            float d = Vector3.Distance(transform.position, e.transform.position);
+            if (d > _animAnticipationRange) continue;
+
+            if (d < bestDist)
+            {
+                bestDist = d;
+                best = e;
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>
+    /// Применяет удар по врагу во время рывка (без OnTriggerEnter).
+    /// Проверяет кулдаун и состояние врага.
+    /// </summary>
+    private void TryHitDuringDash(Enemy enemy)
+    {
+        if (enemy == null || !enemy.gameObject.activeSelf) return;
+        if (Time.time - _lastContactTime < _contactCooldown) return;
+
+        _lastContactTime = Time.time;
+
+        if (enemy.TargetedByTank == this)
+            enemy.TargetedByTank = null;
+        _targetedEnemy = null;
+
+        Debug.Log($"[Tank Hit Debug] УДАР по {enemy.name} через дистанцию (dash hit).", this);
+
+        // Доворот перед ударом
+        Vector3 dirToEnemy = (enemy.transform.position - transform.position).normalized;
+        dirToEnemy.y = 0;
+        if (dirToEnemy != Vector3.zero)
+            transform.rotation = ClampRotation(Quaternion.LookRotation(dirToEnemy));
+
+        _attack.ApplyTankHit(enemy);
+
+        if (_meleeCtrl != null && !_meleeCtrl.IsInFormation)
+            _meleeCtrl.IsInFormation = true;
+
         _isDashing = false;
     }
 }

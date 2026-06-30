@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::VfxConfig
   WarriorHitVfx: {fileID: 5503505460791601945, guid: 84f95c958ce9d784997019551f8cc1b3, type: 3}
   TankHitVfx: {fileID: 5024009746357069194, guid: ec3f674830402cc45bce805cf6493db7, type: 3}
-  AssassinHitVfx: {fileID: 6827986182019416373, guid: 55806781dbe726742b3d8507254b8aa3, type: 3}
+  AssassinHitVfx: {fileID: 1101956524094245015, guid: 742b193c39593114dac9c727f62dc25e, type: 3}
   WarriorSlashFire: {fileID: 8375397338541890676, guid: d53cf8ec3484293408cfd1aea2993a80, type: 3}
   WarriorSlashIce: {fileID: 8332669465479727273, guid: a141d2d2debb982428386c55f14085ca, type: 3}
   WarriorSlashLightning: {fileID: 158789456559184324, guid: 6b443dc7dadec9d45a79cee853746253, type: 3}
@@ -22,6 +22,6 @@ MonoBehaviour:
   TankSlashIce: {fileID: 1612255617566175962, guid: 2ecef2ef2aa6de640a142188e357aadb, type: 3}
   TankSlashLightning: {fileID: 8509476954776975093, guid: 20dc5babfbd148d4e808b9e212db8780, type: 3}
   AssassinSlashFire: {fileID: 0}
-  AssassinSlashIce: {fileID: 0}
+  AssassinSlashIce: {fileID: 8332669465479727273, guid: 460b37daa7a03494e8bdaf142a1a476b, type: 3}
   AssassinSlashLightning: {fileID: 0}
   UnitDeathVfx: {fileID: 7403103098228120956, guid: f56f272c7200fad46bef76cdbda2af54, type: 3}

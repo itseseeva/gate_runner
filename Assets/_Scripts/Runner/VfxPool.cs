@@ -36,10 +36,16 @@ public class VfxPool : MonoBehaviour
         Instance = this;
     }
 
-    /// <summary>Спавнит конкретный VFX по префабу в указанной позиции.</summary>
-    public void Spawn(Vector3 position, Quaternion rotation, GameObject prefab)
+    /// <summary>Спавнит VFX, беря ротацию прямо с префаба — что настроил в Inspector, то и получишь.</summary>
+    public GameObject Spawn(Vector3 position, GameObject prefab)
     {
-        if (prefab == null) return;
+        return Spawn(position, prefab.transform.rotation, prefab);
+    }
+
+    /// <summary>Спавнит VFX с произвольной ротацией (например, для зеркального слеша).</summary>
+    public GameObject Spawn(Vector3 position, Quaternion rotation, GameObject prefab)
+    {
+        if (prefab == null) return null;
 
         if (!_prefabPools.TryGetValue(prefab, out Queue<VfxInstance> pool))
         {
@@ -55,14 +61,14 @@ public class VfxPool : MonoBehaviour
             }
         }
 
-        SpawnFromPool(pool, prefab, position, rotation);
+        return SpawnFromPool(pool, prefab, position, rotation);
     }
 
     /// <summary>Спавнит VFX с позицией/ротацией из самого префаба.</summary>
-    public void SpawnAtPrefabTransform(GameObject prefab)
+    public GameObject SpawnAtPrefabTransform(GameObject prefab)
     {
-        if (prefab == null) return;
-        Spawn(prefab.transform.position, prefab.transform.rotation, prefab);
+        if (prefab == null) return null;
+        return Spawn(prefab.transform.position, prefab.transform.rotation, prefab);
     }
 
     private VfxInstance CreateOne(GameObject prefab)
@@ -86,16 +92,16 @@ public class VfxPool : MonoBehaviour
         return new VfxInstance { Root = root, Particles = ps };
     }
 
-    private void SpawnFromPool(Queue<VfxInstance> pool, GameObject prefab,
+    private GameObject SpawnFromPool(Queue<VfxInstance> pool, GameObject prefab,
                                Vector3 position, Quaternion rotation)
     {
         VfxInstance inst = pool.Count > 0 ? pool.Dequeue() : CreateOne(prefab);
-        if (inst == null) return;
+        if (inst == null) return null;
 
-        // Двигаем КОРЕНЬ — позиция эффекта = точка попадания, без смещений.
+        // Двигаем КОРЕНЬ — позиция эффекта = точка попадания (смещения задаются передаваемым position)
         inst.Root.transform.position = position;
-        inst.Root.transform.rotation = prefab.transform.rotation;
-        inst.Root.transform.localScale = prefab.transform.localScale; // ← scale с префаба
+        inst.Root.transform.rotation = rotation;
+        inst.Root.transform.localScale = prefab.transform.localScale;
         inst.Root.SetActive(true);
 
         inst.Particles.Clear(true); // сбрасываем хвост от прошлого использования
@@ -106,6 +112,7 @@ public class VfxPool : MonoBehaviour
             ps.Play(true);
 
         StartCoroutine(ReturnWhenDone(inst, pool));
+        return inst.Root;
     }
 
     private IEnumerator ReturnWhenDone(VfxInstance inst, Queue<VfxInstance> pool)

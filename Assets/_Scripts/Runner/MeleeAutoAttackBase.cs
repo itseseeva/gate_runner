@@ -35,7 +35,7 @@ public abstract class MeleeAutoAttackBase : MonoBehaviour, IUnitAttack
     }
 
     public float Range   => _range;
-    public bool  IsReady => Time.time - _lastFireTime >= (1f / _attackSpeed);
+    public virtual bool IsReady => Time.time - _lastFireTime >= (1f / _attackSpeed);
 
     /// <summary>
     /// Главный метод — выполняет удар.

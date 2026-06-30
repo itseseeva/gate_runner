@@ -65,11 +65,26 @@ public class MeleeUnitController : MonoBehaviour
     public bool IsTankUnit => IsTank;
 
     private UnitStateMachine _stateMachine;
+    private float _prevY = float.MinValue; // для отслеживания изменений Y
+
+    private void LateUpdate()
+    {
+        float y = transform.position.y;
+        if (_prevY != float.MinValue && Mathf.Abs(y - _prevY) > 0.01f)
+        {
+            Debug.LogWarning(
+                $"[POS-Y-CHANGE] {gameObject.name} Y: {_prevY:F4} → {y:F4} " +
+                $"| animState={(_animator != null ? _animator.GetCurrentAnimatorStateInfo(0).shortNameHash.ToString() : "?")} " +
+                $"| rootMotion={(_animator != null ? _animator.applyRootMotion.ToString() : "?")}",
+                this);
+        }
+        _prevY = y;
+    }
+
 
     // ─── Состояния ───────────────────────────────────────────────
     public FollowState         FollowState         { get; private set; }
     public StrikeState         StrikeState         { get; private set; }
-    public AssassinStrikeState AssassinStrikeState { get; private set; }
 
     /// <summary>Инициализация — вызывается из SquadController.</summary>
     public void Initialize(Transform leader, Vector3 formationOffset)
@@ -81,20 +96,16 @@ public class MeleeUnitController : MonoBehaviour
         _animator     = GetComponentInChildren<Animator>();
         _ownerUnit    = GetComponent<Unit>();
 
+        // Root Motion должен быть ВЫКЛЮЧЕН всегда — иначе анимация двигает персонажа вверх/вниз
+        if (_animator != null)
+            _animator.applyRootMotion = false;
+
         _autoAttack = _autoAttackComponent as IUnitAttack;
         if (_autoAttack == null)
             Debug.LogError($"[MeleeUnitController] {gameObject.name}: _autoAttackComponent должен реализовывать IUnitAttack!", this);
 
         FollowState = new FollowState(this);
         StrikeState = new StrikeState(this);
-
-        // Если на объекте есть AssassinAutoAttack — создаём его состояние
-        var assassinAttack = GetComponent<AssassinAutoAttack>();
-        if (assassinAttack != null)
-        {
-            AssassinStrikeState = new AssassinStrikeState(this, assassinAttack);
-            assassinAttack.SetStrikeState(AssassinStrikeState); // ← связка для Animation Events
-        }
 
         _stateMachine.ChangeState(FollowState);
 

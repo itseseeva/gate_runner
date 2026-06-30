@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Enemy_Basic_Data
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinitionSO
   EnemyName: Basic Enemy
-  MaxHP: 100
+  MaxHP: 100000
   Damage: 10
   AttackRange: 1.5
   AttackSpeed: 1
