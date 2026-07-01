@@ -22,13 +22,11 @@ public class StrikeState : IUnitState
     public void SetTarget(Enemy target)
     {
         _target = target;
-        var assassin = _ctrl.GetComponent<AssassinAutoAttack>();
-        if (assassin != null)
-            assassin.SetCurrentTarget(target);
     }
 
     public void Enter()
     {
+        Debug.Log($"[Strike Enter] {_ctrl.gameObject.name}, frame={Time.frameCount}", _ctrl);
         _waitingAfterHit = false;
         _ctrl.PlayAttackRun();
 
@@ -49,6 +47,23 @@ public class StrikeState : IUnitState
         // Танк: возвращаем AutoAttacker при выходе из состояния
         if (_ctrl.IsTankUnit)
             _ctrl.EnableAutoAttacker();
+    }
+
+    /// <summary>
+    /// Вызывается из Animation Event через контроллер.
+    /// Проверяет цель и дистанцию, наносит удар если условия выполнены.
+    /// </summary>
+    public void OnAnimationHit()
+    {
+        if (_target == null || !_target.gameObject.activeSelf) return;
+
+        var assassin = _ctrl.GetComponent<AssassinAutoAttack>();
+        if (assassin == null) return;
+
+        float distance = Vector3.Distance(_ctrl.transform.position, _target.transform.position);
+        if (distance > _ctrl.AttackRange) return;
+
+        assassin.DoSingleSlash(_target);
     }
 
     public void Tick()
@@ -111,19 +126,14 @@ public class StrikeState : IUnitState
                 return;
             }
 
-            // Для Ассасина и Воина (Подход 1)
             if (_ctrl.AutoAttack == null || !_ctrl.AutoAttack.IsReady) return;
 
             DiagLogger.RecordHit(_ctrl.gameObject.GetInstanceID(), _target.GetInstanceID());
 
-            Animator animator = _ctrl.GetComponentInChildren<Animator>();
-            if (animator != null)
-                animator.ResetTrigger("Attack");
+            _ctrl.AutoAttack.Hit(_target);
 
             LastHitZ = _target.transform.position.z;
             _lastHitEnemy = _target;
-            _ctrl.ReleaseTarget(_target);
-            _target = null;
 
             _waitingAfterHit = true;
             return;

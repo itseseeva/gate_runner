@@ -20,12 +20,15 @@ public class AnimationEventReceiver : MonoBehaviour
 
     public void OnAttackHit()
     {
-        var target = _assassinAttack != null ? _assassinAttack.GetCurrentTarget() : null;
-        string tName = target != null ? target.name : "NULL";
-        Debug.Log($"[Event] OnAttackHit на {gameObject.name}, currentTarget={tName}, frame={Time.frameCount}", this);
         _tankAttack?.OnAttackHit();
         _warriorAttack?.OnAttackHit();
-        _assassinAttack?.OnAttackHit();
+
+        // Ассасин: событие идёт через StrikeState (он знает цель и дистанцию)
+        if (_assassinAttack != null)
+        {
+            var ctrl = GetComponentInParent<MeleeUnitController>();
+            ctrl?.StrikeState?.OnAnimationHit();
+        }
     }
 
     // Момент выстрела лучника/мага

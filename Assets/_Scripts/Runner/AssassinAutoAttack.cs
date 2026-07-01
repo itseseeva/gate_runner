@@ -1,7 +1,8 @@
 using UnityEngine;
 
 /// <summary>
-/// Автоатака ассасина: удар через Animation Events.
+/// Автоатака ассасина: один удар с крит-шансом и лайфстилом.
+/// Кулдаун атаки регулируется через Attack Cooldown (не Attack Speed).
 /// </summary>
 public class AssassinAutoAttack : MeleeAutoAttackBase
 {
@@ -18,52 +19,31 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
     [SerializeField] private VfxConfig _vfxConfig;
 
     [Tooltip("Смещение слеш-эффекта вперёд от героя")]
-    [SerializeField] private float _slashForward = 0.5f;
+    [SerializeField] private float _slashForward = 0.1f;
 
     [Tooltip("Высота спавна слеш-эффекта")]
-    [SerializeField] private float _slashHeight = 0.5f;
+    [SerializeField] private float _slashHeight = 0.2f;
 
+    [Header("Кулдаун атаки")]
+    [Tooltip("Пауза между атаками в секундах")]
+    [SerializeField] private float _attackCooldown = 4f;
+    private float _lastAttackTime = -999f;
 
-
-    [Header("Кулдаун серии")]
-    [Tooltip("Пауза между сериями ударов в секундах")]
-    [SerializeField] private float _seriesCooldown = 2f;
-    private float _lastSeriesTime = -999f;
-
-    public bool IsSeriesReady => Time.time - _lastSeriesTime >= _seriesCooldown;
-    public void StartSeriesCooldown() => _lastSeriesTime = Time.time;
-
-    public override bool IsReady => base.IsReady && IsSeriesReady;
-
-    private Enemy _currentTarget;
-    public Enemy GetCurrentTarget() => _currentTarget;
-    public void SetCurrentTarget(Enemy target) => _currentTarget = target;
+    public bool IsAttackReady => Time.time - _lastAttackTime >= _attackCooldown;
 
     public override HitResult Hit(Enemy target)
     {
-        if (!IsReady) return HitResult.Miss();
+        if (!IsAttackReady) return HitResult.Miss();
         Debug.Log($"[Assassin] Hit() target={target.name}, frame={Time.frameCount}", this);
+        _lastAttackTime = Time.time;
+        UpdateCooldown();
         return new HitResult { Hit = true };
     }
 
-    // ── Animation Events ──
-    public void OnAttackHit()
-    {
-        Debug.Log($"[Assassin] OnAttackHit triggered, frame={Time.frameCount}, target={(_currentTarget != null ? _currentTarget.name : "NULL")}", this);
-        if (_currentTarget != null)
-        {
-            UpdateCooldown();
-            StartSeriesCooldown();
-            DoSingleSlash(_currentTarget);
-            _currentTarget = null;
-        }
-    }
-
-    /// <summary>Наносит удар по цели + VFX слеша.</summary>
+    /// <summary>Наносит один удар по цели + слеш-эффект.</summary>
     public void DoSingleSlash(Enemy target)
     {
         if (target == null) return;
-        Debug.Log($"[Assassin] DoSingleSlash EXECUTED on {target.name}, frame={Time.frameCount}", this);
 
         ElementType element  = OwnerUnit != null ? OwnerUnit.Element : ElementType.None;
         int multiplier       = OwnerUnit != null ? OwnerUnit.PowerMultiplier : 1;
@@ -79,7 +59,8 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
             status.ApplyStatus(statusToApply, finalDamage);
         }
 
-        // VFX
+        // VFX — стихийный слеш если есть, иначе базовый AssassinHitVfx
+        Debug.Log($"[Assassin VFX] element={element}, slashPrefab={_vfxConfig?.GetAssassinSlash(element)?.name ?? "NULL"}, hitVfx={_vfxConfig?.AssassinHitVfx?.name ?? "NULL"}, pos={transform.position}", this);
         if (VfxPool.Instance != null && _vfxConfig != null)
         {
             GameObject slashPrefab = _vfxConfig.GetAssassinSlash(element);
@@ -88,14 +69,9 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
                              + Vector3.up * _slashHeight;
 
             if (slashPrefab != null)
-            {
-                // Берём абсолютную ротацию прямо из префаба (как просил пользователь)
                 VfxPool.Instance.Spawn(spawnPos, slashPrefab.transform.rotation, slashPrefab);
-            }
             else if (_vfxConfig.AssassinHitVfx != null)
-            {
-                VfxPool.Instance.Spawn(spawnPos, _vfxConfig.AssassinHitVfx.transform.rotation, _vfxConfig.AssassinHitVfx);
-            }
+                VfxPool.Instance.Spawn(spawnPos, Quaternion.identity, _vfxConfig.AssassinHitVfx);
         }
     }
 

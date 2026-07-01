@@ -3804,9 +3804,9 @@ MonoBehaviour:
   - heroType: 0
     count: 0
   - heroType: 4
-    count: 1
-  - heroType: 2
     count: 0
+  - heroType: 2
+    count: 1
 --- !u!114 &1554201389
 MonoBehaviour:
   m_ObjectHideFlags: 0

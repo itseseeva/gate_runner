@@ -23,5 +23,5 @@ MonoBehaviour:
   TankSlashLightning: {fileID: 8509476954776975093, guid: 20dc5babfbd148d4e808b9e212db8780, type: 3}
   AssassinSlashFire: {fileID: 8375397338541890676, guid: 2e5973fec6f80f14f82853121dc00a1d, type: 3}
   AssassinSlashIce: {fileID: 8332669465479727273, guid: 460b37daa7a03494e8bdaf142a1a476b, type: 3}
-  AssassinSlashLightning: {fileID: 0}
+  AssassinSlashLightning: {fileID: 158789456559184324, guid: d72f4144f5805624ca782e903d6b7a4c, type: 3}
   UnitDeathVfx: {fileID: 7403103098228120956, guid: f56f272c7200fad46bef76cdbda2af54, type: 3}
