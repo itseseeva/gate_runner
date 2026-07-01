@@ -89,13 +89,13 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
 
             if (slashPrefab != null)
             {
-                // Умножаем ротацию героя на локальную ротацию префаба. 
-                // Теперь поворот из префаба работает как отступ относительно того, куда смотрит герой.
-                Quaternion spawnRot = transform.rotation * slashPrefab.transform.localRotation;
-                VfxPool.Instance.Spawn(spawnPos, spawnRot, slashPrefab);
+                // Берём абсолютную ротацию прямо из префаба (как просил пользователь)
+                VfxPool.Instance.Spawn(spawnPos, slashPrefab.transform.rotation, slashPrefab);
             }
             else if (_vfxConfig.AssassinHitVfx != null)
-                VfxPool.Instance.Spawn(spawnPos, Quaternion.identity, _vfxConfig.AssassinHitVfx);
+            {
+                VfxPool.Instance.Spawn(spawnPos, _vfxConfig.AssassinHitVfx.transform.rotation, _vfxConfig.AssassinHitVfx);
+            }
         }
     }
 
