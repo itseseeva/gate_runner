@@ -117,6 +117,7 @@ public class VfxPool : MonoBehaviour
         // Scale из префаба умножаем на оригинальный startSizeMultiplier каждой PS.
         // Так настройки художника сохраняются, а scale просто масштабирует их.
         float scaleMul = prefab.transform.lossyScale.x;
+        Debug.Log($"[VfxPool] Spawn {prefab.name}: lossyScale={prefab.transform.lossyScale}, scaleMul={scaleMul}", prefab);
         for (int i = 0; i < inst.AllSystems.Length; i++)
         {
             var m = inst.AllSystems[i].main;
