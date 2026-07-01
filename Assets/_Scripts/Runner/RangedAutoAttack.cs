@@ -79,7 +79,6 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
         projectile.Launch(_baseDamage * _unit.PowerMultiplier, _range, element);
     }
 
-    /// <summary>Вызывается по Animation Event «Mazy» — спавнит вспышку из руки мага.</summary>
     public void SpawnMuzzle()
     {
         if (_unit == null) return;
@@ -87,7 +86,14 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
         GameObject muzzle = GetMuzzleEffect(element);
         if (muzzle == null || VfxPool.Instance == null) return;
         Transform origin = _muzzlePoint != null ? _muzzlePoint : transform;
-        VfxPool.Instance.Spawn(origin.position, origin.rotation, muzzle);
+        
+        // Применяем чистые данные (смещения и повороты) из самого префаба 
+        // относительно точки спавна (руки), чтобы ничего не игнорировалось
+        Vector3 finalPos = origin.TransformPoint(muzzle.transform.localPosition);
+        Quaternion finalRot = origin.rotation * muzzle.transform.localRotation;
+
+        // Передаём origin как parent, чтобы мазл двигался за рукой!
+        VfxPool.Instance.Spawn(finalPos, finalRot, muzzle, origin);
     }
 
     private GameObject GetMuzzleEffect(ElementType element) => element switch

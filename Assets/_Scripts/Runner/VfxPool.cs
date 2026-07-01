@@ -42,8 +42,8 @@ public class VfxPool : MonoBehaviour
         return Spawn(position, prefab.transform.rotation, prefab);
     }
 
-    /// <summary>Спавнит VFX с произвольной ротацией (например, для зеркального слеша).</summary>
-    public GameObject Spawn(Vector3 position, Quaternion rotation, GameObject prefab)
+    /// <summary>Спавнит VFX с произвольной ротацией (например, для зеркального слеша) и возможностью привязки к родителю.</summary>
+    public GameObject Spawn(Vector3 position, Quaternion rotation, GameObject prefab, Transform parent = null)
     {
         if (prefab == null) return null;
 
@@ -61,7 +61,7 @@ public class VfxPool : MonoBehaviour
             }
         }
 
-        return SpawnFromPool(pool, prefab, position, rotation);
+        return SpawnFromPool(pool, prefab, position, rotation, parent);
     }
 
     /// <summary>Спавнит VFX с позицией/ротацией из самого префаба.</summary>
@@ -93,12 +93,15 @@ public class VfxPool : MonoBehaviour
     }
 
     private GameObject SpawnFromPool(Queue<VfxInstance> pool, GameObject prefab,
-                               Vector3 position, Quaternion rotation)
+                               Vector3 position, Quaternion rotation, Transform parent = null)
     {
         VfxInstance inst = pool.Count > 0 ? pool.Dequeue() : CreateOne(prefab);
         if (inst == null) return null;
 
-        // Двигаем КОРЕНЬ — позиция эффекта = точка попадания (смещения задаются передаваемым position)
+        // Если передан parent, цепляем к нему (очень полезно для Muzzle flash, чтобы он двигался за рукой)
+        if (parent != null)
+            inst.Root.transform.SetParent(parent);
+
         inst.Root.transform.position = position;
         inst.Root.transform.rotation = rotation;
         inst.Root.transform.localScale = prefab.transform.localScale;
@@ -119,6 +122,8 @@ public class VfxPool : MonoBehaviour
     {
         yield return new WaitUntil(() => !inst.Particles.IsAlive(true));
         inst.Root.SetActive(false);
+        // Возвращаем в пул (открепляем от руки, если цепляли)
+        inst.Root.transform.SetParent(transform);
         pool.Enqueue(inst);
     }
 }
