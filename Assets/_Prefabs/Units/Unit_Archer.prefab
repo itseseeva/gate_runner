@@ -104,7 +104,7 @@ MonoBehaviour:
   _projectilePool: {fileID: 0}
   _projectilePrefab: {fileID: 0}
   _spawnHeightOffset: 0
-  _muzzlePoint: {fileID: 0}
+  _muzzlePoint: {fileID: 1133148225528377090}
   _muzzleEffectBase: {fileID: 0}
   _muzzleEffectFire: {fileID: 1262928022307954080, guid: 8b45d6ba72c9e07418aaec3dc7c30ba5, type: 3}
   _muzzleEffectIce: {fileID: 1227067792111776, guid: a6f3cf71bfa48b44486194bdb84a54c3, type: 3}
@@ -166,6 +166,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 07f2d100a3a633a49bbaaf17d99451a8, type: 3}
+--- !u!4 &1133148225528377090 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8829889587888101828, guid: 07f2d100a3a633a49bbaaf17d99451a8, type: 3}
+  m_PrefabInstance: {fileID: 8445324085067921094}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3358319057533401875 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6604798102173240789, guid: 07f2d100a3a633a49bbaaf17d99451a8, type: 3}

@@ -5,9 +5,8 @@ using System.Collections.Generic;
 /// <summary>
 /// Пул VFX эффектов. ОДИН на сцену.
 /// Единица пула — корневой инстанс эффекта (GameObject), а не ParticleSystem.
-/// Это позволяет корректно ставить позицию эффекта независимо от того,
-/// лежит ParticleSystem на корне или на дочернем объекте.
-/// Спавнит эффект, ждёт окончания всех частиц, возвращает в пул.
+/// Scale из корня префаба умножается на оригинальный startSizeMultiplier
+/// каждой PS — так художник полностью контролирует размер из инспектора.
 /// </summary>
 public class VfxPool : MonoBehaviour
 {
@@ -16,34 +15,32 @@ public class VfxPool : MonoBehaviour
     [Tooltip("Сколько экземпляров каждого эффекта создать заранее при первом использовании")]
     [SerializeField] private int _preloadCount = 5;
 
-    /// <summary>Один экземпляр эффекта в пуле: корень + его ParticleSystem.</summary>
     private class VfxInstance
     {
-        public GameObject Root;          // корневой инстанс — его двигаем и включаем
-        public ParticleSystem Particles; // партиклы — для Play / проверки завершения
+        public GameObject     Root;          // корневой инстанс
+        public ParticleSystem Particles;     // главные партиклы (для IsAlive/Clear)
+        public ParticleSystem[] AllSystems;  // все PS внутри эффекта
+        public float[] OriginalSizes;        // startSizeMultiplier как в префабе
     }
 
-    // Очередь готовых инстансов на каждый префаб.
     private readonly Dictionary<GameObject, Queue<VfxInstance>> _prefabPools = new();
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
     }
 
-    /// <summary>Спавнит VFX, беря ротацию прямо с префаба — что настроил в Inspector, то и получишь.</summary>
+    // ── Публичные методы Spawn ─────────────────────────────────────────────
+
+    /// <summary>Спавнит VFX, беря ротацию и scale прямо с корня префаба.</summary>
     public GameObject Spawn(Vector3 position, GameObject prefab)
     {
         return Spawn(position, prefab.transform.rotation, prefab);
     }
 
-    /// <summary>Спавнит VFX с произвольной ротацией (например, для зеркального слеша) и возможностью привязки к родителю.</summary>
-    public GameObject Spawn(Vector3 position, Quaternion rotation, GameObject prefab, Transform parent = null)
+    /// <summary>Спавнит VFX с произвольной ротацией. Scale берётся с корня префаба.</summary>
+    public GameObject Spawn(Vector3 position, Quaternion rotation, GameObject prefab)
     {
         if (prefab == null) return null;
 
@@ -61,21 +58,22 @@ public class VfxPool : MonoBehaviour
             }
         }
 
-        return SpawnFromPool(pool, prefab, position, rotation, parent);
+        return SpawnFromPool(pool, prefab, position, rotation);
     }
 
-    /// <summary>Спавнит VFX с позицией/ротацией из самого префаба.</summary>
+    /// <summary>Спавнит VFX с позицией/ротацией/scale из самого префаба.</summary>
     public GameObject SpawnAtPrefabTransform(GameObject prefab)
     {
         if (prefab == null) return null;
         return Spawn(prefab.transform.position, prefab.transform.rotation, prefab);
     }
 
+    // ── Внутренние методы ──────────────────────────────────────────────────
+
     private VfxInstance CreateOne(GameObject prefab)
     {
         GameObject root = Instantiate(prefab, transform);
 
-        // ParticleSystem может быть на корне или на дочернем объекте.
         ParticleSystem ps = root.GetComponent<ParticleSystem>();
         if (ps == null) ps = root.GetComponentInChildren<ParticleSystem>();
 
@@ -89,29 +87,46 @@ public class VfxPool : MonoBehaviour
         var main = ps.main;
         main.stopAction = ParticleSystemStopAction.None;
 
-        return new VfxInstance { Root = root, Particles = ps };
+        // Запоминаем оригинальные размеры всех PS сразу после Instantiate,
+        // пока они ещё чистые (1:1 из префаба).
+        ParticleSystem[] allSystems = root.GetComponentsInChildren<ParticleSystem>(true);
+        float[] originalSizes = new float[allSystems.Length];
+        for (int i = 0; i < allSystems.Length; i++)
+            originalSizes[i] = allSystems[i].main.startSizeMultiplier;
+
+        return new VfxInstance
+        {
+            Root          = root,
+            Particles     = ps,
+            AllSystems    = allSystems,
+            OriginalSizes = originalSizes,
+        };
     }
 
     private GameObject SpawnFromPool(Queue<VfxInstance> pool, GameObject prefab,
-                               Vector3 position, Quaternion rotation, Transform parent = null)
+                                     Vector3 position, Quaternion rotation)
     {
         VfxInstance inst = pool.Count > 0 ? pool.Dequeue() : CreateOne(prefab);
         if (inst == null) return null;
 
-        // Если передан parent, цепляем к нему (очень полезно для Muzzle flash, чтобы он двигался за рукой)
-        if (parent != null)
-            inst.Root.transform.SetParent(parent);
+        inst.Root.transform.SetParent(transform);
+        inst.Root.transform.position   = position;
+        inst.Root.transform.rotation   = rotation;
+        inst.Root.transform.localScale = Vector3.one;
 
-        inst.Root.transform.position = position;
-        inst.Root.transform.rotation = rotation;
-        inst.Root.transform.localScale = prefab.transform.localScale;
+        // Scale из префаба умножаем на оригинальный startSizeMultiplier каждой PS.
+        // Так настройки художника сохраняются, а scale просто масштабирует их.
+        float scaleMul = prefab.transform.lossyScale.x;
+        for (int i = 0; i < inst.AllSystems.Length; i++)
+        {
+            var m = inst.AllSystems[i].main;
+            m.startSizeMultiplier = inst.OriginalSizes[i] * scaleMul;
+        }
+
         inst.Root.SetActive(true);
+        inst.Particles.Clear(true);
 
-        inst.Particles.Clear(true); // сбрасываем хвост от прошлого использования
-
-        // Запускаем все партиклы эффекта с начала (muzzle/hit играют как задумано)
-        ParticleSystem[] systems = inst.Root.GetComponentsInChildren<ParticleSystem>(true);
-        foreach (var ps in systems)
+        foreach (var ps in inst.AllSystems)
             ps.Play(true);
 
         StartCoroutine(ReturnWhenDone(inst, pool));
@@ -122,8 +137,6 @@ public class VfxPool : MonoBehaviour
     {
         yield return new WaitUntil(() => !inst.Particles.IsAlive(true));
         inst.Root.SetActive(false);
-        // Возвращаем в пул (открепляем от руки, если цепляли)
-        inst.Root.transform.SetParent(transform);
         pool.Enqueue(inst);
     }
 }

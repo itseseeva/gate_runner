@@ -86,14 +86,11 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
         GameObject muzzle = GetMuzzleEffect(element);
         if (muzzle == null || VfxPool.Instance == null) return;
         Transform origin = _muzzlePoint != null ? _muzzlePoint : transform;
-        
-        // Применяем чистые данные (смещения и повороты) из самого префаба 
-        // относительно точки спавна (руки), чтобы ничего не игнорировалось
-        Vector3 finalPos = origin.TransformPoint(muzzle.transform.localPosition);
-        Quaternion finalRot = origin.rotation * muzzle.transform.localRotation;
 
-        // Передаём origin как parent, чтобы мазл двигался за рукой!
-        VfxPool.Instance.Spawn(finalPos, finalRot, muzzle, origin);
+        // Просто берём позицию и ротацию руки — без смещений из корня префаба,
+        // т.к. там могут быть мусорные координаты из редактора.
+        // Scale VfxPool возьмёт сам из prefab.transform.lossyScale.
+        VfxPool.Instance.Spawn(origin.position, origin.rotation, muzzle);
     }
 
     private GameObject GetMuzzleEffect(ElementType element) => element switch
