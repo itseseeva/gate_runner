@@ -204,6 +204,22 @@ public class StatusController : MonoBehaviour
         ParticleSystem[] systems = effect.GetComponentsInChildren<ParticleSystem>(true);
         foreach (var ps in systems)
         {
+            var main = ps.main;
+            var vel = ps.velocityOverLifetime;
+            var force = ps.forceOverLifetime;
+            var inherit = ps.inheritVelocity;
+            var noise = ps.noise;
+            var shape = ps.shape;
+
+            Debug.Log($"[Aura Full] {ps.name}: " +
+                      $"SimSpace={main.simulationSpace}, " +
+                      $"EmitVelMode={main.emitterVelocityMode}, " +
+                      $"VelLife={vel.enabled}(x={vel.x.constant:F2},z={vel.z.constant:F2}), " +
+                      $"Force={force.enabled}(x={force.x.constant:F2},z={force.z.constant:F2}), " +
+                      $"Inherit={inherit.enabled}, " +
+                      $"Noise={noise.enabled}(str={noise.strength.constant:F2}), " +
+                      $"ShapePos={shape.position}", ps);
+
             ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             ps.randomSeed = (uint)Random.Range(1, 999999);
             float phase = Random.Range(0f, ps.main.duration);
