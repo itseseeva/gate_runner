@@ -16,6 +16,24 @@ public static class EnemyTargetRegistry
     // Счётчики: сколько врагов направлено на каждого юнита.
     private static readonly Dictionary<Unit, int> _claimCount = new();
 
+    // Счётчики: сколько врагов на каждой стороне атаки.
+    private static readonly Dictionary<AttackSide, int> _sideCount = new()
+    {
+        { AttackSide.Front,      0 },
+        { AttackSide.LeftFlank,  0 },
+        { AttackSide.RightFlank, 0 },
+    };
+
+    // Веса — сколько врагов ХОТИМ на каждой стороне (пропорция).
+    // Front=3, Left=1, Right=1 → 60/20/20 = стандарт жанра.
+    // TODO: вынести в GameSettingsSO для Remote Config
+    private static readonly Dictionary<AttackSide, int> _sideWeights = new()
+    {
+        { AttackSide.Front,      3 },
+        { AttackSide.LeftFlank,  1 },
+        { AttackSide.RightFlank, 1 },
+    };
+
     /// <summary>Регистрирует что ещё один враг идёт на этого юнита.</summary>
     public static void Register(Unit target)
     {
@@ -74,10 +92,60 @@ public static class EnemyTargetRegistry
         return best;
     }
 
+    /// <summary>
+    /// Регистрирует что ещё один враг идёт по этой стороне.
+    /// </summary>
+    public static void RegisterSide(AttackSide side)
+    {
+        _sideCount[side]++;
+    }
+
+    /// <summary>
+    /// Снимает регистрацию — враг больше не занимает эту сторону.
+    /// </summary>
+    public static void UnregisterSide(AttackSide side)
+    {
+        if (_sideCount[side] > 0)
+            _sideCount[side]--;
+    }
+
+    /// <summary>
+    /// Возвращает наименее занятую сторону с учётом весов.
+    /// Front имеет вес 3, фланги по 1 — значит на Front идёт втрое больше врагов.
+    /// Формула: занятость / вес. Кто меньше — тому и идти.
+    /// </summary>
+    public static AttackSide GetLeastCrowdedSide()
+    {
+        AttackSide best = AttackSide.Front;
+        float bestScore = float.MaxValue;
+
+        foreach (var kv in _sideCount)
+        {
+            AttackSide side = kv.Key;
+            int count = kv.Value;
+            int weight = _sideWeights[side];
+
+            // Занятость на единицу веса. Front с 6 врагами и весом 3 = 2.
+            // Left с 3 врагами и весом 1 = 3. Значит Front менее занят → туда.
+            float score = (float)count / weight;
+
+            if (score < bestScore)
+            {
+                bestScore = score;
+                best = side;
+            }
+        }
+
+        return best;
+    }
+
     /// <summary>Полный сброс — на случай перезапуска уровня.</summary>
     public static void Clear()
     {
         _claimCount.Clear();
+        _sideCount[AttackSide.Front]      = 0;
+        _sideCount[AttackSide.LeftFlank]  = 0;
+        _sideCount[AttackSide.RightFlank] = 0;
     }
 
     private static float SqrDistanceXZ(Vector3 a, Vector3 b)

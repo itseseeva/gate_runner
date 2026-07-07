@@ -12,7 +12,7 @@ public class EnemyApproachState : EnemyStateBase
     // Параметры хаоса — TODO вынести в EnemyDefinitionSO при балансировке
     private const float TrackingRange   = 8f;
     private const float TrackingSpeed   = 3f;
-    private const float SeparationRadius = 0.7f;
+    // SeparationRadius теперь берётся из _ctrl.SeparationRadius (SO)
     private const float SeparationForce  = 4f;
     private const float WobbleAmount    = 0.3f;
     private const float WobbleSpeed     = 2f;
@@ -151,18 +151,20 @@ public class EnemyApproachState : EnemyStateBase
         float separationDeltaZ = 0f;
         Vector3 myPos2 = _ctrl.transform.position;
 
+        float sepRadius = _ctrl.SeparationRadius;
+
         foreach (EnemyApproachState other in _allApproaching)
         {
             if (other == this) continue;
             Vector3 d = myPos2 - other._ctrl.transform.position;
             float distSqr = d.x * d.x + d.z * d.z;
-            float radSqr = SeparationRadius * SeparationRadius;
+            float radSqr = sepRadius * sepRadius;
             if (distSqr > radSqr) continue;
 
             float dist = Mathf.Sqrt(distSqr);
             if (dist < 0.01f) dist = 0.01f;
 
-            float strength = (1f - dist / SeparationRadius) * SeparationForce * speedMul * Time.deltaTime;
+            float strength = (1f - dist / sepRadius) * SeparationForce * speedMul * Time.deltaTime;
             separationDeltaX += (d.x / dist) * strength;
             separationDeltaZ += (d.z / dist) * strength;
         }

@@ -10,6 +10,8 @@ public class Enemy : MonoBehaviour
     public static event System.Action<Enemy> OnAnyEnemyDied;
     [Header("Данные врага")]
     [SerializeField] private EnemyDefinitionSO _data;
+    /// <summary>Данные врага — доступ для других компонентов (EnemyController берёт отсюда AttackRange и т.д.)</summary>
+    public EnemyDefinitionSO Data => _data;
 
     [Header("UI")]
     [SerializeField] private HealthBar _healthBar;

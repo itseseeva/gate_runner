@@ -4,21 +4,12 @@ using UnityEngine;
 /// Стейт-машина врага. Держит текущий стейт, обновляет каждый кадр,
 /// переключает при необходимости. Стейты сами решают когда переключаться —
 /// через _ctrl.SwitchTo().
+/// Балансные числа (AttackRange, Damage и т.д.) берутся из EnemyDefinitionSO.
 /// </summary>
 [RequireComponent(typeof(Enemy))]
 [RequireComponent(typeof(WorldScroller))]
 public class EnemyController : MonoBehaviour
 {
-    [Header("Боевые параметры")]
-    [Tooltip("Дистанция на которой враг встаёт и начинает бить")]
-    [SerializeField] private float _attackRange = 1.5f;
-
-    [Tooltip("Атак в секунду")]
-    [SerializeField] private float _attackSpeed = 1f;
-
-    [Tooltip("Урон за один удар")]
-    [SerializeField] private int _damage = 10;
-
     // Ссылки на компоненты — стейты берут их через свойства.
     private Enemy         _enemy;
     private Animator      _animator;
@@ -30,9 +21,14 @@ public class EnemyController : MonoBehaviour
     public Enemy         Enemy       => _enemy;
     public Animator      Animator    => _animator;
     public WorldScroller Scroller    => _scroller;
-    public float         AttackRange => _attackRange;
-    public float         AttackSpeed => _attackSpeed;
-    public int           Damage      => _damage;
+
+    // Балансные параметры — из EnemyDefinitionSO через Enemy.Data
+    public float AttackRange            => _enemy.Data != null ? _enemy.Data.AttackRange            : 0.7f;
+    public float AttackSpeed            => _enemy.Data != null ? _enemy.Data.AttackSpeed            : 1f;
+    public int   Damage                 => _enemy.Data != null ? _enemy.Data.AttackDamage           : 10;
+    public float SeparationRadius       => _enemy.Data != null ? _enemy.Data.SeparationRadius       : 0.5f;
+    public float SeparationTargetRadius => _enemy.Data != null ? _enemy.Data.SeparationTargetRadius : 0.4f;
+
     public EnemyStateBase CurrentState => _currentState;
 
     private void Awake()
@@ -43,11 +39,13 @@ public class EnemyController : MonoBehaviour
 
         if (_animator == null)
             Debug.LogWarning($"[EnemyController] {name}: нет Animator в дочках!", this);
+
+        if (_enemy.Data == null)
+            Debug.LogWarning($"[EnemyController] {name}: нет Data (EnemyDefinitionSO) в Enemy!", this);
     }
 
     private void OnEnable()
     {
-        // При каждом взятии из пула — начинаем с Approach.
         SwitchTo(new EnemyApproachState(this));
     }
 

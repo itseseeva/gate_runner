@@ -8,16 +8,37 @@ using UnityEngine;
 public class EnemyDefinitionSO : ScriptableObject
 {
     [Header("Основные параметры")]
-    public string EnemyName   = "Basic Enemy";
-    public int    MaxHP        = 50;
+    [SerializeField] private string _enemyName  = "Basic Enemy";
+    [SerializeField] private int    _maxHP       = 50;
 
     [Header("Атака")]
-    // TODO: заменить на Remote Config когда подключим LiveOps
-    public int   Damage        = 10;
-    public float AttackRange   = 1.5f;
-    public float AttackSpeed   = 1f;   // атак в секунду
+    [Tooltip("Дистанция на которой враг встаёт и начинает бить")]
+    [SerializeField] private float _attackRange  = 0.7f;
+
+    [Tooltip("Атак в секунду")]
+    [SerializeField] private float _attackSpeed  = 1f;
+
+    [Tooltip("Урон за один удар")]
+    [SerializeField] private int   _attackDamage = 10;
+
+    [Header("Формация (расстояния)")]
+    [Tooltip("На каком расстоянии враги отталкиваются друг от друга. Меньше = плотнее толпа.")]
+    [SerializeField] private float _separationRadius       = 0.5f;
+
+    [Tooltip("Минимальная дистанция до цели — насколько плотно враги прижимаются к герою")]
+    [SerializeField] private float _separationTargetRadius = 0.4f;
 
     [Header("Спавн")]
     [Tooltip("Высота (Y), на которой враг появляется. Подбери так, чтобы снаряд попадал в тело.")]
-    public float SpawnHeight   = 0.5f;
+    [SerializeField] private float _spawnHeight = 0.5f;
+
+    // Публичный доступ — компоненты читают отсюда
+    public string EnemyName             => _enemyName;
+    public int    MaxHP                 => _maxHP;
+    public float  AttackRange           => _attackRange;
+    public float  AttackSpeed           => _attackSpeed;
+    public int    AttackDamage          => _attackDamage;
+    public float  SeparationRadius      => _separationRadius;
+    public float  SeparationTargetRadius=> _separationTargetRadius;
+    public float  SpawnHeight           => _spawnHeight;
 }

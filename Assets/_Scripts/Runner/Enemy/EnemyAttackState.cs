@@ -7,9 +7,9 @@ using UnityEngine;
 /// </summary>
 public class EnemyAttackState : EnemyStateBase
 {
-    private Unit  _target;
-    private float _lastAttackTime;
-    private bool  _attackTriggered;
+    private Unit    _target;
+    private float   _lastAttackTime;
+    private bool    _hasHitOnce;
     private Vector3 _enterPos;
     private int     _tickCounter;
 
@@ -26,11 +26,14 @@ public class EnemyAttackState : EnemyStateBase
         if (_ctrl.Scroller != null)
             _ctrl.Scroller.enabled = false;
 
+        if (_ctrl.Animator != null)
+            _ctrl.Animator.SetBool("IsAttacking", true);
+
+        _hasHitOnce  = false;
         _enterPos    = _ctrl.transform.position;
         _tickCounter = 0;
 
         _lastAttackTime = Time.time - (1f / _ctrl.AttackSpeed) + 0.3f;
-        _attackTriggered = false;
 
         FaceTarget();
 
@@ -73,10 +76,16 @@ public class EnemyAttackState : EnemyStateBase
 
         // 2. Цель ушла из радиуса? Возврат в Approach.
         float distSqr = SqrDistanceXZ(_ctrl.transform.position, _target.transform.position);
-        float rangeSqr = _ctrl.AttackRange * _ctrl.AttackRange;
+        // Проверка "цель ушла" использует радиус ×2 — чтобы knockback от стрел не триггерил Chase.
+        float chaseRange = _ctrl.AttackRange * 2f;
+        float rangeSqr = chaseRange * chaseRange;
         if (distSqr > rangeSqr)
         {
-            _ctrl.SwitchTo(new EnemyApproachState(_ctrl));
+            // После первого удара — вечная погоня. До первого удара — обратно в Approach.
+            if (_hasHitOnce)
+                _ctrl.SwitchTo(new EnemyChaseState(_ctrl, _target));
+            else
+                _ctrl.SwitchTo(new EnemyApproachState(_ctrl));
             return;
         }
 
@@ -86,16 +95,25 @@ public class EnemyAttackState : EnemyStateBase
         // 4. Cooldown? Ждём.
         if (IsCoolingDown) return;
 
-        // 5. Триггерим анимацию удара. Урон нанесётся через Animation Event.
-        if (!_attackTriggered && _ctrl.Animator != null)
+        // DIAG
+        if (_target != null)
         {
-            _ctrl.Animator.SetTrigger("Attack");
-            _attackTriggered = true;
+            float distSqrDiag = SqrDistanceXZ(_ctrl.transform.position, _target.transform.position);
+            float rangeSqrDiag = _ctrl.AttackRange * _ctrl.AttackRange;
+            if (Time.frameCount % 30 == 0)
+            {
+                Debug.Log($"[AttackDiag] hasHit={_hasHitOnce}, distSqr={distSqrDiag:F2}, " +
+                          $"rangeSqr={rangeSqrDiag:F2}, inRange={distSqrDiag <= rangeSqrDiag}, " +
+                          $"targetX={_target.transform.position.x:F2}, myX={_ctrl.transform.position.x:F2}", _ctrl);
+            }
         }
     }
 
     public override void Exit()
     {
+        if (_ctrl.Animator != null)
+            _ctrl.Animator.SetBool("IsAttacking", false);
+
         Vector3 exitPos = _ctrl.transform.position;
         Vector3 totalDrift = exitPos - _enterPos;
         Debug.Log($"[EnemyAttack EXIT] {_ctrl.name}: totalDrift={totalDrift:F3}", _ctrl);
@@ -117,16 +135,21 @@ public class EnemyAttackState : EnemyStateBase
     {
         Debug.Log($"[EnemyAttack HIT] {_ctrl.name}: target={_target?.name}, " +
                   $"targetDead={_target?.IsDead}, damage={_ctrl.Damage}", _ctrl);
-
-        _attackTriggered = false;
         _lastAttackTime = Time.time;
 
-        if (_target == null || _target.IsDead) return;
+        if (_target == null || _target.IsDead)
+        {
+            Debug.Log($"[HIT EXIT] target null или dead — return без Chase", _ctrl);
+            return;
+        }
 
-        // Ещё раз проверяем — цель могла отойти между триггером и хитом.
         float distSqr = SqrDistanceXZ(_ctrl.transform.position, _target.transform.position);
         float rangeSqr = _ctrl.AttackRange * _ctrl.AttackRange;
-        if (distSqr > rangeSqr) return;
+        if (distSqr > rangeSqr)
+        {
+            Debug.Log($"[HIT EXIT] цель ушла из range — return без Chase", _ctrl);
+            return;
+        }
 
         bool killed = _target.TakeDamage(_ctrl.Damage);
         if (killed)
@@ -134,6 +157,10 @@ public class EnemyAttackState : EnemyStateBase
             SquadController squad = Object.FindAnyObjectByType<SquadController>();
             squad?.OnUnitDied(_target);
         }
+
+        _hasHitOnce = true;
+        Debug.Log($"[HIT → CHASE] переключаю в Chase, target={_target?.name}", _ctrl);
+        _ctrl.SwitchTo(new EnemyChaseState(_ctrl, _target));
     }
 
     private void FaceTarget()
