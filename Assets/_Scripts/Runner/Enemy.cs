@@ -3,7 +3,7 @@ using DG.Tweening;
 
 /// <summary>
 /// HP-компонент врага. Хранит здоровье и умирает при HP=0.
-/// Атака — отдельным компонентом (EnemyMeleeAttack).
+/// Атака — отдельным компонентом (EnemyKamikazeAttack).
 /// </summary>
 public class Enemy : MonoBehaviour
 {
@@ -117,11 +117,15 @@ public class Enemy : MonoBehaviour
     private void Die()
     {
         _isDead = true;
-
-
         OnAnyEnemyDied?.Invoke(this);
 
-        PlayDeathAnimation();
+        // Новая архитектура: смерть через FSM, если она есть.
+        // Fallback на старую DOTween-анимацию — для врагов без EnemyController.
+        EnemyController ctrl = GetComponent<EnemyController>();
+        if (ctrl != null)
+            ctrl.SwitchTo(new EnemyDeadState(ctrl));
+        else
+            PlayDeathAnimation();
     }
 
     /// <summary>

@@ -3800,13 +3800,13 @@ MonoBehaviour:
   - heroType: 3
     count: 0
   - heroType: 1
-    count: 1
+    count: 0
   - heroType: 0
-    count: 0
+    count: 5
   - heroType: 4
-    count: 0
+    count: 7
   - heroType: 2
-    count: 0
+    count: 2
 --- !u!114 &1554201389
 MonoBehaviour:
   m_ObjectHideFlags: 0

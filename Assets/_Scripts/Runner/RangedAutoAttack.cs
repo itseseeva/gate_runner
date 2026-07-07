@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class RangedAutoAttack : MonoBehaviour, IUnitAttack
@@ -23,6 +24,7 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
     private float _lastFireTime = -999f;
     private Unit _unit;
     private Animator _animator;
+    private readonly HashSet<ElementType> _muzzleDiagLogged = new();
 
     public float Range => _range;
     public bool IsReady => Time.time - _lastFireTime >= (1f / _attackSpeed);
@@ -87,10 +89,66 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
         if (muzzle == null || VfxPool.Instance == null) return;
         Transform origin = _muzzlePoint != null ? _muzzlePoint : transform;
 
-        // Просто берём позицию и ротацию руки — без смещений из корня префаба,
-        // т.к. там могут быть мусорные координаты из редактора.
-        // Scale VfxPool возьмёт сам из prefab.transform.lossyScale.
-        VfxPool.Instance.Spawn(origin.position, origin.rotation, muzzle);
+        // Логируем только первый выстрел каждой стихией — иначе консоль забьётся.
+        bool shouldLog = !_muzzleDiagLogged.Contains(element);
+        if (shouldLog) _muzzleDiagLogged.Add(element);
+
+        if (shouldLog)
+        {
+            Debug.Log($"═══════ [Muzzle Diag] {name} стихия={element} prefab={muzzle.name} ═══════", this);
+
+            // 1. Где сейчас рука в мире + куда смотрит герой.
+            Debug.Log($"[Muzzle Origin] handWorld={origin.position:F3}, handRotEuler={origin.rotation.eulerAngles:F1}, " +
+                      $"heroPos={transform.position:F3}, heroForward={transform.forward:F3}", this);
+
+            // 2. Что лежит внутри самого prefab-а — до спавна.
+            Debug.Log($"[Muzzle Prefab ROOT] {muzzle.name}: " +
+                      $"pos={muzzle.transform.position:F3}, " +
+                      $"localScale={muzzle.transform.localScale:F3}", muzzle);
+            foreach (Transform child in muzzle.transform)
+            {
+                Debug.Log($"[Muzzle Prefab CHILD] {child.name}: " +
+                          $"localPos={child.localPosition:F3}, " +
+                          $"localScale={child.localScale:F3}", muzzle);
+            }
+        }
+
+        // ── Спавн ──
+        GameObject spawned = VfxPool.Instance.Spawn(origin.position, origin.rotation, muzzle);
+        if (spawned == null)
+        {
+            if (shouldLog) Debug.LogWarning($"[Muzzle Diag] VfxPool вернул null для {muzzle.name}!", this);
+            return;
+        }
+
+        if (!shouldLog) return;
+
+        // 3. Где ФАКТИЧЕСКИ оказался эффект в сцене после спавна.
+        string parentName = spawned.transform.parent != null ? spawned.transform.parent.name : "NULL";
+        Debug.Log($"[Muzzle After Spawn ROOT] worldPos={spawned.transform.position:F3}, " +
+                  $"parent={parentName}", spawned);
+        foreach (Transform child in spawned.transform)
+        {
+            Debug.Log($"[Muzzle After Spawn CHILD] {child.name}: " +
+                      $"worldPos={child.position:F3}, " +
+                      $"localPos={child.localPosition:F3}", spawned);
+        }
+
+        // 4. Настройки всех ParticleSystem — главные подозреваемые в дрейфе.
+        ParticleSystem[] systems = spawned.GetComponentsInChildren<ParticleSystem>(true);
+        foreach (var ps in systems)
+        {
+            var main = ps.main;
+            var shape = ps.shape;
+            Debug.Log($"[Muzzle PS] {ps.name}: " +
+                      $"SimSpace={main.simulationSpace}, " +
+                      $"EmitVelMode={main.emitterVelocityMode}, " +
+                      $"StartSpeed={main.startSpeed.constant:F2}, " +
+                      $"ShapeEnabled={shape.enabled}, " +
+                      $"ShapePos={shape.position:F3}, " +
+                      $"psWorldPos={ps.transform.position:F3}, " +
+                      $"psLocalPos={ps.transform.localPosition:F3}", ps);
+        }
     }
 
     private GameObject GetMuzzleEffect(ElementType element) => element switch

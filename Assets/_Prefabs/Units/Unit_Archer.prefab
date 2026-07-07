@@ -108,7 +108,7 @@ MonoBehaviour:
   _muzzleEffectBase: {fileID: 0}
   _muzzleEffectFire: {fileID: 1262928022307954080, guid: 8b45d6ba72c9e07418aaec3dc7c30ba5, type: 3}
   _muzzleEffectIce: {fileID: 1227067792111776, guid: 2ddfaae7ebb0db041819356ee49bdfcc, type: 3}
-  _muzzleEffectLightning: {fileID: 2138911105067157007, guid: bf1aa5e22a8bc544d921d1a95d6cb0b9, type: 3}
+  _muzzleEffectLightning: {fileID: 2138911105067157007, guid: 1e0823d6ea4944241a026a8b042291c5, type: 3}
 --- !u!1001 &8445324085067921094
 PrefabInstance:
   m_ObjectHideFlags: 0

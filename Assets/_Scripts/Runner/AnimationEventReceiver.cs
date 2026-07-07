@@ -42,4 +42,27 @@ public class AnimationEventReceiver : MonoBehaviour
 
     public void FootL() { }
     public void FootR() { }
+
+    /// <summary>
+    /// Вызывается через Animation Event на анимации атаки врага.
+    /// Пробрасывает в текущий стейт EnemyController (если это AttackState).
+    /// </summary>
+    public void OnEnemyAttackHit()
+    {
+        Debug.Log($"[AnimEvent] OnEnemyAttackHit ВЫЗВАН на {name}", this);
+
+        EnemyController ctrl = GetComponentInParent<EnemyController>();
+        if (ctrl == null)
+        {
+            Debug.LogError($"[AnimEvent] {name}: НЕТ EnemyController в родителях!", this);
+            return;
+        }
+
+        Debug.Log($"[AnimEvent] Текущий стейт: {ctrl.CurrentState?.GetType().Name}", this);
+
+        if (ctrl.CurrentState is EnemyAttackState attackState)
+            attackState.OnAnimationHit();
+        else
+            Debug.LogWarning($"[AnimEvent] Стейт НЕ EnemyAttackState — урон не пойдёт", this);
+    }
 }

@@ -1,12 +1,12 @@
 using UnityEngine;
 
 /// <summary>
-/// Melee-враг. Едет к отряду через WorldScroller.
+/// Kamikaze-враг. Едет к отряду через WorldScroller.
 /// Когда близко — тянется к ближайшему юниту, но расходится с другими врагами.
 /// При касании юнита — наносит урон и погибает.
 /// </summary>
 [RequireComponent(typeof(WorldScroller))]
-public class EnemyMeleeAttack : MonoBehaviour
+public class EnemyKamikazeAttack : MonoBehaviour
 {
     [Header("Наведение на отряд")]
     // TODO: вынести в EnemyDefinitionSO при балансировке
@@ -35,7 +35,7 @@ public class EnemyMeleeAttack : MonoBehaviour
     private float _lazyUntil;         // до какого времени ленюсь
 
     // Статический список всех живых врагов — для быстрого поиска соседей
-    private static readonly System.Collections.Generic.List<EnemyMeleeAttack> _allEnemies = new();
+    private static readonly System.Collections.Generic.List<EnemyKamikazeAttack> _allEnemies = new();
 
     private void OnEnable()
     {
@@ -59,7 +59,7 @@ public class EnemyMeleeAttack : MonoBehaviour
         _squad = FindAnyObjectByType<SquadController>();
 
         if (_squad == null)
-            Debug.LogError("[EnemyMeleeAttack] SquadController не найден!", this);
+            Debug.LogError("[EnemyKamikazeAttack] SquadController не найден!", this);
     }
 
     private void Update()
@@ -123,7 +123,7 @@ public class EnemyMeleeAttack : MonoBehaviour
         float separationDeltaX = 0f;
         float separationDeltaZ = 0f;
 
-        foreach (EnemyMeleeAttack other in _allEnemies)
+        foreach (EnemyKamikazeAttack other in _allEnemies)
         {
             if (other == this || other._isDead) continue;
 
@@ -156,7 +156,7 @@ public class EnemyMeleeAttack : MonoBehaviour
         Unit unit = other.GetComponent<Unit>();
         if (unit == null) return;
 
-        Debug.Log($"[EnemyMelee] {gameObject.name} таранит {unit.gameObject.name}!", this);
+        Debug.Log($"[EnemyKamikaze] {gameObject.name} таранит {unit.gameObject.name}!", this);
 
         // Наносим урон
         bool killed = unit.TakeDamage(_damage);
@@ -172,7 +172,7 @@ public class EnemyMeleeAttack : MonoBehaviour
     private void Die()
     {
         _isDead = true;
-        Debug.Log($"[EnemyMelee] {gameObject.name} погиб после тарана!", this);
+        Debug.Log($"[EnemyKamikaze] {gameObject.name} погиб после тарана!", this);
 
         // Через Enemy.TakeDamage с большим уроном — чтобы сработало событие OnAnyEnemyDied
         Enemy enemy = GetComponent<Enemy>();

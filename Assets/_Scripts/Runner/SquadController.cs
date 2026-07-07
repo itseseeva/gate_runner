@@ -65,6 +65,19 @@ public class SquadController : MonoBehaviour
 
     public int UnitCount => CountAllUnits();
 
+    /// <summary>
+    /// Все юниты отряда — для чтения. Врагам нужно для распределения целей.
+    /// Возвращает актуальный список (перестраивается автоматически если dirty).
+    /// </summary>
+    public IReadOnlyList<Unit> AllUnits
+    {
+        get
+        {
+            if (_flatListDirty) RebuildFlatList();
+            return _allUnits;
+        }
+    }
+
     private const int MAX_T1_PER_CATEGORY = 15;  // TODO: перенести в RemoteConfig
     private const int MAX_TOTAL_MODELS    = 50;  // TODO: перенести в RemoteConfig
 
