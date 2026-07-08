@@ -21,6 +21,16 @@ public class EnemyDefinitionSO : ScriptableObject
     [Tooltip("Урон за один удар")]
     [SerializeField] private int   _attackDamage = 10;
 
+    [Header("Преследование")]
+    [Tooltip("На какой дистанции сзади отряда преследовать (метры)")]
+    [SerializeField, Range(0f, 20f)] private float _chaseDistance = 5f;
+
+    [Tooltip("Хаос по X — разброс позиций (метры)")]
+    [SerializeField, Range(0f, 3f)] private float _chaseChaosX = 1.5f;
+
+    [Tooltip("Скорость движения в фазе Chase (м/сек). Меньше чем TrackingSpeed — движение читаемо.")]
+    [SerializeField, Range(0.5f, 10f)] private float _chaseSpeed = 3f;
+
     [Header("Формация (расстояния)")]
     [Tooltip("На каком расстоянии враги отталкиваются друг от друга. Меньше = плотнее толпа.")]
     [SerializeField] private float _separationRadius       = 0.5f;
@@ -41,4 +51,7 @@ public class EnemyDefinitionSO : ScriptableObject
     public float  SeparationRadius      => _separationRadius;
     public float  SeparationTargetRadius=> _separationTargetRadius;
     public float  SpawnHeight           => _spawnHeight;
+    public float  ChaseDistance         => _chaseDistance;
+    public float  ChaseChaosX           => _chaseChaosX;
+    public float  ChaseSpeed            => _chaseSpeed;
 }

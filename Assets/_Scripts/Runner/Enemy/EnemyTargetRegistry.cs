@@ -42,6 +42,7 @@ public static class EnemyTargetRegistry
             _claimCount[target]++;
         else
             _claimCount[target] = 1;
+        Debug.Log($"[Registry] Register {target.name}: count={_claimCount[target]}");
     }
 
     /// <summary>Снимает регистрацию — враг больше не идёт к этому юниту.</summary>
@@ -53,6 +54,8 @@ public static class EnemyTargetRegistry
         _claimCount[target]--;
         if (_claimCount[target] <= 0)
             _claimCount.Remove(target);
+        int c = _claimCount.ContainsKey(target) ? _claimCount[target] : 0;
+        Debug.Log($"[Registry] Unregister {target.name}: count={c}");
     }
 
     /// <summary>
@@ -69,22 +72,20 @@ public static class EnemyTargetRegistry
 
         Unit best = null;
         int minClaims = int.MaxValue;
-        float minDistSqr = float.MaxValue;
 
+        // Тай-брейк по first-come: берём первого найденного с минимальными клеймами.
+        // Дистанцию не учитываем — гарантирует равномерное распределение по всем юнитам,
+        // включая задние ряды.
         foreach (Unit u in units)
         {
             if (u == null || u.IsDead) continue;
             if (!u.gameObject.activeSelf) continue;
 
             int claims = _claimCount.TryGetValue(u, out int c) ? c : 0;
-            float distSqr = SqrDistanceXZ(fromPosition, u.transform.position);
 
-            // Правило: меньше клеймов важнее чем меньше дистанция.
-            // При равных клеймах — ближайший.
-            if (claims < minClaims || (claims == minClaims && distSqr < minDistSqr))
+            if (claims < minClaims)
             {
                 minClaims = claims;
-                minDistSqr = distSqr;
                 best = u;
             }
         }

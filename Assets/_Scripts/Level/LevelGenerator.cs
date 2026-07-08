@@ -110,7 +110,7 @@ public class LevelGenerator : MonoBehaviour
     {
         if (_leader == null) return;
 
-        float threshold = _leader.position.z - 0.5f;
+        float threshold = _leader.position.z - 20f;
         Enemy[] enemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
 
         foreach (Enemy e in enemies)
