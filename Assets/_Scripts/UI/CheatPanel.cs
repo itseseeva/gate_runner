@@ -15,10 +15,15 @@ public class CheatPanel : MonoBehaviour
     [SerializeField] private Button _slowMoButton;
     [SerializeField] private TextMeshProUGUI _slowMoLabel;
 
+    [Header("Скорость отряда")]
+    [SerializeField] private Button _slowSquadButton;
+    [SerializeField] private TextMeshProUGUI _slowSquadLabel;
+
     // TODO: вынести в RemoteConfig
     [SerializeField] private float _slowMoScale = 0.2f;
 
     private bool _isSlowMo = false;
+    private bool _isSlowSquad = false;
 
     private void Start()
     {
@@ -31,7 +36,11 @@ public class CheatPanel : MonoBehaviour
         if (_slowMoButton != null)
             _slowMoButton.onClick.AddListener(ToggleSlowMo);
 
+        if (_slowSquadButton != null)
+            _slowSquadButton.onClick.AddListener(ToggleSlowSquad);
+
         UpdateSlowMoLabel();
+        UpdateSlowSquadLabel();
     }
 
     private void ForceVictory()
@@ -66,9 +75,24 @@ public class CheatPanel : MonoBehaviour
             _slowMoLabel.text = _isSlowMo ? "SLOW: ON" : "SLOW: OFF";
     }
 
+    private void ToggleSlowSquad()
+    {
+        _isSlowSquad = !_isSlowSquad;
+        WorldScroller.WorldSpeed = _isSlowSquad ? 2f : 7f;
+        Debug.Log($"[Cheat] WorldSpeed={WorldScroller.WorldSpeed}", this);
+        UpdateSlowSquadLabel();
+    }
+
+    private void UpdateSlowSquadLabel()
+    {
+        if (_slowSquadLabel != null)
+            _slowSquadLabel.text = _isSlowSquad ? "SPEED: SLOW" : "SPEED: NORM";
+    }
+
     private void OnDestroy()
     {
         // Сбрасываем timeScale при уничтожении панели
         Time.timeScale = 1f;
+        WorldScroller.WorldSpeed = 7f;
     }
 }

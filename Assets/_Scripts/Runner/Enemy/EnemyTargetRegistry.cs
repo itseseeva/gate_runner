@@ -72,25 +72,37 @@ public static class EnemyTargetRegistry
 
         Unit best = null;
         int minClaims = int.MaxValue;
+        float minDistSqr = float.MaxValue;
 
-        // Тай-брейк по first-come: берём первого найденного с минимальными клеймами.
-        // Дистанцию не учитываем — гарантирует равномерное распределение по всем юнитам,
-        // включая задние ряды.
+        // Двухступенчатый выбор:
+        // 1. Юнит с МЕНЬШИМ количеством клеймов имеет приоритет всегда.
+        // 2. При равных клеймах — выбираем БЛИЖАЙШЕГО (тае-брейк по дистанции).
+        // Это гарантирует что задние ряды заполнятся (пока клеймов 0, все юниты равны),
+        // и врaг не бежит через всю сцену к дальнему свободному.
         foreach (Unit u in units)
         {
             if (u == null || u.IsDead) continue;
             if (!u.gameObject.activeSelf) continue;
 
             int claims = _claimCount.TryGetValue(u, out int c) ? c : 0;
+            float distSqr = SqrDistanceXZ(fromPosition, u.transform.position);
 
-            if (claims < minClaims)
+            // Строгий приоритет по клеймам, при равенстве — по дистанции.
+            if (claims < minClaims || (claims == minClaims && distSqr < minDistSqr))
             {
                 minClaims = claims;
+                minDistSqr = distSqr;
                 best = u;
             }
         }
 
         return best;
+    }
+
+    public static int GetClaimCount(Unit target)
+    {
+        if (target == null) return 0;
+        return _claimCount.TryGetValue(target, out int c) ? c : 0;
     }
 
     /// <summary>
