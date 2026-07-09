@@ -23,6 +23,7 @@ public class EnemyMeleeCombat : MonoBehaviour
     private const float LazyDuration    = 0.5f;
     private const float LazyCheckPeriod       = 1f;
     private const float RotationSpeed         = 8f;   // скорость поворота лицом к цели
+    private const float MinEnemyGap           = 0.35f; // минимальная дистанция между центрами врагов
 
     // Все живые враги — для взаимного отталкивания.
     private static readonly List<EnemyMeleeCombat> _all = new();
@@ -41,9 +42,11 @@ public class EnemyMeleeCombat : MonoBehaviour
     private float _lazyUntil;
     private float _nextLazyCheck;
     private float _chaseOffsetX;      // личный хаос по X
+    private float _chaseOffsetZ;      // разброс В ГЛУБИНУ за линией
     private bool  _isChasing;         // после удара — в режиме преследования
     private float _chaseMinUntil;
     private Transform _leader;         // отряд-якорь
+    private float _prevLeaderX;
 
     // Балансные числа из SO через Enemy.Data
     private float AttackRange      => _enemy.Data != null ? _enemy.Data.AttackRange      : 0.7f;
@@ -65,7 +68,9 @@ public class EnemyMeleeCombat : MonoBehaviour
         _nextLazyCheck       = 0f;
         _lazyUntil           = 0f;
         _isAttackMode        = false;
-        _chaseOffsetX        = Random.Range(-1f, 1f); // единичный, потом умножим на _enemy.Data.ChaseChaosX
+        // Случайная точка внутри зоны толпы (овал за отрядом).
+        _chaseOffsetX = Random.Range(-2.5f, 2.5f);  // ширина овала по X
+        _chaseOffsetZ = Random.Range(-0.5f, 0.5f);
         _isChasing           = false;
 
         if (_scroller != null) _scroller.enabled = true;
@@ -88,11 +93,11 @@ public class EnemyMeleeCombat : MonoBehaviour
     {
         _squad = FindAnyObjectByType<SquadController>();
         if (_squad != null) _leader = _squad.transform;
+        if (_leader != null) _prevLeaderX = _leader.position.x;
     }
 
     private void Update()
     {
-        Debug.Log($"[UPDATE START] {name}: isChasing={_isChasing}, rotY={transform.rotation.eulerAngles.y:F1}", this);
         if (Time.frameCount % 30 == 0)
             Debug.Log($"[Update] {name}: isChasing={_isChasing}, target={_target?.name}", this);
 
@@ -127,6 +132,14 @@ public class EnemyMeleeCombat : MonoBehaviour
             SetAttackMode(false);
             UpdateMovement();
         }
+
+        ResolveOverlap();
+    }
+
+    private void LateUpdate()
+    {
+        if (_isChasing)
+            Debug.Log($"[ROT LATE] {name}: rotY={transform.rotation.eulerAngles.y:F0}");
     }
 
     /// <summary>
@@ -162,16 +175,43 @@ public class EnemyMeleeCombat : MonoBehaviour
             Vector3 initDir = chasePos - transform.position;
             initDir.y = 0;
             if (initDir.sqrMagnitude > 0.0001f)
-                transform.rotation = Quaternion.LookRotation(-initDir);
+                transform.rotation = Quaternion.LookRotation(initDir);
         }
-
-        Debug.Log($"[HIT AFTER SET] {name}: setRotY={transform.rotation.eulerAngles.y:F1}", this);
-        Debug.Log($"[HIT] {name}: _isChasing set to TRUE, target={_target?.name}", this);
-        Debug.Log($"[HIT→CHASE ROT] {name}: newRotY={transform.rotation.eulerAngles.y:F1}, " +
-                  $"myPos={transform.position:F3}, targetPos={_target?.transform.position:F3}", this);
     }
 
     // ── Приватная логика ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Жёсткий предел пересечения — если враг ближе MinEnemyGap к другому,
+    /// выталкивает обоих на минимальную дистанцию по XZ.
+    /// Работает во ВСЕХ фазах (атака/чейз/движение) — единая точка ответственности.
+    /// </summary>
+    private void ResolveOverlap()
+    {
+        Vector3 myPos = transform.position;
+        float minGapSqr = MinEnemyGap * MinEnemyGap;
+
+        foreach (EnemyMeleeCombat other in _all)
+        {
+            if (other == this) continue;
+
+            Vector3 d = myPos - other.transform.position;
+            d.y = 0;
+            float distSqr = d.x * d.x + d.z * d.z;
+
+            if (distSqr >= minGapSqr || distSqr < 0.0001f) continue;
+
+            float dist = Mathf.Sqrt(distSqr);
+            float overlap = MinEnemyGap - dist;
+
+            // Выталкиваем себя на половину пересечения (второй враг вытолкнет себя сам).
+            Vector3 push = (d / dist) * (overlap * 0.5f);
+            myPos.x += push.x;
+            myPos.z += push.z;
+        }
+
+        transform.position = myPos;
+    }
 
     private void UpdateTarget()
     {
@@ -307,22 +347,17 @@ public class EnemyMeleeCombat : MonoBehaviour
         float chaseDist = _enemy.Data != null ? _enemy.Data.ChaseDistance : 5f;
         float chaosX    = _enemy.Data != null ? _enemy.Data.ChaseChaosX   : 1.5f;
 
-        // Отходим за СВОЮ цель на chaseDist — тогда враг стоит рядом с юнитом
-        // которого атаковал, а не за общим "лидером отряда".
         Vector3 basePos = _target != null ? _target.transform.position : _leader.position;
+
         Vector3 targetPos = new Vector3(
-            basePos.x + _chaseOffsetX * chaosX,
+            basePos.x + _chaseOffsetX,
             transform.position.y,
-            basePos.z - chaseDist
+            basePos.z - chaseDist + _chaseOffsetZ
         );
 
         Vector3 dir = targetPos - transform.position;
         dir.y = 0;
         float dist = dir.magnitude;
-
-        if (Time.frameCount % 30 == 0)
-            Debug.Log($"[Chase] {name}: chaseDist={chaseDist}, targetPos={targetPos:F2}, " +
-                      $"myPos={transform.position:F2}, dist={dist:F2}, leader={_leader.position:F2}", this);
 
         if (dist > 0.05f)
         {
@@ -332,13 +367,19 @@ public class EnemyMeleeCombat : MonoBehaviour
             transform.position += move;
         }
 
-        // Крутимся только пока движемся. Если стоим на точке — сохраняем поворот
-        // от момента прибытия. Иначе Slerp начинает вертеть врaга в jitter-шум позиции.
-        if (dist > 0.05f && dir.sqrMagnitude > 0.0001f)
-        {
-            Quaternion targetRot = Quaternion.LookRotation(-dir);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, RotationSpeed * Time.deltaTime);
-        }
+        // Определяем свайп — движется ли отряд по X.
+        float leaderDeltaX = _leader.position.x - _prevLeaderX;
+        _prevLeaderX = _leader.position.x;
+
+        // Наклон от свайпа: вправо (+X) → +40°, влево → -40°. Нет свайпа → 0.
+        const float maxTurn = 40f;
+        float turnAngle = 0f;
+        if (leaderDeltaX > 0.001f)  turnAngle =  maxTurn;
+        if (leaderDeltaX < -0.001f) turnAngle = -maxTurn;
+
+        // База 190° (прямо вперёд) + наклон. Плавно возвращается к 190 когда свайп кончился.
+        Quaternion targetRot = Quaternion.Euler(0f, 190f + turnAngle, 0f);
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, RotationSpeed * Time.deltaTime);
 
         // Минимальное время в Chase — не выходим раньше 1.5 сек после удара.
         if (Time.time < _chaseMinUntil) return;
@@ -351,9 +392,14 @@ public class EnemyMeleeCombat : MonoBehaviour
             if (toTargetSqr <= rangeSqr) _isChasing = false;
         }
 
-        if (Time.frameCount % 15 == 0)
-            Debug.Log($"[CHASE MOVE] {name}: rotY={transform.rotation.eulerAngles.y:F1}, " +
-                      $"dir={dir:F3}, dist={dist:F2}, moving={dist > 0.05f}", this);
+        Debug.Log($"[ROT CHECK] {name}: rotY={transform.rotation.eulerAngles.y:F0}, leaderPos={_leader.position:F1}, myPos={transform.position:F1}");
+
+        if (Time.frameCount % 20 == 0)
+        {
+            float moveAngle = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
+            Debug.Log($"[CHASE ROT] {name}: rotY={transform.rotation.eulerAngles.y:F0}, " +
+                      $"moveDir_angle={moveAngle:F0}, dist={dist:F2}, isChasing={_isChasing}", this);
+        }
     }
 
     private static float SqrDistanceXZ(Vector3 a, Vector3 b)

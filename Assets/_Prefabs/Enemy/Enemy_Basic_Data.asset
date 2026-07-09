@@ -17,8 +17,9 @@ MonoBehaviour:
   _attackRange: 0.7
   _attackSpeed: 1
   _attackDamage: 10
-  _backoffSpeed: 1.5
-  _backoffDuration: 0.8
+  _chaseDistance: 2
+  _chaseChaosX: 1.5
+  _chaseSpeed: 3
   _separationRadius: 0.5
-  _separationTargetRadius: 0.4
+  _separationTargetRadius: 0.2
   _spawnHeight: -0.045
