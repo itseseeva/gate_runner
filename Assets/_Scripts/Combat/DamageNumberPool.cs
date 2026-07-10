@@ -3,14 +3,23 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Пул цифр урона. Один на сцену.
-/// При запросе берёт свободный объект, при окончании — возвращает в пул.
+/// Настройки спавна (offset, высота) — здесь, а не в самой цифре.
+/// Так все цифры используют одни параметры без правки префаба каждой.
 /// </summary>
 public class DamageNumberPool : MonoBehaviour
 {
     public static DamageNumberPool Instance { get; private set; }
 
+    [Header("Пул")]
     [SerializeField] private DamageNumber _prefab;
     [SerializeField] private int _preloadCount = 20;
+
+    [Header("Смещение спавна от цели")]
+    [Tooltip("Насколько цифра сдвигается вбок от центра модели (метры)")]
+    [SerializeField] private float _sideOffset = 0.45f;
+
+    [Tooltip("Высота спавна над позицией цели (метры)")]
+    [SerializeField] private float _spawnHeight = 0.6f;
 
     private readonly Queue<DamageNumber> _pool = new();
 
@@ -30,8 +39,8 @@ public class DamageNumberPool : MonoBehaviour
         }
     }
 
-    /// <summary>Показывает цифру урона в указанной позиции.</summary>
-    public void Spawn(int damage, Vector3 worldPosition, bool isCritical = false)
+    /// <summary>Показывает цифру, прикреплённую к цели (двигается вместе с ней).</summary>
+    public void Spawn(int damage, Transform followTarget, DamageNumberType type = DamageNumberType.Normal)
     {
         DamageNumber dn;
         if (_pool.Count > 0)
@@ -44,7 +53,7 @@ public class DamageNumberPool : MonoBehaviour
         }
 
         dn.gameObject.SetActive(true);
-        dn.Show(damage, worldPosition, isCritical);
+        dn.Show(damage, followTarget, type, _sideOffset, _spawnHeight);
     }
 
     public void Return(DamageNumber dn)

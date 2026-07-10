@@ -20,7 +20,15 @@ public class CheatPanel : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _slowSquadLabel;
 
     // TODO: вынести в RemoteConfig
-    [SerializeField] private float _slowMoScale = 0.2f;
+    [Tooltip("Множитель Time.timeScale в режиме SlowMo. 0.1 = 10× медленнее, 0.05 = 20×")]
+    [Range(0.01f, 1f)]
+    [SerializeField] private float _slowMoScale = 0.1f;
+
+    [Tooltip("Скорость мира в режиме SLOW (м/с). Меньше = медленнее.")]
+    [SerializeField] private float _slowSquadSpeed = 1f;
+
+    [Tooltip("Скорость мира в обычном режиме (м/с). Дефолт 3.5.")]
+    [SerializeField] private float _normalSquadSpeed = 3.5f;
 
     private bool _isSlowMo = false;
     private bool _isSlowSquad = false;
@@ -78,7 +86,7 @@ public class CheatPanel : MonoBehaviour
     private void ToggleSlowSquad()
     {
         _isSlowSquad = !_isSlowSquad;
-        WorldScroller.WorldSpeed = _isSlowSquad ? 2f : 7f;
+        WorldScroller.WorldSpeed = _isSlowSquad ? _slowSquadSpeed : _normalSquadSpeed;
         Debug.Log($"[Cheat] WorldSpeed={WorldScroller.WorldSpeed}", this);
         UpdateSlowSquadLabel();
     }
@@ -93,6 +101,6 @@ public class CheatPanel : MonoBehaviour
     {
         // Сбрасываем timeScale при уничтожении панели
         Time.timeScale = 1f;
-        WorldScroller.WorldSpeed = 7f;
+        WorldScroller.WorldSpeed = _normalSquadSpeed;
     }
 }

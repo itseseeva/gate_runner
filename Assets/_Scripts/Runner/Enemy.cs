@@ -102,24 +102,22 @@ public class Enemy : MonoBehaviour
             _healthBar.SetHP(_currentHP, _maxHP);
     }
 
-    /// <summary>Получает урон. showDamageNumber=false для системных смертей (таран, cleanup).</summary>
-    public bool TakeDamage(int amount, bool showDamageNumber = true)
+    /// <summary>
+    /// Получает урон. showDamageNumber=false для системных смертей (таран, cleanup).
+    /// numberType задаёт стиль цифры (Normal / Burn / Critical / …).
+    /// </summary>
+    public bool TakeDamage(int amount, bool showDamageNumber = true, DamageNumberType numberType = DamageNumberType.Normal)
     {
         if (_isDead) return false;
 
         _currentHP -= amount;
-        
-        // Спавн цифры урона над врагом (только для реального урона от юнитов)
+
         if (showDamageNumber && DamageNumberPool.Instance != null)
         {
-            // Спавним прямо В модели (на её высоте), цифра потом взлетит вверх
-            Vector3 spawnPos = transform.position + Vector3.up * 0.3f;
-            DamageNumberPool.Instance.Spawn(amount, spawnPos, false);
+            // Передаём наш transform — цифра будет следовать за нами
+            DamageNumberPool.Instance.Spawn(amount, transform, numberType);
         }
 
-
-
-        // Обновляем бар
         if (_healthBar != null)
             _healthBar.SetHP(_currentHP, _maxHP);
 

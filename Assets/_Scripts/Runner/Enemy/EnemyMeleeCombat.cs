@@ -15,7 +15,9 @@ public class EnemyMeleeCombat : MonoBehaviour
     // Константы движения — "чувство" врага, не баланс.
     // TODO: вынести в EnemyDefinitionSO при добавлении разных типов врагов.
     private const float TrackingRange   = 8f;
-    private const float TrackingSpeed   = 7f;
+    // TODO: вынести в EnemyDefinitionSO при добавлении разных типов врагов.
+    // 3.5 (было 7) — согласовано со снижением WorldSpeed.
+    private const float TrackingSpeed   = 3.5f;
     private const float SeparationForce = 4f;
     private const float WobbleAmount    = 0.3f;
     private const float WobbleSpeed     = 2f;
@@ -124,22 +126,21 @@ public class EnemyMeleeCombat : MonoBehaviour
         {
             UpdateChase();
         }
-        else if (distSqr <= rangeSqr)
+        else if (distSqr <= 0.45f * 0.45f)
         {
-            // Мы в зоне AttackRange (например 0.7). Сбрасываем оффсет, чтобы магнититься прямо к капсуле.
-            _targetOffset = Vector3.zero;
-
-            // Начинаем саму анимацию удара ТОЛЬКО когда подошли вплотную (0.45),
-            // чтобы враг не бил воздух, пока скользит к герою.
-            bool isCloseEnoughToSwing = distSqr <= 0.45f * 0.45f;
-            
-            SetAttackMode(isCloseEnoughToSwing);
+            // Подошли вплотную — останавливаемся и бьём из текущей точки. Никаких рывков.
+            SetAttackMode(true);
             FaceTarget();
-            MagnetToTarget();
         }
         else
         {
-            // Далеко — движемся к цели через мир и tracking.
+            // Если вошли в широкую зону атаки, сбрасываем оффсет, чтобы точно добежать до цели
+            if (distSqr <= rangeSqr)
+            {
+                _targetOffset = Vector3.zero;
+            }
+            
+            // Продолжаем честное движение через UpdateMovement, пока не подойдем на 0.45
             SetAttackMode(false);
             UpdateMovement();
         }
@@ -378,6 +379,18 @@ public class EnemyMeleeCombat : MonoBehaviour
                       $"speedMul={speedMul:F2}, personalMul={personalMul:F2}, lazy={Time.time < _lazyUntil}", this);
         }
 
+        // ── ДИАГНОСТИКА ──
+        if (Time.frameCount % 10 == 0)
+        {
+            float appliedSpeed = new Vector2(trackingDeltaX, trackingDeltaZ).magnitude / Time.deltaTime;
+            Debug.Log($"[SPEED-APPROACH] {name}: " +
+                      $"actualSpeed={appliedSpeed:F2} m/s, " +
+                      $"personalMul={personalMul:F2}, " +
+                      $"speedMul={speedMul:F2}, " +
+                      $"TrackingSpeed={TrackingSpeed}, " +
+                      $"lazyClose={isLazyClose && Time.time < _lazyUntil}", this);
+        }
+
         transform.position = pos;
     }
 
@@ -392,26 +405,7 @@ public class EnemyMeleeCombat : MonoBehaviour
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, RotationSpeed * Time.deltaTime);
     }
 
-    private void MagnetToTarget()
-    {
-        if (_target == null) return;
-        
-        // Магнитимся К СЛОТУ, а не к центру героя! Слот уже находится на идеальной дистанции.
-        Vector3 targetPos = GetTargetPoint(); 
-        Vector3 myPos = transform.position;
-        
-        Vector3 dir = targetPos - myPos;
-        dir.y = 0;
-        float currentDist = dir.magnitude;
-        
-        if (currentDist > 0.05f)
-        {
-            float magnetSpeed = TrackingSpeed * 1.5f; 
-            Vector3 move = dir.normalized * (magnetSpeed * Time.deltaTime);
-            if (move.magnitude > currentDist) move = dir.normalized * currentDist;
-            transform.position += move;
-        }
-    }
+
 
     private Vector3 GetTargetPoint()
     {
@@ -466,6 +460,14 @@ public class EnemyMeleeCombat : MonoBehaviour
             float chaseSpeed = _enemy.Data != null ? _enemy.Data.ChaseSpeed : 3f;
             Vector3 move = dir.normalized * chaseSpeed * Time.deltaTime;
             if (move.magnitude > dist) move = dir;
+
+            if (Time.frameCount % 10 == 0)
+            {
+                Debug.Log($"[SPEED-CHASE] {name}: " +
+                          $"chaseSpeed={chaseSpeed:F2} m/s, " +
+                          $"dist={dist:F2}", this);
+            }
+
             transform.position += move;
         }
 

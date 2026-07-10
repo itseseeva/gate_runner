@@ -24,10 +24,10 @@ public static class DamageCalculator
     public const float STATUS_DURATION = 3f;
 
     /// <summary>Урон Burning за тик (% от Max HP врага).</summary>
-    public const float BURN_DAMAGE_PERCENT = 0.03f;  // 3% от Max HP
+    public const float BURN_DAMAGE_PERCENT = 0.0075f;  // 0.75% × 4 тика/сек × 3 сек = 9% (баланс сохранён)
 
     /// <summary>Сколько раз в секунду тикает Burning.</summary>
-    public const float BURN_TICKS_PER_SECOND = 1f;
+    public const float BURN_TICKS_PER_SECOND = 4f;
 
     /// <summary>Множитель скорости Frozen-врага (1.0 = нормально, 0.2 = в 5 раз медленнее).</summary>
     public const float FROZEN_SPEED_MULTIPLIER = 0.2f;
