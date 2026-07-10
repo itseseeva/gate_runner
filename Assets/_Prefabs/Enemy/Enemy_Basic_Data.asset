@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Enemy_Basic_Data
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinitionSO
   _enemyName: Basic Enemy
-  _maxHP: 10000
+  _maxHP: 30
   _attackRange: 0.7
   _attackSpeed: 1
-  _attackDamage: 10
+  _attackDamage: 15
   _chaseDistance: 2
   _chaseChaosX: 1.5
   _chaseSpeed: 3

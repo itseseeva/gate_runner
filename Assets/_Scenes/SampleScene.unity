@@ -159,7 +159,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 19.2961, y: -119.6191}
+  m_AnchoredPosition: {x: 19.296143, y: -119.61914}
   m_SizeDelta: {x: 198.5922, y: 159.2383}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &8230336
@@ -4074,13 +4074,13 @@ MonoBehaviour:
   - heroType: 3
     count: 0
   - heroType: 1
-    count: 7
+    count: 2
   - heroType: 0
     count: 0
   - heroType: 4
     count: 0
   - heroType: 2
-    count: 8
+    count: 2
 --- !u!114 &1554201389
 MonoBehaviour:
   m_ObjectHideFlags: 0

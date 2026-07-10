@@ -52,10 +52,13 @@ public class Unit : MonoBehaviour
     private GameObject _lightningAura;
 
     private Vector3 _initialScale;
+    private int _prefabMaxHP = 0;
 
     private void Awake()
     {
         _initialScale = transform.localScale;
+        // Сохраняем значение из префаба. Если оно > 0, оно будет в приоритете над SO.
+        _prefabMaxHP = _currentHP;
     }
 
     private void OnEnable()
@@ -211,12 +214,14 @@ public class Unit : MonoBehaviour
         _data = data;
         _tier = tier;
         _powerMultiplier = multiplier;
-        _currentHP = data.MaxHP * multiplier;
+        
+        int baseMaxHP = GetBaseMaxHP();
+        _currentHP = baseMaxHP * multiplier;
         _lastDamageTime = -999f;
         _regenAccumulator = 0f;
 
         if (_healthBar != null)
-            _healthBar.SetHP(_currentHP, data.MaxHP * multiplier);
+            _healthBar.SetHP(_currentHP, baseMaxHP * multiplier);
 
         // Динамически вешаем AnimationEventReceiver на всех детей с Animator, если его там нет.
         // Делаем это в Initialize (сразу после Instantiate), чтобы не вызывать ошибок сериализации инспектора в Awake().
@@ -247,7 +252,7 @@ public class Unit : MonoBehaviour
         _currentHP -= amount;
         _lastDamageTime = Time.time;
 
-        int maxHP = _data.MaxHP * _powerMultiplier;
+        int maxHP = GetBaseMaxHP() * _powerMultiplier;
 
         if (_healthBar != null)
             _healthBar.SetHP(_currentHP, maxHP);
@@ -327,10 +332,10 @@ public class Unit : MonoBehaviour
         if (GameStateManager.Instance != null && !GameStateManager.Instance.IsPlaying)
             return;
 
-        if (_data == null) return;
+        if (_data == null && _prefabMaxHP <= 0) return;
 
         bool canRegen = (Time.time - _lastDamageTime >= _regenDelay);
-        int maxHP = _data.MaxHP * _powerMultiplier;
+        int maxHP = GetBaseMaxHP() * _powerMultiplier;
         bool needsRegen = _currentHP < maxHP;
 
         // Лог когда регенерация только начинается
@@ -400,4 +405,12 @@ public class Unit : MonoBehaviour
     public void FootL() { }
     public void FootR() { }
 
+    private int GetBaseMaxHP()
+    {
+        // Если в префабе (или на сцене) задано HP > 0, оно имеет приоритет над ScriptableObject
+        if (_prefabMaxHP > 0)
+            return _prefabMaxHP;
+            
+        return _data != null ? _data.MaxHP : 50;
+    }
 }

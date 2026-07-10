@@ -15,16 +15,27 @@ public class Projectile : MonoBehaviour
     [Header("AoE — урон по площади")]
     [Tooltip("Радиус урона по площади. Не связан с визуалом эффекта.")]
     [SerializeField] private float _aoeRadius = 2f;
+    [Tooltip("Сколько максимум ДОПОЛНИТЕЛЬНЫХ врагов зацепит AoE (работает только для стихийных).")]
+    [SerializeField] private int _maxAoeTargets = 3;
 
     [Header("Эффекты снаряда (на каждом префабе свои)")]
     [Tooltip("Взрыв при попадании — спавнится в точке удара.")]
     [SerializeField] private GameObject _hitEffect;
+
+    [Header("Настройки попадания (Best Practice)")]
+    [Tooltip("Радиус самого снаряда (чтобы не пролетал сквозь врагов).")]
+    [SerializeField] private float _hitboxRadius = 0.3f;
+    [Tooltip("Маска слоев, по которым может попасть снаряд (обычно слои врагов).")]
+    [SerializeField] private LayerMask _enemyLayerMask = ~0;
 
     private int         _damage;
     private float       _distanceTravelled;
     private bool        _active;
     private ElementType _element = ElementType.None;
     private ParticleSystem[] _particles; // трейлы/эффекты самого снаряда
+
+    // Буфер для поиска врагов без выделения памяти (GC Alloc = 0)
+    private static Collider[] _aoeHitResults = new Collider[32];
 
     /// <summary>Стихия снаряда — нужна пулу, чтобы вернуть в правильную очередь.</summary>
     public ElementType Element => _element;
@@ -64,6 +75,22 @@ public class Projectile : MonoBehaviour
         if (!_active) return;
 
         float step = _speed * Time.deltaTime;
+
+        // Best Practice: Continuous Collision Detection через SphereCast.
+        // Запускаем сферу из текущей позиции в следующую, чтобы снаряд не пролетал сквозь врагов при большой скорости.
+        if (Physics.SphereCast(transform.position, _hitboxRadius, Vector3.forward, out RaycastHit hit, step, _enemyLayerMask, QueryTriggerInteraction.Collide))
+        {
+            Enemy enemy = hit.collider.GetComponent<Enemy>();
+            if (enemy != null)
+            {
+                // Перемещаемся в точку удара для точного спавна эффектов
+                transform.position = transform.position + Vector3.forward * hit.distance;
+                
+                HitTarget(enemy, transform.position);
+                return;
+            }
+        }
+
         transform.position += Vector3.forward * step;
         _distanceTravelled += step;
 
@@ -71,42 +98,67 @@ public class Projectile : MonoBehaviour
             ReturnToPool();
     }
 
-    private void OnTriggerEnter(Collider other)
+    private void HitTarget(Enemy directTarget, Vector3 hitPoint)
     {
-        if (!_active) return;
+        // 1. Гарантированный урон тому, в кого прямо попали
+        ApplyDamageToEnemy(directTarget);
 
-        // Попали хотя бы в одного врага?
-        Enemy firstEnemy = other.GetComponent<Enemy>();
-        if (firstEnemy == null) return;
-
-        // Точка попадания — центр зоны урона
-        Vector3 hitPoint = transform.position;
-
-        // Находим всех врагов в радиусе AoE
-        Collider[] hits = Physics.OverlapSphere(hitPoint, _aoeRadius, ~0, QueryTriggerInteraction.Collide);
-        foreach (Collider col in hits)
+        // 2. Урон по площади (AoE) — ТОЛЬКО для стихийных снарядов (не базовых)
+        if (_element != ElementType.None && _aoeRadius > 0f)
         {
-            Enemy enemy = col.GetComponent<Enemy>();
-            if (enemy == null) continue;
-
-            // Урон каждому врагу в радиусе (со стихией и статусами)
-            StatusController status = enemy.GetComponent<StatusController>();
-            int finalDamage = DamageCalculator.CalculateFinalDamage(_damage, _element, status);
-
-            bool died = enemy.TakeDamage(finalDamage);
-
-            if (!died && _element != ElementType.None && status != null)
+            // Используем NonAlloc версию, чтобы не выделять массив в памяти каждый раз
+            int hitCount = Physics.OverlapSphereNonAlloc(hitPoint, _aoeRadius, _aoeHitResults, _enemyLayerMask, QueryTriggerInteraction.Collide);
+            
+            // Сортировка вставками (Insertion Sort) — самый быстрый вариант для маленьких массивов.
+            // Без делегатов (лямбд), без GC Alloc, используем sqrMagnitude (без тяжелого вычисления корня).
+            for (int i = 1; i < hitCount; i++)
             {
-                StatusEffectType statusToApply = DamageCalculator.GetStatusFromElement(_element);
-                status.ApplyStatus(statusToApply, finalDamage);
+                Collider key = _aoeHitResults[i];
+                float keyDist = (key.transform.position - hitPoint).sqrMagnitude;
+                int j = i - 1;
+
+                while (j >= 0 && (_aoeHitResults[j].transform.position - hitPoint).sqrMagnitude > keyDist)
+                {
+                    _aoeHitResults[j + 1] = _aoeHitResults[j];
+                    j--;
+                }
+                _aoeHitResults[j + 1] = key;
+            }
+
+            int targetsHit = 0;
+            for (int i = 0; i < hitCount; i++)
+            {
+                Enemy enemy = _aoeHitResults[i].GetComponent<Enemy>();
+                // Пропускаем того, кому уже нанесли прямой урон
+                if (enemy == null || enemy == directTarget) continue;
+
+                ApplyDamageToEnemy(enemy);
+                targetsHit++;
+
+                // Ограничиваем количество задетых врагов
+                if (targetsHit >= _maxAoeTargets) break;
             }
         }
 
-        // Хит-эффект — ОДИН раз, в точке попадания (не на каждом враге)
+        // Хит-эффект — ОДИН раз, в точке попадания
         if (_hitEffect != null && VfxPool.Instance != null)
             VfxPool.Instance.Spawn(hitPoint, Quaternion.identity, _hitEffect);
 
         ReturnToPool();
+    }
+
+    private void ApplyDamageToEnemy(Enemy enemy)
+    {
+        StatusController status = enemy.GetComponent<StatusController>();
+        int finalDamage = DamageCalculator.CalculateFinalDamage(_damage, _element, status);
+
+        bool died = enemy.TakeDamage(finalDamage);
+
+        if (!died && _element != ElementType.None && status != null)
+        {
+            StatusEffectType statusToApply = DamageCalculator.GetStatusFromElement(_element);
+            status.ApplyStatus(statusToApply, finalDamage);
+        }
     }
 
     private void OnDrawGizmosSelected()
