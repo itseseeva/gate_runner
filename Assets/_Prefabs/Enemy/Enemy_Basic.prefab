@@ -130,9 +130,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fb1ac89913314954483a39c14b7032be, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StatusController
-  _burningPrefab: {fileID: 201597765812643898, guid: 849eac987e001ad4389565fdc0a823de, type: 3}
-  _frozenPrefab: {fileID: 914125107827245812, guid: a2389a77b0bef6f4b88fb99d32b70274, type: 3}
-  _shockedPrefab: {fileID: 132153423885631364, guid: 770ace8b24d6b84449970bedfc053a59, type: 3}
+  _burningPrefab: {fileID: 201597765812643898, guid: bba36560714c6a646b576dcb280caecb, type: 3}
+  _frozenPrefab: {fileID: 914125107827245812, guid: a76c007d6eaf5b74e90429097b9ba52e, type: 3}
+  _shockedPrefab: {fileID: 132153423885631364, guid: e093433bb17ae9a4e9c026c733b3c52f, type: 3}
 --- !u!114 &825324605482465908
 MonoBehaviour:
   m_ObjectHideFlags: 0

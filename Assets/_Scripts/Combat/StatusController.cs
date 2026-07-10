@@ -91,7 +91,7 @@ public class StatusController : MonoBehaviour
         {
             case StatusEffectType.Burning:
                 _burnDamagePerTick = Mathf.Max(1,
-                    Mathf.RoundToInt(hitDamage * DamageCalculator.BURN_DAMAGE_PERCENT));
+                    Mathf.RoundToInt(_enemy.MaxHP * DamageCalculator.BURN_DAMAGE_PERCENT));
                 _nextBurnTickTime = Time.time + (1f / DamageCalculator.BURN_TICKS_PER_SECOND);
                 break;
 

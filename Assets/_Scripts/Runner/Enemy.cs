@@ -22,6 +22,8 @@ public class Enemy : MonoBehaviour
     private bool _isDead = false;
     private int  _maxHP;
 
+    public int MaxHP => _maxHP;
+
     public bool IsBoss => false; // TODO: вынести в EnemyDefinitionSO когда будем делать боссов
 
     /// <summary>Танк, который уже взял этого врага в цель (для предотвращения двойных ударов)</summary>
@@ -40,6 +42,20 @@ public class Enemy : MonoBehaviour
     private void OnEnable()
     {
         _isDead    = false;
+
+        // Восстанавливаем компоненты движения после возврата из пула
+        WorldScroller scroller = GetComponent<WorldScroller>();
+        if (scroller != null) scroller.enabled = true;
+
+        EnemyMeleeCombat melee = GetComponent<EnemyMeleeCombat>();
+        if (melee != null) melee.enabled = true;
+
+        EnemyKamikazeAttack kamikaze = GetComponent<EnemyKamikazeAttack>();
+        if (kamikaze != null) kamikaze.enabled = true;
+
+        Collider col = GetComponentInChildren<Collider>();
+        if (col != null) col.enabled = true;
+
         _maxHP     = _data != null ? _data.MaxHP : 50;
         _currentHP = _maxHP;
 
@@ -124,23 +140,44 @@ public class Enemy : MonoBehaviour
     }
 
     /// <summary>
-    /// Анимация смерти: наклон + сжатие + затухание.
-    /// По завершении объект деактивируется.
-    /// Best practice "squash & dissolve" — без взрыва, плавно.
+    /// Проигрывает Death через Animator и останавливает всё, что двигает врага.
+    /// Возврат в пул — через Animation StateMachineBehaviour (OnDeathAnimationEnd).
     /// </summary>
     private void PlayDeathAnimation()
     {
+        // Останавливаем ВСЁ, что двигает врага
         WorldScroller scroller = GetComponent<WorldScroller>();
-        if (scroller != null) scroller.Stop();
+        if (scroller != null) scroller.enabled = false;
 
-        Vector3 flyDir = new Vector3(Random.Range(-0.5f, 0.5f), 0.3f, -1f).normalized;
+        EnemyMeleeCombat melee = GetComponent<EnemyMeleeCombat>();
+        if (melee != null) melee.enabled = false;
 
-        Sequence seq = DOTween.Sequence();
+        EnemyKamikazeAttack kamikaze = GetComponent<EnemyKamikazeAttack>();
+        if (kamikaze != null) kamikaze.enabled = false;
 
-        seq.Append(transform.DOMove(transform.position + flyDir * 2f, 0.5f).SetEase(Ease.OutQuad));
-        seq.Join(transform.DOScale(Vector3.zero, 0.5f).SetEase(Ease.InQuad));
+        // Отключаем коллайдер — труп не должен блокировать юнитов и ловить снаряды
+        Collider col = GetComponentInChildren<Collider>();
+        if (col != null) col.enabled = false;
 
-        seq.OnComplete(() => gameObject.SetActive(false));
+        // Запускаем анимацию смерти
+        Animator animator = GetComponentInChildren<Animator>();
+        if (animator == null)
+        {
+            Debug.LogWarning($"[Enemy] {name}: нет Animator, деактивирую сразу.", this);
+            gameObject.SetActive(false);
+            return;
+        }
+
+        animator.SetTrigger("Die");
+    }
+
+    /// <summary>
+    /// Вызывается через Animation Event в конце клипа смерти.
+    /// Через EnemyAnimationEventReceiver — тот на объекте с Animator, а Enemy на root.
+    /// </summary>
+    public void OnDeathAnimationEnd()
+    {
+        gameObject.SetActive(false);
     }
 
     /// <summary>

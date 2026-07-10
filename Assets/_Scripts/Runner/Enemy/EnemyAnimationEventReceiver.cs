@@ -16,4 +16,14 @@ public class EnemyAnimationEventReceiver : MonoBehaviour
         }
         combat.OnAnimationHit();
     }
+    public void OnEnemyDeathEnd()
+    {
+        Enemy enemy = GetComponentInParent<Enemy>();
+        if (enemy == null)
+        {
+            Debug.LogWarning($"[EnemyAnimEvent] {name}: нет Enemy в родителях!", this);
+            return;
+        }
+        enemy.OnDeathAnimationEnd();
+    }
 }

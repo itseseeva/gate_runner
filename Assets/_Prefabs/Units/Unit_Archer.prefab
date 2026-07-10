@@ -51,7 +51,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9d18c332cb7f04a4faf20ec02cb31667, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Unit
-  _currentHP: 50
+  _currentHP: 11111
   _healthBar: {fileID: 6074484509885747108}
   _unitRenderer: {fileID: 8111781155169087978, guid: b6305aa70237da349a58965443187d04, type: 3}
   _regenDelay: 3
@@ -102,7 +102,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RangedAutoAttack
   _attackSpeed: 1.5
   _range: 10
-  _baseDamage: 12
+  _baseDamage: 1
   _projectilePool: {fileID: 0}
   _projectilePrefab: {fileID: 0}
   _spawnHeightOffset: 0

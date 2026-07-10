@@ -23,8 +23,8 @@ public static class DamageCalculator
     /// <summary>Длительность всех статусов в секундах.</summary>
     public const float STATUS_DURATION = 3f;
 
-    /// <summary>Урон Burning за тик (% от урона удара который наложил поджог).</summary>
-    public const float BURN_DAMAGE_PERCENT = 0.3f;  // 30% от удара
+    /// <summary>Урон Burning за тик (% от Max HP врага).</summary>
+    public const float BURN_DAMAGE_PERCENT = 0.03f;  // 3% от Max HP
 
     /// <summary>Сколько раз в секунду тикает Burning.</summary>
     public const float BURN_TICKS_PER_SECOND = 1f;

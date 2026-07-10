@@ -80,7 +80,7 @@ public class Projectile : MonoBehaviour
         // Запускаем сферу из текущей позиции в следующую, чтобы снаряд не пролетал сквозь врагов при большой скорости.
         if (Physics.SphereCast(transform.position, _hitboxRadius, Vector3.forward, out RaycastHit hit, step, _enemyLayerMask, QueryTriggerInteraction.Collide))
         {
-            Enemy enemy = hit.collider.GetComponent<Enemy>();
+            Enemy enemy = hit.collider.GetComponentInParent<Enemy>();
             if (enemy != null)
             {
                 // Перемещаемся в точку удара для точного спавна эффектов
@@ -128,7 +128,7 @@ public class Projectile : MonoBehaviour
             int targetsHit = 0;
             for (int i = 0; i < hitCount; i++)
             {
-                Enemy enemy = _aoeHitResults[i].GetComponent<Enemy>();
+                Enemy enemy = _aoeHitResults[i].GetComponentInParent<Enemy>();
                 // Пропускаем того, кому уже нанесли прямой урон
                 if (enemy == null || enemy == directTarget) continue;
 
