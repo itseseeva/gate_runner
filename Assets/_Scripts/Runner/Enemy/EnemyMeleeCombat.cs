@@ -318,7 +318,11 @@ public class EnemyMeleeCombat : MonoBehaviour
         float wobble = Mathf.Sin(Time.time * WobbleSpeed + _wobblePhase)
                      * WobbleAmount * speedMul * Time.deltaTime;
 
-        // Tracking — тянемся к цели по X и Z
+        // Tracking по X — всегда (враг ловит линию перед своим героем).
+        // Tracking по Z — только если враг ПОЗАДИ отряда (dirZ > 0),
+        // чтобы компенсировать WorldScroller, тащащий врага дальше в -Z.
+        // Спереди отряда tracking по Z ОТКЛЮЧЁН — иначе WorldScroller и tracking складываются
+        // и получается визуальный "рывок" при входе в TrackingRange.
         float trackingDeltaX = 0f;
         float trackingDeltaZ = 0f;
         if (_target != null)
@@ -329,8 +333,12 @@ public class EnemyMeleeCombat : MonoBehaviour
             {
                 float dirX = toTarget.x / distXZ;
                 float dirZ = toTarget.z / distXZ;
+
                 trackingDeltaX = dirX * TrackingSpeed * personalMul * Time.deltaTime;
-                trackingDeltaZ = dirZ * TrackingSpeed * personalMul * Time.deltaTime;
+
+                // Компенсация WorldScroller только когда враг позади (dirZ > 0 — цель "впереди" по +Z).
+                if (dirZ > 0f)
+                    trackingDeltaZ = dirZ * TrackingSpeed * personalMul * Time.deltaTime;
             }
         }
 
@@ -371,24 +379,12 @@ public class EnemyMeleeCombat : MonoBehaviour
 
         Vector3 pos = transform.position;
         pos.x += trackingDeltaX + separationDeltaX + wobble;
-        pos.z += trackingDeltaZ + separationDeltaZ;
+        pos.z += trackingDeltaZ + separationDeltaZ;   // trackingDeltaZ работает только когда враг позади
 
         if (Time.frameCount % 60 == 0)
         {
-            Debug.Log($"[Move] {name}: dX={trackingDeltaX:F3}, dZ={trackingDeltaZ:F3}, " +
+            Debug.Log($"[Move] {name}: dX={trackingDeltaX:F3}, " +
                       $"speedMul={speedMul:F2}, personalMul={personalMul:F2}, lazy={Time.time < _lazyUntil}", this);
-        }
-
-        // ── ДИАГНОСТИКА ──
-        if (Time.frameCount % 10 == 0)
-        {
-            float appliedSpeed = new Vector2(trackingDeltaX, trackingDeltaZ).magnitude / Time.deltaTime;
-            Debug.Log($"[SPEED-APPROACH] {name}: " +
-                      $"actualSpeed={appliedSpeed:F2} m/s, " +
-                      $"personalMul={personalMul:F2}, " +
-                      $"speedMul={speedMul:F2}, " +
-                      $"TrackingSpeed={TrackingSpeed}, " +
-                      $"lazyClose={isLazyClose && Time.time < _lazyUntil}", this);
         }
 
         transform.position = pos;
@@ -419,8 +415,9 @@ public class EnemyMeleeCombat : MonoBehaviour
         SetAttackMode(false);
         if (_scroller != null) _scroller.enabled = false;
 
-        float baseChaseDist = _enemy.Data != null ? _enemy.Data.ChaseDistance : 5f;
-        float chaseDist = baseChaseDist * (WorldScroller.WorldSpeed / 7f);
+        // Chase-дистанция берётся из SO напрямую (без привязки к старой константе 7).
+        // Раньше делили на 7 — при смене WorldSpeed это ломалось: враг стоял слишком близко.
+        float chaseDist = _enemy.Data != null ? _enemy.Data.ChaseDistance : 5f;
 
         if (_target != null && !_target.IsDead && Time.time >= _chaseMinUntil)
         {
@@ -430,7 +427,10 @@ public class EnemyMeleeCombat : MonoBehaviour
             float currentDistSqr = SqrDistanceXZ(transform.position, _target.transform.position);
             float triggerRange = AttackRange * 1.5f;
 
-            if (WorldScroller.WorldSpeed < 6f || currentDistSqr <= triggerRange * triggerRange)
+            // Выход из Chase — только когда враг подошёл вплотную к цели.
+            // Условие "WorldSpeed < 6f" убрано — при новом WorldSpeed=3.5 оно всегда true
+            // и моментально ломало Chase.
+            if (currentDistSqr <= triggerRange * triggerRange)
             {
                 _isChasing = false;
                 _chaseOffsetX = 0f;

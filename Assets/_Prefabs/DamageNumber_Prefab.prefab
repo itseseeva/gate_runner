@@ -134,13 +134,13 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 1
-  m_fontSizeBase: 1
+  m_fontSize: 2.4
+  m_fontSizeBase: 2.4
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 0
+  m_fontStyle: 8
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 256
   m_textAlignment: 65535
@@ -195,15 +195,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageNumber
   _flyDuration: 0.3
-  _flyDistance: 0.5
+  _flyDistance: 0.1
   _appearBounce: 1.15
+  _punchDuration: 0.06
+  _settleDuration: 0.18
   _maxRotation: 15
-  _normalColor: {r: 1, g: 0.8509804, b: 0.2, a: 1}
+  _normalColor: {r: 1, g: 0.4509804, b: 0.101960786, a: 1}
   _critColor: {r: 1, g: 0.0990566, b: 0.13867526, a: 1}
   _burnColor: {r: 1, g: 0.45, b: 0.1, a: 1}
   _freezeColor: {r: 0.55, g: 0.85, b: 1, a: 1}
   _shockColor: {r: 0.75, g: 0.5, b: 1, a: 1}
   _healColor: {r: 0.4, g: 1, b: 0.5, a: 1}
+  _burnEmoji: {fileID: 11400000, guid: 789620b1dad0f824597ddfb8037267d3, type: 2}
+  _freezeEmoji: {fileID: 11400000, guid: 9e135ec40ac3888479c67087a1e32983, type: 2}
+  _shockEmoji: {fileID: 11400000, guid: eb2b3ca00bffc1240a2704cec4f71d68, type: 2}
   _critSizeMul: 1.6
   _burnSizeMul: 0.7
   _normalSizeMul: 1

@@ -180,7 +180,9 @@ MonoBehaviour:
   _slowMoLabel: {fileID: 428816115}
   _slowSquadButton: {fileID: 663554910}
   _slowSquadLabel: {fileID: 987484303}
-  _slowMoScale: 0.2
+  _slowMoScale: 0.1
+  _slowSquadSpeed: 1
+  _normalSquadSpeed: 7
 --- !u!114 &8230337
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4074,13 +4076,13 @@ MonoBehaviour:
   - heroType: 3
     count: 0
   - heroType: 1
-    count: 2
+    count: 1
   - heroType: 0
     count: 0
   - heroType: 4
     count: 0
   - heroType: 2
-    count: 2
+    count: 1
 --- !u!114 &1554201389
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4989,6 +4991,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DamageNumberPool
   _prefab: {fileID: 8922442749065511122, guid: 0539ed6975370e942bb97c9b412f9a3a, type: 3}
   _preloadCount: 20
+  _sideOffset: 0.25
+  _spawnHeight: 0.2
+  EmojiSpacing: 0.28
+  EmojiVOffset: 0.25
+  EmojiSize: 49.9
 --- !u!4 &2018298202
 Transform:
   m_ObjectHideFlags: 0

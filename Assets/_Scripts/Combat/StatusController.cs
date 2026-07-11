@@ -120,7 +120,8 @@ public class StatusController : MonoBehaviour
         // ─── Burning — тикаем уроном ────────────────────────────
         if (HasStatus(StatusEffectType.Burning) && Time.time >= _nextBurnTickTime)
         {
-            _enemy.TakeDamage(_burnDamagePerTick, true, DamageNumberType.Burn);
+            // Передаём false, чтобы не спамить цифрами урона при каждом тике горения
+            _enemy.TakeDamage(_burnDamagePerTick, false, DamageNumberType.Burn);
             _nextBurnTickTime = Time.time + (1f / DamageCalculator.BURN_TICKS_PER_SECOND);
         }
 

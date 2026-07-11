@@ -152,7 +152,15 @@ public class Projectile : MonoBehaviour
         StatusController status = enemy.GetComponent<StatusController>();
         int finalDamage = DamageCalculator.CalculateFinalDamage(_damage, _element, status);
 
-        bool died = enemy.TakeDamage(finalDamage);
+        DamageNumberType numberType = _element switch
+        {
+            ElementType.Fire      => DamageNumberType.Burn,
+            ElementType.Ice       => DamageNumberType.Freeze,
+            ElementType.Lightning => DamageNumberType.Shock,
+            _                     => DamageNumberType.Normal
+        };
+
+        bool died = enemy.TakeDamage(finalDamage, true, numberType);
 
         if (!died && _element != ElementType.None && status != null)
         {

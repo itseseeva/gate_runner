@@ -19,9 +19,25 @@ public class DamageNumberPool : MonoBehaviour
     [SerializeField] private float _sideOffset = 0.45f;
 
     [Tooltip("Высота спавна над позицией цели (метры)")]
-    [SerializeField] private float _spawnHeight = 0.6f;
+    [SerializeField] private float _spawnHeight = 1.8f;
+
+    [Header("Форматирование эмодзи (Live Update)")]
+    [Tooltip("Отступ между цифрой и эмодзи (em). Отрицательные значения двигают эмодзи влево!")]
+    [Range(-2f, 2f)]
+    public float EmojiSpacing = 0.5f;
+
+    [Tooltip("Вертикальное смещение эмодзи (em)")]
+    [Range(-2f, 2f)]
+    public float EmojiVOffset = 0.25f;
+
+    [Tooltip("Размер эмодзи (в процентах)")]
+    [Range(10f, 200f)]
+    public float EmojiSize = 65f;
 
     private readonly Queue<DamageNumber> _pool = new();
+    
+    // Словарь для отслеживания активных цифр урона (для Damage Stacking)
+    private readonly Dictionary<Transform, DamageNumber> _activeDamageNumbers = new();
 
     private void Awake()
     {
@@ -42,6 +58,25 @@ public class DamageNumberPool : MonoBehaviour
     /// <summary>Показывает цифру, прикреплённую к цели (двигается вместе с ней).</summary>
     public void Spawn(int damage, Transform followTarget, DamageNumberType type = DamageNumberType.Normal)
     {
+        // ─── Логика Damage Stacking ───
+        if (type != DamageNumberType.Heal && followTarget != null)
+        {
+            if (_activeDamageNumbers.TryGetValue(followTarget, out DamageNumber activeDn))
+            {
+                // Если цифра ещё летит на экране — плюсуем урон к ней!
+                if (activeDn.IsPlaying)
+                {
+                    activeDn.AddDamage(damage, type);
+                    return; // Не спавним новую цифру
+                }
+                else
+                {
+                    // Если цифра уже умерла, но осталась в словаре (на всякий случай)
+                    _activeDamageNumbers.Remove(followTarget);
+                }
+            }
+        }
+
         DamageNumber dn;
         if (_pool.Count > 0)
         {
@@ -54,10 +89,20 @@ public class DamageNumberPool : MonoBehaviour
 
         dn.gameObject.SetActive(true);
         dn.Show(damage, followTarget, type, _sideOffset, _spawnHeight);
+
+        if (type != DamageNumberType.Heal && followTarget != null)
+        {
+            _activeDamageNumbers[followTarget] = dn;
+        }
     }
 
     public void Return(DamageNumber dn)
     {
+        if (dn.Target != null && _activeDamageNumbers.TryGetValue(dn.Target, out DamageNumber activeDn) && activeDn == dn)
+        {
+            _activeDamageNumbers.Remove(dn.Target);
+        }
+
         if (dn == null) return;
         dn.gameObject.SetActive(false);
         _pool.Enqueue(dn);
