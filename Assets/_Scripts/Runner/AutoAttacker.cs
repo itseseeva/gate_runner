@@ -42,7 +42,8 @@ public class AutoAttacker : MonoBehaviour
     {
         if (_attack == null) return;
  
-        Enemy target;
+        Enemy target = null;
+        bool isRanged = _unit != null && (_unit.HeroType == HeroType.Mage || _unit.HeroType == HeroType.Archer);
  
         if (IsTank)
         {
@@ -60,12 +61,13 @@ public class AutoAttacker : MonoBehaviour
                 if (!TryClaim(target)) return; // занята другим танком — не бьём
             }
         }
-        else
+        else if (!isRanged)
         {
             target = FindNearestEnemy(_attack.Range);
         }
  
-        if (target == null || !_attack.IsReady) return;
+        if (!isRanged && target == null) return;
+        if (!_attack.IsReady) return;
 
         if (IsTank)
         {

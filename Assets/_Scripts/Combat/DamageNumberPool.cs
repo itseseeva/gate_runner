@@ -36,8 +36,7 @@ public class DamageNumberPool : MonoBehaviour
 
     private readonly Queue<DamageNumber> _pool = new();
     
-    // Словарь для отслеживания активных цифр урона (для Damage Stacking)
-    private readonly Dictionary<Transform, DamageNumber> _activeDamageNumbers = new();
+
 
     private void Awake()
     {
@@ -58,25 +57,6 @@ public class DamageNumberPool : MonoBehaviour
     /// <summary>Показывает цифру, прикреплённую к цели (двигается вместе с ней).</summary>
     public void Spawn(int damage, Transform followTarget, DamageNumberType type = DamageNumberType.Normal)
     {
-        // ─── Логика Damage Stacking ───
-        if (type != DamageNumberType.Heal && followTarget != null)
-        {
-            if (_activeDamageNumbers.TryGetValue(followTarget, out DamageNumber activeDn))
-            {
-                // Если цифра ещё летит на экране — плюсуем урон к ней!
-                if (activeDn.IsPlaying)
-                {
-                    activeDn.AddDamage(damage, type);
-                    return; // Не спавним новую цифру
-                }
-                else
-                {
-                    // Если цифра уже умерла, но осталась в словаре (на всякий случай)
-                    _activeDamageNumbers.Remove(followTarget);
-                }
-            }
-        }
-
         DamageNumber dn;
         if (_pool.Count > 0)
         {
@@ -89,20 +69,10 @@ public class DamageNumberPool : MonoBehaviour
 
         dn.gameObject.SetActive(true);
         dn.Show(damage, followTarget, type, _sideOffset, _spawnHeight);
-
-        if (type != DamageNumberType.Heal && followTarget != null)
-        {
-            _activeDamageNumbers[followTarget] = dn;
-        }
     }
 
     public void Return(DamageNumber dn)
     {
-        if (dn.Target != null && _activeDamageNumbers.TryGetValue(dn.Target, out DamageNumber activeDn) && activeDn == dn)
-        {
-            _activeDamageNumbers.Remove(dn.Target);
-        }
-
         if (dn == null) return;
         dn.gameObject.SetActive(false);
         _pool.Enqueue(dn);

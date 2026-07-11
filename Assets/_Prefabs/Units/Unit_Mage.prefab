@@ -85,7 +85,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a64268e98ba55234f8eebb3ccdc35fcf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RangedAutoAttack
-  _attackSpeed: 1
+  _attackSpeed: 6
   _range: 15
   _baseDamage: 1
   _projectilePool: {fileID: 0}

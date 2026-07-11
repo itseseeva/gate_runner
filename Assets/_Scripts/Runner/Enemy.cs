@@ -13,6 +13,10 @@ public class Enemy : MonoBehaviour
     /// <summary>Данные врага — доступ для других компонентов (EnemyController берёт отсюда AttackRange и т.д.)</summary>
     public EnemyDefinitionSO Data => _data;
 
+    [Header("Точки привязки")]
+    [Tooltip("Кость головы модели. Отсюда будут вылетать цифры урона. Если пусто — берётся transform самого врага.")]
+    [SerializeField] private Transform _damageNumberAnchor;
+
     [Header("UI")]
     [SerializeField] private HealthBar _healthBar;
 
@@ -114,8 +118,9 @@ public class Enemy : MonoBehaviour
 
         if (showDamageNumber && DamageNumberPool.Instance != null)
         {
-            // Передаём наш transform — цифра будет следовать за нами
-            DamageNumberPool.Instance.Spawn(amount, transform, numberType);
+            // Приоритет — кость головы (задаётся в Inspector). Если не задана — transform.
+            Transform anchor = _damageNumberAnchor != null ? _damageNumberAnchor : transform;
+            DamageNumberPool.Instance.Spawn(amount, anchor, numberType);
         }
 
         if (_healthBar != null)

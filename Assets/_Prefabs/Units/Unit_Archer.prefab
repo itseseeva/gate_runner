@@ -100,12 +100,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a64268e98ba55234f8eebb3ccdc35fcf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RangedAutoAttack
-  _attackSpeed: 1.5
-  _range: 10
+  _attackSpeed: 6
+  _range: 15
   _baseDamage: 1
   _projectilePool: {fileID: 0}
   _projectilePrefab: {fileID: 0}
   _spawnHeightOffset: 0
+  _hasSpecialAttack: 1
+  _attacksBetweenSpecial: 3
+  _specialArrowCount: 3
+  _specialSpreadAngle: 30
   _muzzlePoint: {fileID: 1133148225528377090}
   _muzzleEffectBase: {fileID: 0}
   _muzzleEffectFire: {fileID: 1262928022307954080, guid: 8b45d6ba72c9e07418aaec3dc7c30ba5, type: 3}

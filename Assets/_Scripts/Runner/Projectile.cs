@@ -78,20 +78,24 @@ public class Projectile : MonoBehaviour
 
         // Best Practice: Continuous Collision Detection через SphereCast.
         // Запускаем сферу из текущей позиции в следующую, чтобы снаряд не пролетал сквозь врагов при большой скорости.
-        if (Physics.SphereCast(transform.position, _hitboxRadius, Vector3.forward, out RaycastHit hit, step, _enemyLayerMask, QueryTriggerInteraction.Collide))
+        // Снаряд летит в направлении СВОЕГО forward (учитывает ротацию из Launch — для веера, конусов).
+        // Раньше был Vector3.forward — снаряды летели только в мировой +Z независимо от ротации.
+        Vector3 fwd = transform.forward;
+
+        if (Physics.SphereCast(transform.position, _hitboxRadius, fwd, out RaycastHit hit, step, _enemyLayerMask, QueryTriggerInteraction.Collide))
         {
             Enemy enemy = hit.collider.GetComponentInParent<Enemy>();
             if (enemy != null)
             {
                 // Перемещаемся в точку удара для точного спавна эффектов
-                transform.position = transform.position + Vector3.forward * hit.distance;
+                transform.position = transform.position + fwd * hit.distance;
                 
                 HitTarget(enemy, transform.position);
                 return;
             }
         }
 
-        transform.position += Vector3.forward * step;
+        transform.position += fwd * step;
         _distanceTravelled += step;
 
         if (_distanceTravelled >= _maxDistance)

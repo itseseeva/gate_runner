@@ -76,6 +76,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   _data: {fileID: 11400000, guid: 6d3568d6421065c4899ff56ba98c60a0, type: 2}
+  _damageNumberAnchor: {fileID: 3007312951598806466}
   _healthBar: {fileID: 8533520850857264195}
   _currentHP: 0
 --- !u!114 &7336987947705657810
@@ -563,6 +564,11 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 6199786450439034468}
   m_SourcePrefab: {fileID: 100100000, guid: b1a0506ab1b342444bbda5d0142b664b, type: 3}
+--- !u!4 &3007312951598806466 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1449414690458546170, guid: b1a0506ab1b342444bbda5d0142b664b, type: 3}
+  m_PrefabInstance: {fileID: 4440907439259900472}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &3531175145085450796 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 909732470352011284, guid: b1a0506ab1b342444bbda5d0142b664b, type: 3}

@@ -13,6 +13,37 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
     [Header("Дальнобойная атака")]
     [SerializeField] private float _spawnHeightOffset = 0.5f;
 
+    [Header("Спецатака (веер)")]
+    [Tooltip("Включает спецатаку для этого юнита. У лучника — да, у мага — нет.")]
+    [SerializeField] private bool _hasSpecialAttack = false;
+
+    [Tooltip("Каждая N-я атака будет спецатакой. 3 = 3-я, 6-я, 9-я...")]
+    [SerializeField] private int _attacksBetweenSpecial = 3;
+
+    [Tooltip("Сколько стрел вылетает при спецатаке")]
+    [Range(2, 7)]
+    [SerializeField] private int _specialArrowCount = 3;
+
+    [Tooltip("Общий угол разлёта веера в градусах (±половина от центра)")]
+    [Range(10f, 90f)]
+    [SerializeField] private float _specialSpreadAngle = 30f;
+
+    [Tooltip("Сколько залпов веера в одной спецатаке (должно совпадать с числом OnShoot Event на клипе SpecialAttackRun)")]
+    [SerializeField] private int _specialFanVolleys = 3;
+
+    private int _attackCounter = 0;
+    private bool _isSpecialShot = false;
+    
+    // Счётчик оставшихся веерных залпов. Пока > 0 — каждый OnShoot спавнит веер.
+    private int _pendingFanShots = 0;
+
+    // Safety-timeout от вечной блокировки, если по какой-то причине OnShoot Event не прилетел.
+    private float _pendingFanExpireTime = 0f;
+
+    // Блокировка прерывания обычной атаки: ждём хотя бы первого OnShoot.
+    private bool _waitForAnimationEvent = false;
+    private float _waitForAnimationTimeout = 0f;
+
     [Header("Muzzle-эффект")]
     [Tooltip("Кость/точка руки мага — сюда перетащи hand-bone из иерархии.")]
     [SerializeField] private Transform  _muzzlePoint;
@@ -50,35 +81,76 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
 
     public void OnShoot()
     {
+        // Как только сработал хотя бы один OnShoot (обычный или первый из веера) — снимаем блок
+        _waitForAnimationEvent = false;
+
         if (_projectilePool == null) _projectilePool = ProjectilePool.Instance;
         if (_projectilePool == null || _unit == null) return;
 
+        Debug.Log($"[Archer ONSHOOT] frame={Time.frameCount} isSpecial={_isSpecialShot} " +
+                  $"animState={_animator.GetCurrentAnimatorStateInfo(0).shortNameHash}", this);
+
         ElementType element = _unit.Element;
 
-        // Unity fake-null safe: используем != null явно
         GameObject prefab = null;
         if (_unit.Data != null)
-        {
             prefab = _unit.Data.GetProjectile(element);
-        }
-        else
-        {
+        
+        // Если стихийный префаб не назначен в HeroDefinitionSO, падаем на дефолтный
+        if (prefab == null)
             prefab = _projectilePrefab;
-        }
 
         if (prefab == null)
         {
-            Debug.LogWarning($"[RangedAutoAttack] {name}: нет префаба снаряда для {element}. Назначьте его в HeroDefinitionSO или в поле _projectilePrefab.", this);
+            Debug.LogWarning($"[RangedAutoAttack] {name}: нет префаба снаряда для {element}. " +
+                             $"Назначьте его в HeroDefinitionSO или в поле _projectilePrefab.", this);
+            
+            // Важно списать заряд, иначе зависнем!
+            if (_pendingFanShots > 0) _pendingFanShots--;
             return;
         }
 
         Vector3 spawnPos = transform.position
                          + Vector3.up * _spawnHeightOffset
                          + transform.forward * 1.0f;
-        Projectile projectile = _projectilePool.Get(prefab, spawnPos, transform.rotation);
-        if (projectile == null) return;
 
-        projectile.Launch(_baseDamage * _unit.PowerMultiplier, _range, element);
+        int damage = _baseDamage * _unit.PowerMultiplier;
+
+        // Решение "веер или одиночка" на основе счётчика pendingFanShots,
+        // а не флага _isSpecialShot. Так работа не зависит от того, что играет аниматор
+        // прямо сейчас — только от того, сколько залпов мы ещё должны выпустить.
+        if (_pendingFanShots > 0)
+        {
+            Debug.Log($"[Archer FAN] залп #{_specialFanVolleys - _pendingFanShots + 1} из {_specialFanVolleys}", this);
+
+            // ── Веер: несколько стрел с равномерным разлётом по углу ──
+            int count = _specialArrowCount;
+            float halfSpread = _specialSpreadAngle * 0.5f;
+            float angleStep  = _specialSpreadAngle / (count - 1);
+
+            for (int i = 0; i < count; i++)
+            {
+                float angle = -halfSpread + angleStep * i;
+                Quaternion rot = transform.rotation * Quaternion.Euler(0f, angle, 0f);
+                SpawnOneArrow(prefab, spawnPos, rot, damage, element);
+            }
+
+            _pendingFanShots--; // израсходовали один залп
+        }
+        else
+        {
+            Debug.Log($"[Archer SINGLE]", this);
+            SpawnOneArrow(prefab, spawnPos, transform.rotation, damage, element);
+        }
+    }
+
+    /// <summary>Спавн одной стрелы в позицию spawnPos с ротацией rot.</summary>
+    private void SpawnOneArrow(GameObject prefab, Vector3 spawnPos, Quaternion rot,
+                               int damage, ElementType element)
+    {
+        Projectile projectile = _projectilePool.Get(prefab, spawnPos, rot);
+        if (projectile == null) return;
+        projectile.Launch(damage, _range, element);
     }
 
     public void SpawnMuzzle()
@@ -161,12 +233,64 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
 
     public HitResult Hit(Enemy target)
     {
-        if (!IsReady || target == null) return HitResult.Miss();
+        if (!IsReady) return HitResult.Miss();
 
-        if (_animator != null) _animator.SetTrigger("Shoot");
-        else Debug.LogWarning($"[Ranged] {name}: _animator == null!", this);
+        // Пока не отстрелялись все залпы спецатаки — новую атаку не принимаем.
+        if (_pendingFanShots > 0) return HitResult.Miss();
+
+        // Защита от "проглатывания" обычных атак:
+        // Если скорость атаки очень высокая, AutoAttacker может вызвать Hit() ДО ТОГО,
+        // как анимация успеет дойти до ивента OnShoot. В итоге анимация перезапустится,
+        // а стрела так и не вылетит. Поэтому ждём ивент (с таймаутом на случай застревания).
+        if (_waitForAnimationEvent && Time.time < _waitForAnimationTimeout) return HitResult.Miss();
+
+        if (_hasSpecialAttack)
+        {
+            _attackCounter++;
+            _isSpecialShot = (_attackCounter % _attacksBetweenSpecial == 0);
+
+            if (_isSpecialShot)
+            {
+                // Заряжаем N залпов веера. Каждый OnShoot Event на клипе SpecialAttackRun
+                // израсходует по одному залпу.
+                _pendingFanShots = _specialFanVolleys;
+                _pendingFanExpireTime = Time.time + 2f; // safety
+            }
+        }
+        else
+        {
+            _isSpecialShot = false;
+        }
+
+        Debug.Log($"[Archer HIT] counter={_attackCounter} isSpecial={_isSpecialShot} pendingFan={_pendingFanShots}", this);
+
+        if (_animator != null)
+        {
+            if (_hasSpecialAttack)
+                _animator.SetBool("SpecialAttack", _isSpecialShot);
+            _animator.SetTrigger("Shoot");
+        }
+        else
+        {
+            Debug.LogWarning($"[Ranged] {name}: _animator == null!", this);
+        }
+
+        _waitForAnimationEvent = true;
+        _waitForAnimationTimeout = Time.time + 1.5f;
 
         UpdateCooldown();
         return new HitResult { Hit = true };
+    }
+
+    private void Update()
+    {
+        // Safety: если по какой-то причине OnShoot Event не пришёл за 2 сек —
+        // не блокируем лучника навсегда.
+        if (_pendingFanShots > 0 && Time.time > _pendingFanExpireTime)
+        {
+            Debug.LogWarning($"[Archer] Спецатака timeout — сбрасываю {_pendingFanShots} залпов", this);
+            _pendingFanShots = 0;
+            _waitForAnimationEvent = false;
+        }
     }
 }
