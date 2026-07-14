@@ -109,7 +109,8 @@ MonoBehaviour:
   _hasSpecialAttack: 1
   _attacksBetweenSpecial: 3
   _specialArrowCount: 3
-  _specialSpreadAngle: 30
+  _specialSpreadAngle: 15
+  _specialFanVolleys: 3
   _muzzlePoint: {fileID: 1133148225528377090}
   _muzzleEffectBase: {fileID: 0}
   _muzzleEffectFire: {fileID: 1262928022307954080, guid: 8b45d6ba72c9e07418aaec3dc7c30ba5, type: 3}

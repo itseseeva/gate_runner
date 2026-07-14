@@ -14,7 +14,11 @@ public class WorldScroller : MonoBehaviour
     /// </summary>
     // TODO: вынести в GameSettingsSO когда добавим Remote Config.
     // Пока хардкод — 3.5 m/s (было 7, снижено в 2 раза для более комфортного темпа).
-    public static float WorldSpeed = 3.5f;
+    /// <summary>Базовая (не-замедленная) скорость мира. Используется другими системами
+    /// для расчёта относительных множителей (Chase-дистанции, агрессии врагов и т.п.).</summary>
+    public const float BaseWorldSpeed = 3.5f;
+
+    public static float WorldSpeed = BaseWorldSpeed;
 
     /// <summary>
     /// Локальный множитель скорости (1.0 = норма, 0.5 = в 2 раза медленнее).

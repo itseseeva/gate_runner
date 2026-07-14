@@ -8,6 +8,10 @@ using System.Collections.Generic;
 public class EnemySpawner : MonoBehaviour
 {
     [Header("Враги")]
+    [Tooltip("Список префабов врагов. Если здесь несколько, спавнер будет выбирать их случайно.")]
+    [SerializeField] private GameObject[] _enemyPrefabs;
+    
+    [Tooltip("Старое поле. Если массив выше пуст, будет спавниться этот враг.")]
     [SerializeField] private GameObject _enemyPrefab;
     [SerializeField] private GameObject _bossPrefab;
 
@@ -35,9 +39,16 @@ public class EnemySpawner : MonoBehaviour
                 float totalWidth = (_enemiesPerWave - 1) * _enemySpreadX;
                 float x = -totalWidth / 2f + i * _enemySpreadX;
 
-                GameObject go = Instantiate(_enemyPrefab,
-                    new Vector3(x, 0f, waveZ),
-                    Quaternion.identity);
+                GameObject prefabToSpawn = _enemyPrefab;
+                if (_enemyPrefabs != null && _enemyPrefabs.Length > 0)
+                {
+                    prefabToSpawn = _enemyPrefabs[Random.Range(0, _enemyPrefabs.Length)];
+                }
+
+                if (prefabToSpawn != null)
+                {
+                    Instantiate(prefabToSpawn, new Vector3(x, 0f, waveZ), Quaternion.identity);
+                }
             }
         }
     }

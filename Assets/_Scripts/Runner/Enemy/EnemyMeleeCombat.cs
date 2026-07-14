@@ -18,6 +18,15 @@ public class EnemyMeleeCombat : MonoBehaviour
     // TODO: вынести в EnemyDefinitionSO при добавлении разных типов врагов.
     // 3.5 (было 7) — согласовано со снижением WorldSpeed.
     private const float TrackingSpeed   = 3.5f;
+
+    [Header("Задержка реакции на свайп")]
+    [Tooltip("Насколько поздно враг реагирует на изменение X-позиции цели. Больше = медленнее следует.")]
+    [SerializeField] private float _swipeReactionDelay = 0.2f;
+
+    // Отложенная X-координата цели — та, которую враг знает "сейчас".
+    // Реальный X цели догоняет её с задержкой _swipeReactionDelay.
+    private float _delayedTargetX = 0f;
+    private bool  _delayedTargetXInit = false;
     private const float SeparationForce = 4f;
     private const float WobbleAmount    = 0.3f;
     private const float WobbleSpeed     = 2f;
@@ -79,6 +88,8 @@ public class EnemyMeleeCombat : MonoBehaviour
         _isChasing           = false;
         _hasChased           = false;
 
+        _delayedTargetXInit = false;
+
         if (_scroller != null) _scroller.enabled = true;
         if (_animator != null) _animator.SetBool("IsAttacking", false);
     }
@@ -116,6 +127,24 @@ public class EnemyMeleeCombat : MonoBehaviour
         {
             SetAttackMode(false);
             return;
+        }
+
+        Vector3 realTargetPoint = GetTargetPoint();
+
+        if (!_delayedTargetXInit)
+        {
+            _delayedTargetX = realTargetPoint.x;
+            _delayedTargetXInit = true;
+        }
+
+        if (_swipeReactionDelay > 0.001f)
+        {
+            float catchUpSpeed = 1f / _swipeReactionDelay;
+            _delayedTargetX = Mathf.Lerp(_delayedTargetX, realTargetPoint.x, Time.deltaTime * catchUpSpeed);
+        }
+        else
+        {
+            _delayedTargetX = realTargetPoint.x;
         }
 
         // Дистанция до цели по XZ (по чистому центру цели, без offset).
@@ -271,6 +300,7 @@ public class EnemyMeleeCombat : MonoBehaviour
             float angle = Random.Range(0f, Mathf.PI * 2f);
             float radius = Random.Range(0.3f, 0.7f);
             _targetOffset = new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
+            _delayedTargetXInit = false;
         }
 
         if (_target == null && Time.frameCount % 60 == 0)
@@ -327,7 +357,8 @@ public class EnemyMeleeCombat : MonoBehaviour
         float trackingDeltaZ = 0f;
         if (_target != null)
         {
-            Vector3 toTarget = GetTargetPoint() - transform.position;
+            Vector3 realTargetPoint = GetTargetPoint();
+            Vector3 toTarget = realTargetPoint - transform.position;
             float distXZ = Mathf.Sqrt(toTarget.x * toTarget.x + toTarget.z * toTarget.z);
             if (distXZ < TrackingRange && distXZ > 0.01f)
             {
@@ -415,9 +446,11 @@ public class EnemyMeleeCombat : MonoBehaviour
         SetAttackMode(false);
         if (_scroller != null) _scroller.enabled = false;
 
-        // Chase-дистанция берётся из SO напрямую (без привязки к старой константе 7).
-        // Раньше делили на 7 — при смене WorldSpeed это ломалось: враг стоял слишком близко.
-        float chaseDist = _enemy.Data != null ? _enemy.Data.ChaseDistance : 5f;
+        // Chase-дистанция масштабируется по относительной скорости мира.
+        // При обычной скорости враг красиво преследует издалека.
+        // При замедлении дистанция сокращается — враг подтягивается на удар.
+        float speedRatio = WorldScroller.WorldSpeed / WorldScroller.BaseWorldSpeed;
+        float chaseDist = (_enemy.Data != null ? _enemy.Data.ChaseDistance : 5f) * speedRatio;
 
         if (_target != null && !_target.IsDead && Time.time >= _chaseMinUntil)
         {
@@ -427,10 +460,12 @@ public class EnemyMeleeCombat : MonoBehaviour
             float currentDistSqr = SqrDistanceXZ(transform.position, _target.transform.position);
             float triggerRange = AttackRange * 1.5f;
 
-            // Выход из Chase — только когда враг подошёл вплотную к цели.
-            // Условие "WorldSpeed < 6f" убрано — при новом WorldSpeed=3.5 оно всегда true
-            // и моментально ломало Chase.
-            if (currentDistSqr <= triggerRange * triggerRange)
+            // Выход из Chase в двух случаях:
+            // 1. Враг подошёл вплотную к цели (обычная логика приближения).
+            // 2. Отряд значительно замедлился (< 50% базовой скорости) — враги должны стать
+            //    агрессивными и подходить на удар, а не топтаться позади.
+            bool worldSlowed = WorldScroller.WorldSpeed < WorldScroller.BaseWorldSpeed * 0.5f;
+            if (worldSlowed || currentDistSqr <= triggerRange * triggerRange)
             {
                 _isChasing = false;
                 _chaseOffsetX = 0f;
@@ -444,9 +479,10 @@ public class EnemyMeleeCombat : MonoBehaviour
         float chaosX    = _enemy.Data != null ? _enemy.Data.ChaseChaosX   : 1.5f;
 
         Vector3 basePos = _target != null ? _target.transform.position : _leader.position;
+        float chaseTargetX = _target != null ? _delayedTargetX : basePos.x;
 
         Vector3 targetPos = new Vector3(
-            basePos.x + _chaseOffsetX,
+            chaseTargetX + _chaseOffsetX,
             transform.position.y,
             basePos.z - chaseDist + _chaseOffsetZ
         );
@@ -454,6 +490,12 @@ public class EnemyMeleeCombat : MonoBehaviour
         Vector3 dir = targetPos - transform.position;
         dir.y = 0;
         float dist = dir.magnitude;
+
+        if (Time.frameCount % 10 == 0)
+        {
+            float targetRealX = basePos.x + _chaseOffsetX;
+            Debug.Log($"[CHASE-DELAY] {name}: targetRealX={targetRealX:F3}, delayedTargetX={targetPos.x:F3}, myX={transform.position.x:F3}, dirX={dir.x:F3}");
+        }
 
         if (dist > 0.05f)
         {
@@ -471,15 +513,20 @@ public class EnemyMeleeCombat : MonoBehaviour
             transform.position += move;
         }
 
-        // Определяем свайп — движется ли отряд по X.
-        float leaderDeltaX = _leader.position.x - _prevLeaderX;
-        _prevLeaderX = _leader.position.x;
+        // Определяем наклон от свайпа. 
+        // РАНЬШЕ враг читал мысли лидера (leaderDeltaX) и моментально поворачивался.
+        // ТЕПЕРЬ он наклоняется только если САМ физически начал смещаться вбок (с учётом задержки).
+        _prevLeaderX = _leader.position.x; // просто обновляем чтобы не ломать логику, если где-то юзается
 
-        // Наклон от свайпа: вправо (+X) → +40°, влево → -40°. Нет свайпа → 0.
         const float maxTurn = 40f;
         float turnAngle = 0f;
-        if (leaderDeltaX > 0.001f)  turnAngle =  maxTurn;
-        if (leaderDeltaX < -0.001f) turnAngle = -maxTurn;
+        
+        // Вместо move.x используем само направление dir.x, так как move здесь недоступна.
+        if (dist > 0.05f)
+        {
+            if (dir.normalized.x > 0.1f)  turnAngle =  maxTurn;
+            if (dir.normalized.x < -0.1f) turnAngle = -maxTurn;
+        }
 
         // База 190° (прямо вперёд) + наклон. Плавно возвращается к 190 когда свайп кончился.
         Quaternion targetRot = Quaternion.Euler(0f, 190f + turnAngle, 0f);

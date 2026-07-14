@@ -69,15 +69,7 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
     public void UpdateCooldown() => _lastFireTime = Time.time;
     public void ForceCooldown() => UpdateCooldown();
 
-    /// <summary>Вызывается читом — триггерит анимацию, снаряд вылетит по animation event OnShoot.</summary>
-    public void ForceShoot()
-    {
-        if (_animator != null)
-            _animator.SetTrigger("Shoot");
-        else
-            OnShoot(); // fallback если аниматора нет
-        UpdateCooldown();
-    }
+
 
     public void OnShoot()
     {
@@ -238,12 +230,30 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
         // Пока не отстрелялись все залпы спецатаки — новую атаку не принимаем.
         if (_pendingFanShots > 0) return HitResult.Miss();
 
-        // Защита от "проглатывания" обычных атак:
-        // Если скорость атаки очень высокая, AutoAttacker может вызвать Hit() ДО ТОГО,
-        // как анимация успеет дойти до ивента OnShoot. В итоге анимация перезапустится,
-        // а стрела так и не вылетит. Поэтому ждём ивент (с таймаутом на случай застревания).
+        // Ждём OnShoot от прошлой атаки (защита от слишком частых Hit при высоком attack speed).
         if (_waitForAnimationEvent && Time.time < _waitForAnimationTimeout) return HitResult.Miss();
 
+        PerformAttack();
+        return new HitResult { Hit = true };
+    }
+
+    /// <summary>Вызывается читом — идёт по той же логике что обычная атака, чтобы спецатака тоже работала.</summary>
+    public void ForceShoot()
+    {
+        if (!IsReady) return;
+        if (_pendingFanShots > 0) return;
+        if (_waitForAnimationEvent && Time.time < _waitForAnimationTimeout) return;
+
+        PerformAttack();
+    }
+
+    /// <summary>
+    /// Единая точка запуска атаки. Считает счётчик, определяет спецатаку,
+    /// выставляет параметры аниматора и cooldown.
+    /// Вызывается и из Hit (обычный бой), и из ForceShoot (чит смены стихии).
+    /// </summary>
+    private void PerformAttack()
+    {
         if (_hasSpecialAttack)
         {
             _attackCounter++;
@@ -251,10 +261,8 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
 
             if (_isSpecialShot)
             {
-                // Заряжаем N залпов веера. Каждый OnShoot Event на клипе SpecialAttackRun
-                // израсходует по одному залпу.
                 _pendingFanShots = _specialFanVolleys;
-                _pendingFanExpireTime = Time.time + 2f; // safety
+                _pendingFanExpireTime = Time.time + 2f;
             }
         }
         else
@@ -262,7 +270,7 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
             _isSpecialShot = false;
         }
 
-        Debug.Log($"[Archer HIT] counter={_attackCounter} isSpecial={_isSpecialShot} pendingFan={_pendingFanShots}", this);
+        Debug.Log($"[Archer PERFORM] counter={_attackCounter} isSpecial={_isSpecialShot} pendingFan={_pendingFanShots}", this);
 
         if (_animator != null)
         {
@@ -272,14 +280,14 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
         }
         else
         {
-            Debug.LogWarning($"[Ranged] {name}: _animator == null!", this);
+            // fallback без аниматора — стреляем сразу
+            OnShoot();
         }
 
         _waitForAnimationEvent = true;
         _waitForAnimationTimeout = Time.time + 1.5f;
 
         UpdateCooldown();
-        return new HitResult { Hit = true };
     }
 
     private void Update()

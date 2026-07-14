@@ -32,7 +32,13 @@ public class Projectile : MonoBehaviour
     private float       _distanceTravelled;
     private bool        _active;
     private ElementType _element = ElementType.None;
-    private ParticleSystem[] _particles; // трейлы/эффекты самого снаряда
+    private ParticleSystem[] _particles;
+    private TrailRenderer[]  _trails;
+
+    // Запоминаем исходную активность дочерних GO — некоторые могут выключиться
+    // через ParticleSystem.StopAction=Disable и не включиться при повторном Use из пула.
+    private GameObject[] _particleGameObjects;
+    private bool[]       _particleGameObjectsInitialActive;
 
     // Буфер для поиска врагов без выделения памяти (GC Alloc = 0)
     private static Collider[] _aoeHitResults = new Collider[32];
@@ -46,6 +52,15 @@ public class Projectile : MonoBehaviour
     private void Awake()
     {
         _particles = GetComponentsInChildren<ParticleSystem>(true);
+        _trails    = GetComponentsInChildren<TrailRenderer>(true);
+
+        _particleGameObjects              = new GameObject[_particles.Length];
+        _particleGameObjectsInitialActive = new bool[_particles.Length];
+        for (int i = 0; i < _particles.Length; i++)
+        {
+            _particleGameObjects[i]              = _particles[i].gameObject;
+            _particleGameObjectsInitialActive[i] = _particles[i].gameObject.activeSelf;
+        }
     }
 
     /// <summary>Запускает снаряд. Урон, дистанция, стихия. Спавнит muzzle в точке старта.</summary>
@@ -62,11 +77,39 @@ public class Projectile : MonoBehaviour
 
     private void RestartParticles()
     {
-        if (_particles == null) return;
-        foreach (var ps in _particles)
+        // 1. Восстанавливаем исходную активность GameObject'ов.
+        // Это важно из-за ParticleSystem.StopAction=Disable в некоторых VFX-префабах,
+        // который выключает GO после окончания жизни партикла.
+        if (_particleGameObjects != null)
         {
-            ps.Clear(true);
-            ps.Play(true);
+            for (int i = 0; i < _particleGameObjects.Length; i++)
+            {
+                if (_particleGameObjects[i] != null &&
+                    _particleGameObjects[i].activeSelf != _particleGameObjectsInitialActive[i])
+                {
+                    _particleGameObjects[i].SetActive(_particleGameObjectsInitialActive[i]);
+                }
+            }
+        }
+
+        // 2. Перезапускаем партиклы.
+        if (_particles != null)
+        {
+            foreach (var ps in _particles)
+            {
+                if (ps == null) continue;
+                ps.Clear(true);
+                ps.Play(true);
+            }
+        }
+
+        // 3. Обнуляем трейлы — иначе старый след потянется от прошлой позиции.
+        if (_trails != null)
+        {
+            foreach (var tr in _trails)
+            {
+                if (tr != null) tr.Clear();
+            }
         }
     }
 

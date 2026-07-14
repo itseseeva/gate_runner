@@ -204,11 +204,11 @@ MonoBehaviour:
   _critColor: {r: 1, g: 0.0990566, b: 0.13867526, a: 1}
   _burnColor: {r: 1, g: 0.45, b: 0.1, a: 1}
   _freezeColor: {r: 0.55, g: 0.85, b: 1, a: 1}
-  _shockColor: {r: 0.75, g: 0.5, b: 1, a: 1}
+  _shockColor: {r: 0.49019608, g: 0.8627451, b: 1, a: 1}
   _healColor: {r: 0.4, g: 1, b: 0.5, a: 1}
   _burnEmoji: {fileID: 11400000, guid: 789620b1dad0f824597ddfb8037267d3, type: 2}
   _freezeEmoji: {fileID: 11400000, guid: 9e135ec40ac3888479c67087a1e32983, type: 2}
-  _shockEmoji: {fileID: 11400000, guid: eb2b3ca00bffc1240a2704cec4f71d68, type: 2}
+  _shockEmoji: {fileID: 11400000, guid: 266c4a9447cf95949b9c5aed7f9e0e34, type: 2}
   _critSizeMul: 1.6
   _burnSizeMul: 0.7
   _normalSizeMul: 1

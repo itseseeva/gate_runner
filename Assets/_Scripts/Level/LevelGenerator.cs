@@ -252,14 +252,18 @@ public class LevelGenerator : MonoBehaviour
 
     private void SpawnWave(WaveData wave)
     {
-        if (_config.EnemyPrefab == null) return;
+        if (_config.EnemyPrefabs == null || _config.EnemyPrefabs.Count == 0) return;
 
         // Определяем позиции врагов в зависимости от формации
         Vector3[] positions = GenerateWavePositions(wave);
 
         for (int i = 0; i < positions.Length; i++)
         {
-            GameObject go = Instantiate(_config.EnemyPrefab, positions[i], Quaternion.identity);
+            GameObject prefabToSpawn = _config.EnemyPrefabs[Random.Range(0, _config.EnemyPrefabs.Count)];
+
+            if (prefabToSpawn == null) continue;
+
+            GameObject go = Instantiate(prefabToSpawn, positions[i], Quaternion.identity);
 
             Enemy enemy = go.GetComponent<Enemy>();
             if (enemy != null)

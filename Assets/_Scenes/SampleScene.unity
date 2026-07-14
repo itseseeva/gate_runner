@@ -4076,7 +4076,7 @@ MonoBehaviour:
   - heroType: 3
     count: 0
   - heroType: 1
-    count: 1
+    count: 0
   - heroType: 0
     count: 0
   - heroType: 4
@@ -4992,7 +4992,7 @@ MonoBehaviour:
   _prefab: {fileID: 8922442749065511122, guid: 0539ed6975370e942bb97c9b412f9a3a, type: 3}
   _preloadCount: 20
   _sideOffset: 0.25
-  _spawnHeight: 0.2
+  _spawnHeight: 0.4
   EmojiSpacing: 0.28
   EmojiVOffset: 0.25
   EmojiSize: 49.9
