@@ -15,18 +15,9 @@ public class EnemyMeleeCombat : MonoBehaviour
     // Константы движения — "чувство" врага, не баланс.
     // TODO: вынести в EnemyDefinitionSO при добавлении разных типов врагов.
     private const float TrackingRange   = 8f;
-    // TODO: вынести в EnemyDefinitionSO при добавлении разных типов врагов.
     // 3.5 (было 7) — согласовано со снижением WorldSpeed.
     private const float TrackingSpeed   = 3.5f;
 
-    [Header("Задержка реакции на свайп")]
-    [Tooltip("Насколько поздно враг реагирует на изменение X-позиции цели. Больше = медленнее следует.")]
-    [SerializeField] private float _swipeReactionDelay = 0.2f;
-
-    // Отложенная X-координата цели — та, которую враг знает "сейчас".
-    // Реальный X цели догоняет её с задержкой _swipeReactionDelay.
-    private float _delayedTargetX = 0f;
-    private bool  _delayedTargetXInit = false;
     private const float SeparationForce = 4f;
     private const float WobbleAmount    = 0.3f;
     private const float WobbleSpeed     = 2f;
@@ -61,6 +52,8 @@ public class EnemyMeleeCombat : MonoBehaviour
     private Transform _leader;         // отряд-якорь
     private float _prevLeaderX;
 
+    public bool IsInAttackStateFlag { get; set; }
+
     // Балансные числа из SO через Enemy.Data
     private float AttackRange      => _enemy.Data != null ? _enemy.Data.AttackRange      : 0.7f;
     private int   Damage           => _enemy.Data != null ? _enemy.Data.AttackDamage     : 10;
@@ -87,8 +80,6 @@ public class EnemyMeleeCombat : MonoBehaviour
         _chaseOffsetZ = Random.Range(-0.5f, 0.5f);
         _isChasing           = false;
         _hasChased           = false;
-
-        _delayedTargetXInit = false;
 
         if (_scroller != null) _scroller.enabled = true;
         if (_animator != null) _animator.SetBool("IsAttacking", false);
@@ -130,22 +121,7 @@ public class EnemyMeleeCombat : MonoBehaviour
         }
 
         Vector3 realTargetPoint = GetTargetPoint();
-
-        if (!_delayedTargetXInit)
-        {
-            _delayedTargetX = realTargetPoint.x;
-            _delayedTargetXInit = true;
-        }
-
-        if (_swipeReactionDelay > 0.001f)
-        {
-            float catchUpSpeed = 1f / _swipeReactionDelay;
-            _delayedTargetX = Mathf.Lerp(_delayedTargetX, realTargetPoint.x, Time.deltaTime * catchUpSpeed);
-        }
-        else
-        {
-            _delayedTargetX = realTargetPoint.x;
-        }
+        Vector3 toTarget = realTargetPoint - transform.position;
 
         // Дистанция до цели по XZ (по чистому центру цели, без offset).
         float distSqr = SqrDistanceXZ(transform.position, _target.transform.position);
@@ -178,25 +154,21 @@ public class EnemyMeleeCombat : MonoBehaviour
             Debug.Log($"[{gameObject.name}] Update: IsInAttackState=false. Starting UpdateChase.");
             UpdateChase();
         }
-        // Добавляем "гистерезис" (0.55f), чтобы не было мерцания (когда ResolveHeroOverlap 
-        // отодвигает врага ровно на 0.45f, и на следующем кадре он выпадает из атаки).
-        else if (distSqr <= 0.45f * 0.45f || (_isAttackMode && distSqr <= 0.55f * 0.55f))
-        {
-            // Подошли вплотную — останавливаемся и бьём из текущей точки. Никаких рывков.
-            SetAttackMode(true);
-            FaceTarget();
-        }
         else
         {
-            // Если вошли в широкую зону атаки, сбрасываем оффсет, чтобы точно добежать до цели
-            if (distSqr <= rangeSqr)
+            float triggerDist = AttackRange * 0.9f;
+            float hysteresisDist = AttackRange * 1.2f;
+
+            if (distSqr <= triggerDist * triggerDist || (_isAttackMode && distSqr <= hysteresisDist * hysteresisDist))
             {
-                _targetOffset = Vector3.zero;
+                SetAttackMode(true);
+                FaceTarget();
             }
-            
-            // Продолжаем честное движение через UpdateMovement, пока не подойдем на 0.45
-            SetAttackMode(false);
-            UpdateMovement();
+            else
+            {
+                SetAttackMode(false);
+                UpdateMovement();
+            }
         }
 
         ResolveOverlap();
@@ -223,6 +195,8 @@ public class EnemyMeleeCombat : MonoBehaviour
     public void OnAnimationHit()
     {
         if (_target == null || _target.IsDead) return;
+
+        if (_isChasing && !IsInAttackState()) return;
 
         // Ещё раз проверяем дистанцию — цель могла отойти пока анимация играла.
         float distSqr = SqrDistanceXZ(transform.position, GetTargetPoint());
@@ -261,31 +235,53 @@ public class EnemyMeleeCombat : MonoBehaviour
             Vector3 initDir = chasePos - transform.position;
             initDir.y = 0;
             if (initDir.sqrMagnitude > 0.0001f)
-                transform.rotation = Quaternion.LookRotation(initDir);
+                transform.rotation = Quaternion.LookRotation(-initDir);
+        }
+    }
+
+    public void EndAttackAndChase()
+    {
+        if (_isChasing)
+        {
+            SetAttackMode(false);
+        }
+        else if (!_hasChased)
+        {
+            SetAttackMode(false);
+            _isChasing = true;
+            _hasChased = true;
+            _chaseMinUntil = Time.time + 1.5f;
         }
     }
 
     // ── Приватная логика ─────────────────────────────────────────────
 
     /// <summary>
-    /// Разделяет капсулы врагов между собой через Physics.ComputePenetration.
-    /// Работает во ВСЕХ фазах кроме атаки — атакующий стоит как вкопанный.
+    /// Математическое расталкивание (Best Practice). 
+    /// Гарантирует минимальное расстояние между центрами врагов,
+    /// чтобы их визуал не пересекался, независимо от размера коллайдеров.
     /// </summary>
     private void ResolveOverlap()
     {
-        if (_myCollider == null) return;
+        float minDistance = 0.5f; // Минимальная дистанция между врагами (чтобы модели не слипались)
+        float minDistSqr = minDistance * minDistance;
 
         foreach (EnemyMeleeCombat other in _all)
         {
-            if (other == this || other._myCollider == null) continue;
+            if (other == this) continue;
 
-            if (Physics.ComputePenetration(
-                _myCollider,       transform.position,       transform.rotation,
-                other._myCollider, other.transform.position, other.transform.rotation,
-                out Vector3 dir, out float dist))
+            Vector3 diff = transform.position - other.transform.position;
+            diff.y = 0;
+            float sqrMag = diff.sqrMagnitude;
+
+            if (sqrMag < minDistSqr && sqrMag > 0.0001f)
             {
-                // Каждый выталкивает себя на половину — второй враг сделает то же самое
-                transform.position += dir * (dist * 0.5f);
+                float dist = Mathf.Sqrt(sqrMag);
+                float penetration = minDistance - dist;
+                Vector3 pushDir = diff / dist;
+
+                // Оба врага сдвигаются на половину глубины пересечения
+                transform.position += pushDir * (penetration * 0.5f);
             }
         }
     }
@@ -333,7 +329,6 @@ public class EnemyMeleeCombat : MonoBehaviour
             float angle = Random.Range(0f, Mathf.PI * 2f);
             float radius = Random.Range(0.3f, 0.7f);
             _targetOffset = new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
-            _delayedTargetXInit = false;
         }
 
         if (_target == null && Time.frameCount % 60 == 0)
@@ -363,6 +358,8 @@ public class EnemyMeleeCombat : MonoBehaviour
 
     private bool IsInAttackState()
     {
+        if (IsInAttackStateFlag) return true;
+
         if (_animator == null) return false;
         var info = _animator.GetCurrentAnimatorStateInfo(0);
         
@@ -371,8 +368,10 @@ public class EnemyMeleeCombat : MonoBehaviour
         int a1 = Animator.StringToHash("Attack1");
         int a2 = Animator.StringToHash("Attack2");
         int a3 = Animator.StringToHash("Attack3");
+        int s = Animator.StringToHash("slash01");
+        int m = Animator.StringToHash("MeleeAttack");
 
-        if (hash == a || hash == a1 || hash == a2 || hash == a3)
+        if (hash == a || hash == a1 || hash == a2 || hash == a3 || hash == s || hash == m)
             return true;
             
         // Также проверяем переход
@@ -380,7 +379,7 @@ public class EnemyMeleeCombat : MonoBehaviour
         {
             var nextInfo = _animator.GetNextAnimatorStateInfo(0);
             int nextHash = nextInfo.shortNameHash;
-            if (nextHash == a || nextHash == a1 || nextHash == a2 || nextHash == a3)
+            if (nextHash == a || nextHash == a1 || nextHash == a2 || nextHash == a3 || nextHash == s || nextHash == m)
                 return true;
         }
 
@@ -431,7 +430,11 @@ public class EnemyMeleeCombat : MonoBehaviour
 
                 // Компенсация WorldScroller только когда враг позади (dirZ > 0 — цель "впереди" по +Z).
                 if (dirZ > 0f)
-                    trackingDeltaZ = dirZ * TrackingSpeed * personalMul * Time.deltaTime;
+                {
+                    float currentWorldSpeed = _scroller != null ? (WorldScroller.WorldSpeed * _scroller.SpeedMultiplier) : WorldScroller.WorldSpeed;
+                    float scrollerComp = currentWorldSpeed * Time.deltaTime;
+                    trackingDeltaZ = scrollerComp + (dirZ * TrackingSpeed * personalMul * Time.deltaTime);
+                }
             }
         }
 
@@ -541,10 +544,9 @@ public class EnemyMeleeCombat : MonoBehaviour
         float chaosX    = _enemy.Data != null ? _enemy.Data.ChaseChaosX   : 1.5f;
 
         Vector3 basePos = _target != null ? _target.transform.position : _leader.position;
-        float chaseTargetX = _target != null ? _delayedTargetX : basePos.x;
 
         Vector3 targetPos = new Vector3(
-            chaseTargetX + _chaseOffsetX,
+            basePos.x + _chaseOffsetX,
             transform.position.y,
             basePos.z - chaseDist + _chaseOffsetZ
         );
@@ -552,12 +554,6 @@ public class EnemyMeleeCombat : MonoBehaviour
         Vector3 dir = targetPos - transform.position;
         dir.y = 0;
         float dist = dir.magnitude;
-
-        if (Time.frameCount % 10 == 0)
-        {
-            float targetRealX = basePos.x + _chaseOffsetX;
-            Debug.Log($"[CHASE-DELAY] {name}: targetRealX={targetRealX:F3}, delayedTargetX={targetPos.x:F3}, myX={transform.position.x:F3}, dirX={dir.x:F3}");
-        }
 
         if (dist > 0.05f)
         {

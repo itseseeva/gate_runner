@@ -13,6 +13,9 @@ public class Unit : MonoBehaviour
 
     [Header("UI")]
     [SerializeField] private HealthBar _healthBar;
+    [SerializeField] private Transform _damageNumberAnchor;
+    [Tooltip("На какой высоте спавнить цифру (у врагов по умолчанию 1.8)")]
+    [SerializeField] private float _damageNumberHeight = 1.0f;
 
     [Header("Визуализация (Best Practice)")]
     [Tooltip("Сюда перетаскиваем Renderer куба или SkinnedMeshRenderer гномика")]
@@ -246,11 +249,17 @@ public class Unit : MonoBehaviour
     /// Получает урон. Возвращает true если погиб.
     /// HP — общий пул всего пакета T2 (multiplier × MaxHP_T1).
     /// </summary>
-    public bool TakeDamage(int amount)
+    public bool TakeDamage(int amount, bool showDamageNumber = true, DamageNumberType numberType = DamageNumberType.Normal)
     {
         int hpBefore = _currentHP;
         _currentHP -= amount;
         _lastDamageTime = Time.time;
+
+        if (showDamageNumber && DamageNumberPool.Instance != null)
+        {
+            Transform anchor = _damageNumberAnchor != null ? _damageNumberAnchor : transform;
+            DamageNumberPool.Instance.Spawn(amount, anchor, numberType, _damageNumberHeight);
+        }
 
         int maxHP = GetBaseMaxHP() * _powerMultiplier;
 

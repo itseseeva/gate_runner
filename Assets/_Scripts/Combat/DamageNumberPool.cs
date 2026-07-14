@@ -55,7 +55,7 @@ public class DamageNumberPool : MonoBehaviour
     }
 
     /// <summary>Показывает цифру, прикреплённую к цели (двигается вместе с ней).</summary>
-    public void Spawn(int damage, Transform followTarget, DamageNumberType type = DamageNumberType.Normal)
+    public void Spawn(int damage, Transform followTarget, DamageNumberType type = DamageNumberType.Normal, float heightOverride = -1000f)
     {
         DamageNumber dn;
         if (_pool.Count > 0)
@@ -68,7 +68,8 @@ public class DamageNumberPool : MonoBehaviour
         }
 
         dn.gameObject.SetActive(true);
-        dn.Show(damage, followTarget, type, _sideOffset, _spawnHeight);
+        float h = heightOverride > -999f ? heightOverride : _spawnHeight;
+        dn.Show(damage, followTarget, type, _sideOffset, h);
     }
 
     public void Return(DamageNumber dn)

@@ -53,6 +53,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Unit
   _currentHP: 11111
   _healthBar: {fileID: 6074484509885747108}
+  _damageNumberAnchor: {fileID: 2959318085466183784}
   _unitRenderer: {fileID: 8111781155169087978, guid: b6305aa70237da349a58965443187d04, type: 3}
   _regenDelay: 3
   _regenTimeToFull: 3
@@ -1467,6 +1468,11 @@ PrefabInstance:
 --- !u!4 &1133148225528377090 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8829889587888101828, guid: 07f2d100a3a633a49bbaaf17d99451a8, type: 3}
+  m_PrefabInstance: {fileID: 8445324085067921094}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2959318085466183784 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6638954133277634222, guid: 07f2d100a3a633a49bbaaf17d99451a8, type: 3}
   m_PrefabInstance: {fileID: 8445324085067921094}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &3358319057533401875 stripped
