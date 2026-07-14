@@ -153,9 +153,34 @@ public class EnemyMeleeCombat : MonoBehaviour
 
         if (_isChasing)
         {
+            if (IsInAttackState())
+            {
+                // Позволяем анимации атаки (и всем комбо-ударам) завершиться до конца, стоя на месте.
+                // НЕ отключаем _isAttackMode полностью, чтобы скроллер оставался выключенным и враг не уезжал от героя.
+                // Но аниматору говорим остановиться, чтобы он мог перейти в Run по завершению комбо.
+                if (_animator != null) 
+                {
+                    if (_animator.GetBool("IsAttacking"))
+                        Debug.Log($"[{gameObject.name}] Update: IsInAttackState=true. Forcing IsAttacking=false on Animator.");
+                    _animator.SetBool("IsAttacking", false);
+                }
+                
+                FaceTarget();
+                ResolveOverlap();
+                ResolveHeroOverlap();
+                
+                // Продлеваем таймер чейза пока проигрывается анимация,
+                // чтобы 1.5 секунды начали тикать только когда враг реально побежит.
+                _chaseMinUntil = Time.time + 1.5f;
+                return;
+            }
+
+            Debug.Log($"[{gameObject.name}] Update: IsInAttackState=false. Starting UpdateChase.");
             UpdateChase();
         }
-        else if (distSqr <= 0.45f * 0.45f)
+        // Добавляем "гистерезис" (0.55f), чтобы не было мерцания (когда ResolveHeroOverlap 
+        // отодвигает врага ровно на 0.45f, и на следующем кадре он выпадает из атаки).
+        else if (distSqr <= 0.45f * 0.45f || (_isAttackMode && distSqr <= 0.55f * 0.55f))
         {
             // Подошли вплотную — останавливаемся и бьём из текущей точки. Никаких рывков.
             SetAttackMode(true);
@@ -202,17 +227,25 @@ public class EnemyMeleeCombat : MonoBehaviour
         // Ещё раз проверяем дистанцию — цель могла отойти пока анимация играла.
         float distSqr = SqrDistanceXZ(transform.position, GetTargetPoint());
         float rangeSqr = AttackRange * AttackRange;
-        if (distSqr > rangeSqr) return;
+        if (distSqr > rangeSqr)
+        {
+            Debug.Log($"[{gameObject.name}] OnAnimationHit: Missed! distSqr={distSqr} > rangeSqr={rangeSqr}");
+            return;
+        }
 
         bool killed = _target.TakeDamage(Damage);
+        Debug.Log($"[{gameObject.name}] OnAnimationHit: Hit target! Damage={Damage}");
+        
         if (killed)
         {
             _squad?.OnUnitDied(_target);
             EnemyTargetRegistry.Unregister(_target);
             _target = null;
         }
+        
         if (!_hasChased)
         {
+            Debug.Log($"[{gameObject.name}] OnAnimationHit: Starting chase mode.");
             _isChasing = true;
             _hasChased = true;
             _chaseMinUntil = Time.time + 1.5f;
@@ -314,7 +347,10 @@ public class EnemyMeleeCombat : MonoBehaviour
 
     private void SetAttackMode(bool attacking)
     {
+        if (_isAttackMode == attacking) return;
         _isAttackMode = attacking;
+        
+        Debug.Log($"[{gameObject.name}] SetAttackMode: {attacking}");
 
         // Всегда синхронизируем scroller — без early return.
         // Иначе состояние scroller может рассинхронизоваться после Chase.
@@ -323,6 +359,32 @@ public class EnemyMeleeCombat : MonoBehaviour
 
         if (_animator != null)
             _animator.SetBool("IsAttacking", attacking);
+    }
+
+    private bool IsInAttackState()
+    {
+        if (_animator == null) return false;
+        var info = _animator.GetCurrentAnimatorStateInfo(0);
+        
+        int hash = info.shortNameHash;
+        int a = Animator.StringToHash("Attack");
+        int a1 = Animator.StringToHash("Attack1");
+        int a2 = Animator.StringToHash("Attack2");
+        int a3 = Animator.StringToHash("Attack3");
+
+        if (hash == a || hash == a1 || hash == a2 || hash == a3)
+            return true;
+            
+        // Также проверяем переход
+        if (_animator.IsInTransition(0))
+        {
+            var nextInfo = _animator.GetNextAnimatorStateInfo(0);
+            int nextHash = nextInfo.shortNameHash;
+            if (nextHash == a || nextHash == a1 || nextHash == a2 || nextHash == a3)
+                return true;
+        }
+
+        return false;
     }
 
     private void UpdateMovement()
@@ -514,23 +576,38 @@ public class EnemyMeleeCombat : MonoBehaviour
         }
 
         // Определяем наклон от свайпа. 
-        // РАНЬШЕ враг читал мысли лидера (leaderDeltaX) и моментально поворачивался.
-        // ТЕПЕРЬ он наклоняется только если САМ физически начал смещаться вбок (с учётом задержки).
         _prevLeaderX = _leader.position.x; // просто обновляем чтобы не ломать логику, если где-то юзается
 
         const float maxTurn = 40f;
         float turnAngle = 0f;
         
-        // Вместо move.x используем само направление dir.x, так как move здесь недоступна.
         if (dist > 0.05f)
         {
             if (dir.normalized.x > 0.1f)  turnAngle =  maxTurn;
             if (dir.normalized.x < -0.1f) turnAngle = -maxTurn;
         }
 
-        // База 190° (прямо вперёд) + наклон. Плавно возвращается к 190 когда свайп кончился.
-        Quaternion targetRot = Quaternion.Euler(0f, 190f + turnAngle, 0f);
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, RotationSpeed * Time.deltaTime);
+        Vector3 lookDir;
+        if (dist > 0.5f)
+        {
+            // Если ещё бежим к точке чейза, смотрим по ходу движения
+            lookDir = dir;
+        }
+        else
+        {
+            // Если мы уже на позиции (позади героя), смотрим на героя
+            lookDir = basePos - transform.position;
+        }
+        
+        lookDir.y = 0;
+        if (lookDir.sqrMagnitude > 0.0001f)
+        {
+            // Компенсируем поворот модели (-190) так же, как в FaceTarget
+            Quaternion baseRot = Quaternion.LookRotation(-lookDir);
+            // Добавляем наклон
+            Quaternion targetRot = baseRot * Quaternion.Euler(0f, turnAngle, 0f);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, RotationSpeed * Time.deltaTime);
+        }
 
         // Минимальное время в Chase — проверка перенесена в начало метода.
     }
