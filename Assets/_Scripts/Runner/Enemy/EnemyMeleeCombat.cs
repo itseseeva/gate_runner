@@ -543,12 +543,15 @@ public class EnemyMeleeCombat : MonoBehaviour
         // Чем медленнее мир — тем ближе враги подходят к отряду.
         float chaosX    = _enemy.Data != null ? _enemy.Data.ChaseChaosX   : 1.5f;
 
-        Vector3 basePos = _target != null ? _target.transform.position : _leader.position;
-
+        // 0.7 метра — по просьбе пользователя
+        float lineDistance = 0.7f; 
+        
+        // Враги выстраиваются в одну ровную линию позади отряда.
+        // Важно: _leader.position — это ЦЕНТР отряда.
         Vector3 targetPos = new Vector3(
-            basePos.x + _chaseOffsetX,
+            _leader.position.x + _chaseOffsetX, // Разброс по ширине (X) сохраняем
             transform.position.y,
-            basePos.z - chaseDist + _chaseOffsetZ
+            _leader.position.z - lineDistance   // По глубине (Z) строго на одной линии позади центра
         );
 
         Vector3 dir = targetPos - transform.position;
@@ -591,8 +594,9 @@ public class EnemyMeleeCombat : MonoBehaviour
         }
         else
         {
-            // Если мы уже на позиции (позади героя), смотрим на героя
-            lookDir = basePos - transform.position;
+            // В чейз моде смотрим на героя, которого били (как просил пользователь)
+            Vector3 lookTarget = _target != null ? _target.transform.position : (_leader != null ? _leader.position : transform.position);
+            lookDir = lookTarget - transform.position;
         }
         
         lookDir.y = 0;

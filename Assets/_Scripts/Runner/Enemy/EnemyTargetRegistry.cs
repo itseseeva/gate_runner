@@ -16,6 +16,10 @@ public static class EnemyTargetRegistry
     // Счётчики: сколько врагов направлено на каждого юнита.
     private static readonly Dictionary<Unit, int> _claimCount = new();
 
+    // Максимум врагов на одного героя (3 спереди + 1 слева + 1 справа = 5).
+    // Симметрично MAX_CLAIMS_PER_TARGET у героев в MeleeUnitController.
+    private const int MAX_ENEMIES_PER_HERO = 5;
+
     // Счётчики: сколько врагов на каждой стороне атаки.
     private static readonly Dictionary<AttackSide, int> _sideCount = new()
     {
@@ -61,7 +65,7 @@ public static class EnemyTargetRegistry
     /// <summary>
     /// Возвращает юнита, к которому идёт МЕНЬШЕ ВСЕГО врагов.
     /// При равенстве счётчиков — берёт ближайшего по XZ к позиции врага.
-    /// Возвращает null если живых юнитов нет.
+    /// Возвращает null если живых юнитов нет или у всех уже MAX_ENEMIES_PER_HERO врагов.
     /// </summary>
     public static Unit GetLeastAttacked(Vector3 fromPosition, SquadController squad)
     {
@@ -85,6 +89,9 @@ public static class EnemyTargetRegistry
             if (!u.gameObject.activeSelf) continue;
 
             int claims = _claimCount.TryGetValue(u, out int c) ? c : 0;
+            // Убрали лимит (claims >= MAX_ENEMIES_PER_HERO), чтобы "лишние" враги не превращались в призраков,
+            // а просто собирались в толпу вокруг героя, ожидая своей очереди.
+
             float distSqr = SqrDistanceXZ(fromPosition, u.transform.position);
 
             // Строгий приоритет по клеймам, при равенстве — по дистанции.
