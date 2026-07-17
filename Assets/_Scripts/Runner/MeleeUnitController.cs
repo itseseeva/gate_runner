@@ -183,6 +183,15 @@ public class MeleeUnitController : MonoBehaviour
             if (e.transform.position.z < minZ) continue;
 
             float d = Vector3.Distance(transform.position, e.transform.position);
+
+            // Если враг в чейз моде, мы можем атаковать его только если он уже в радиусе атаки.
+            // Это предотвращает разворот отряда назад за убегающими врагами.
+            var meleeCombat = e.GetComponent<EnemyMeleeCombat>();
+            if (meleeCombat != null && meleeCombat.IsChasing)
+            {
+                if (d > _attackRange) continue;
+            }
+
             if (d > range) continue;
 
             if (IsTank)

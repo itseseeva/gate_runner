@@ -51,7 +51,11 @@ public class EnemyMeleeCombat : MonoBehaviour
     private float _chaseMinUntil;
     private Transform _leader;         // отряд-якорь
     private float _prevLeaderX;
+    private float _nextTargetReevaluateTime = 0f;
+    private bool  _isPhasing = false;
+    private float _blockedTimer = 0f;
 
+    public bool IsChasing => _isChasing;
     public bool IsInAttackStateFlag { get; set; }
 
     // Балансные числа из SO через Enemy.Data
@@ -112,20 +116,69 @@ public class EnemyMeleeCombat : MonoBehaviour
         if (_enemy == null || _squad == null) return;
         if (GameStateManager.Instance != null && !GameStateManager.Instance.IsPlaying) return;
 
+        if (_myCollider != null)
+        {
+            _myCollider.enabled = !_isPhasing;
+        }
+
         UpdateTarget();
 
         if (_target == null)
         {
             SetAttackMode(false);
+            _isPhasing = false;
             return;
         }
 
         Vector3 realTargetPoint = GetTargetPoint();
         Vector3 toTarget = realTargetPoint - transform.position;
 
-        // Дистанция до цели по XZ (по чистому центру цели, без offset).
-        float distSqr = SqrDistanceXZ(transform.position, _target.transform.position);
+        // Дистанция до цели по XZ — меряем до реальной точки подхода (с оффсетом).
+        // Если offset (0.3-0.7м) больше AttackRange, враг никогда не войдёт в зону атаки!
+        Vector3 approachPoint = GetTargetPoint();
+        float distSqr = SqrDistanceXZ(transform.position, approachPoint);
         float rangeSqr = AttackRange * AttackRange;
+
+        // ЛОГИКА ПРОСАЧИВАНИЯ (PHASING):
+        // Если мы бежим к цели (не в атаке и не в чейзе), но упёрлись в другого врага перед собой:
+        if (!_isChasing && !_isAttackMode)
+        {
+            bool isOverlappingOtherEnemy = false;
+            float checkDist = 0.48f; // Чуть меньше minDistance расталкивания (0.5м)
+            foreach (EnemyMeleeCombat other in _all)
+            {
+                if (other == this || other._isChasing) continue;
+                if (SqrDistanceXZ(transform.position, other.transform.position) < checkDist * checkDist)
+                {
+                    isOverlappingOtherEnemy = true;
+                    break;
+                }
+            }
+
+            if (isOverlappingOtherEnemy && distSqr > rangeSqr)
+            {
+                _blockedTimer += Time.deltaTime;
+                if (_blockedTimer > 0.4f) // Если заблокирован дольше 0.4 сек — включаем просачивание
+                {
+                    _isPhasing = true;
+                }
+            }
+            else
+            {
+                _blockedTimer = 0f;
+            }
+        }
+        else
+        {
+            _blockedTimer = 0f;
+            _isPhasing = false;
+        }
+
+        // Если мы просачивались и уже дошли до радиуса атаки — выключаем фазирование
+        if (_isPhasing && distSqr <= rangeSqr * 1.1f)
+        {
+            _isPhasing = false;
+        }
 
         if (_isChasing)
         {
@@ -143,7 +196,6 @@ public class EnemyMeleeCombat : MonoBehaviour
                 
                 FaceTarget();
                 ResolveOverlap();
-                ResolveHeroOverlap();
                 
                 // Продлеваем таймер чейза пока проигрывается анимация,
                 // чтобы 1.5 секунды начали тикать только когда враг реально побежит.
@@ -163,16 +215,28 @@ public class EnemyMeleeCombat : MonoBehaviour
             {
                 SetAttackMode(true);
                 FaceTarget();
+                
+                // Скроллер выключен — вручную синхронизируем Z врага с Z цели.
+                // Используем Lerp чтобы движение было плавным, а не телепортом.
+                if (_target != null)
+                {
+                    float targetZ = _target.transform.position.z;
+                    float newZ = Mathf.Lerp(transform.position.z, targetZ, 15f * Time.deltaTime);
+                    transform.position = new Vector3(transform.position.x, transform.position.y, newZ);
+                }
             }
             else
             {
                 SetAttackMode(false);
+                FaceTarget(); // Смотрим на цель даже во время движения к ней
                 UpdateMovement();
             }
         }
 
         ResolveOverlap();
-        ResolveHeroOverlap();
+        // Выталкивание от героев работает всегда (при атаке и движении к цели),
+        // и ОТКЛЮЧАЕТСЯ только в чейз моде — чтобы враг мог пройти сквозь отряд назад.
+        if (!_isChasing) ResolveHeroOverlap();
 
         if (Time.frameCount % 60 == 0)
         {
@@ -216,27 +280,6 @@ public class EnemyMeleeCombat : MonoBehaviour
             EnemyTargetRegistry.Unregister(_target);
             _target = null;
         }
-        
-        if (!_hasChased)
-        {
-            Debug.Log($"[{gameObject.name}] OnAnimationHit: Starting chase mode.");
-            _isChasing = true;
-            _hasChased = true;
-            _chaseMinUntil = Time.time + 1.5f;
-        }
-
-        // При переходе в Chase — сразу разворачиваем врaга по направлению отхода.
-        // Slerp в UpdateChase будет только корректировать по ходу движения.
-        if (_target != null && _enemy.Data != null)
-        {
-            Vector3 basePos = _target.transform.position;
-            float chaseDist = _enemy.Data.ChaseDistance;
-            Vector3 chasePos = new Vector3(basePos.x, transform.position.y, basePos.z - chaseDist);
-            Vector3 initDir = chasePos - transform.position;
-            initDir.y = 0;
-            if (initDir.sqrMagnitude > 0.0001f)
-                transform.rotation = Quaternion.LookRotation(-initDir);
-        }
     }
 
     public void EndAttackAndChase()
@@ -251,6 +294,18 @@ public class EnemyMeleeCombat : MonoBehaviour
             _isChasing = true;
             _hasChased = true;
             _chaseMinUntil = Time.time + 1.5f;
+
+            // При переходе в Chase — сразу разворачиваем врага по направлению отхода.
+            if (_target != null && _enemy.Data != null)
+            {
+                Vector3 basePos = _target.transform.position;
+                float chaseDist = _enemy.Data.ChaseDistance;
+                Vector3 chasePos = new Vector3(basePos.x, transform.position.y, basePos.z - chaseDist);
+                Vector3 initDir = chasePos - transform.position;
+                initDir.y = 0;
+                if (initDir.sqrMagnitude > 0.0001f)
+                    transform.rotation = Quaternion.LookRotation(-initDir);
+            }
         }
     }
 
@@ -263,12 +318,18 @@ public class EnemyMeleeCombat : MonoBehaviour
     /// </summary>
     private void ResolveOverlap()
     {
+        // Если я нахожусь в режиме просачивания, я полностью игнорирую расталкивание
+        // с другими врагами, чтобы протиснуться сквозь них вперёд.
+        if (_isPhasing) return;
+
         float minDistance = 0.5f; // Минимальная дистанция между врагами (чтобы модели не слипались)
         float minDistSqr = minDistance * minDistance;
 
         foreach (EnemyMeleeCombat other in _all)
         {
             if (other == this) continue;
+            // Игнорируем других врагов, которые в данный момент просачиваются сквозь толпу
+            if (other._isPhasing) continue;
 
             Vector3 diff = transform.position - other.transform.position;
             diff.y = 0;
@@ -280,8 +341,19 @@ public class EnemyMeleeCombat : MonoBehaviour
                 float penetration = minDistance - dist;
                 Vector3 pushDir = diff / dist;
 
-                // Оба врага сдвигаются на половину глубины пересечения
-                transform.position += pushDir * (penetration * 0.5f);
+                // Если я атакую, а другой — нет: я стою как стена (сдвиг 0), а другой сдвигается на все 100%.
+                // Если оба атакуют или оба двигаются — сдвигаемся пополам (50/50).
+                float weight = 0.5f;
+                if (_isAttackMode && !other._isAttackMode)
+                {
+                    weight = 0f;
+                }
+                else if (!_isAttackMode && other._isAttackMode)
+                {
+                    weight = 1f;
+                }
+
+                transform.position += pushDir * (penetration * weight);
             }
         }
     }
@@ -293,6 +365,10 @@ public class EnemyMeleeCombat : MonoBehaviour
     private void ResolveHeroOverlap()
     {
         if (_squad == null || _myCollider == null) return;
+        
+        // ВАЖНО: Если мы бежим в чейз мод (за спины героев), нам нужно пройти сквозь отряд!
+        // Иначе герои будут бесконечно выталкивать врага обратно, и он застрянет.
+        if (_isChasing) return;
 
         foreach (Unit u in _squad.AllUnits)
         {
@@ -314,21 +390,50 @@ public class EnemyMeleeCombat : MonoBehaviour
 
     private void UpdateTarget()
     {
-        if (_target != null && !_target.IsDead && _target.gameObject.activeSelf) return;
+        bool needsNewTarget = (_target == null || _target.IsDead || !_target.gameObject.activeSelf);
+        
+        // Если цель жива, но мы ещё не бьём её и не в чейзе — периодически переоцениваем цель.
+        // Это позволяет переключаться на более близких героев, если нас растолкали или заблокировали.
+        bool canReevaluate = !_isChasing && !_isAttackMode && Time.time >= _nextTargetReevaluateTime;
 
-        if (_target != null)
+        if (needsNewTarget || canReevaluate)
         {
-            EnemyTargetRegistry.Unregister(_target);
-            _target = null;
-        }
+            _nextTargetReevaluateTime = Time.time + Random.Range(1f, 1.5f); // Немного рандомизируем интервал
 
-        _target = EnemyTargetRegistry.GetLeastAttacked(transform.position, _squad);
-        if (_target != null)
-        {
-            EnemyTargetRegistry.Register(_target);
-            float angle = Random.Range(0f, Mathf.PI * 2f);
-            float radius = Random.Range(0.3f, 0.7f);
-            _targetOffset = new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
+            Unit oldTarget = _target;
+            if (oldTarget != null)
+            {
+                EnemyTargetRegistry.Unregister(oldTarget);
+            }
+
+            Unit newTarget = EnemyTargetRegistry.GetLeastAttacked(transform.position, _squad);
+            if (newTarget != null)
+            {
+                _target = newTarget;
+                EnemyTargetRegistry.Register(_target);
+                
+                // Если цель реально сменилась — пересчитываем оффсет подхода
+                if (newTarget != oldTarget)
+                {
+                    float maxOffset = Mathf.Clamp(AttackRange * 0.6f, 0.05f, 0.4f);
+                    float angle = Random.Range(0f, Mathf.PI * 2f);
+                    float radius = Random.Range(maxOffset * 0.3f, maxOffset);
+                    _targetOffset = new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
+                }
+            }
+            else
+            {
+                // Если новые цели не найдены, возвращаем старую (если она жива)
+                if (oldTarget != null && !oldTarget.IsDead && oldTarget.gameObject.activeSelf)
+                {
+                    _target = oldTarget;
+                    EnemyTargetRegistry.Register(_target);
+                }
+                else
+                {
+                    _target = null;
+                }
+            }
         }
 
         if (_target == null && Time.frameCount % 60 == 0)
@@ -347,8 +452,9 @@ public class EnemyMeleeCombat : MonoBehaviour
         
         Debug.Log($"[{gameObject.name}] SetAttackMode: {attacking}");
 
-        // Всегда синхронизируем scroller — без early return.
-        // Иначе состояние scroller может рассинхронизоваться после Chase.
+        // Во время атаки отключаем скроллер — иначе WorldScroller
+        // утащит врага назад по -Z и он отвалится от героя.
+        // Вместо этого Z позиция врага фиксируется к Z цели каждый кадр (см. Update).
         if (_scroller != null)
             _scroller.enabled = !attacking;
 
@@ -489,7 +595,9 @@ public class EnemyMeleeCombat : MonoBehaviour
     private void FaceTarget()
     {
         if (_target == null) return;
-        Vector3 dir = GetTargetPoint() - transform.position;
+        // Смотрим строго на ЦЕНТР героя (не на точку с оффсетом),
+        // чтобы взгляд всегда был зафиксирован на персонаже, которого бьём.
+        Vector3 dir = _target.transform.position - transform.position;
         dir.y = 0;
         if (dir.sqrMagnitude < 0.0001f) return;
         // Модель Skeleton_110 повёрнута на -190° — компенсируем через LookRotation(-dir).
@@ -511,31 +619,46 @@ public class EnemyMeleeCombat : MonoBehaviour
         SetAttackMode(false);
         if (_scroller != null) _scroller.enabled = false;
 
-        // Chase-дистанция масштабируется по относительной скорости мира.
-        // При обычной скорости враг красиво преследует издалека.
-        // При замедлении дистанция сокращается — враг подтягивается на удар.
+        // Находим задний край отряда (минимальный Z среди живых активных героев)
+        float minZ = _leader.position.z;
+        if (_squad != null)
+        {
+            float tempMin = float.MaxValue;
+            foreach (Unit u in _squad.AllUnits)
+            {
+                if (u == null || u.IsDead || !u.gameObject.activeSelf) continue;
+                if (u.transform.position.z < tempMin)
+                {
+                    tempMin = u.transform.position.z;
+                }
+            }
+            if (tempMin != float.MaxValue)
+            {
+                minZ = tempMin;
+            }
+        }
+
+        // Chase-дистанция масштабируется по относительной скорости мира и берётся из настроек SO врага.
         float speedRatio = WorldScroller.WorldSpeed / WorldScroller.BaseWorldSpeed;
-        float chaseDist = (_enemy.Data != null ? _enemy.Data.ChaseDistance : 5f) * speedRatio;
+        float lineDistance = (_enemy.Data != null ? _enemy.Data.ChaseDistance : 0.8f) * speedRatio;
 
         if (_target != null && !_target.IsDead && Time.time >= _chaseMinUntil)
         {
-            // Если мир замедлился, chaseDist уменьшается, враг подходит ближе к герою.
             // Выходим из Chase и снова бьём ТОЛЬКО если отряд замедлился (скорость упала)
-            // или враг оказался в радиусе атаки.
-            float currentDistSqr = SqrDistanceXZ(transform.position, _target.transform.position);
+            // или задний край отряда подошёл к нам на дистанцию атаки.
+            float distToBack = Mathf.Max(0f, minZ - transform.position.z);
             float triggerRange = AttackRange * 1.5f;
 
-            // Выход из Chase в двух случаях:
-            // 1. Враг подошёл вплотную к цели (обычная логика приближения).
-            // 2. Отряд значительно замедлился (< 50% базовой скорости) — враги должны стать
-            //    агрессивными и подходить на удар, а не топтаться позади.
             bool worldSlowed = WorldScroller.WorldSpeed < WorldScroller.BaseWorldSpeed * 0.5f;
-            if (worldSlowed || currentDistSqr <= triggerRange * triggerRange)
+            if (worldSlowed || distToBack <= triggerRange)
             {
                 _isChasing = false;
+                _hasChased = false;
                 _chaseOffsetX = 0f;
                 _chaseOffsetZ = 0f;
                 _targetOffset = Vector3.zero;
+                // Возвращаем скроллер — теперь мир двигает врага вместе с героями (как при атаке и движении)
+                if (_scroller != null) _scroller.enabled = true;
                 return;
             }
         }
@@ -543,15 +666,11 @@ public class EnemyMeleeCombat : MonoBehaviour
         // Чем медленнее мир — тем ближе враги подходят к отряду.
         float chaosX    = _enemy.Data != null ? _enemy.Data.ChaseChaosX   : 1.5f;
 
-        // 0.7 метра — по просьбе пользователя
-        float lineDistance = 0.7f; 
-        
         // Враги выстраиваются в одну ровную линию позади отряда.
-        // Важно: _leader.position — это ЦЕНТР отряда.
         Vector3 targetPos = new Vector3(
-            _leader.position.x + _chaseOffsetX, // Разброс по ширине (X) сохраняем
+            _leader.position.x + _chaseOffsetX, // Разброс по X сохраняем
             transform.position.y,
-            _leader.position.z - lineDistance   // По глубине (Z) строго на одной линии позади центра
+            minZ - lineDistance                 // По Z строго на линии позади самого заднего героя
         );
 
         Vector3 dir = targetPos - transform.position;

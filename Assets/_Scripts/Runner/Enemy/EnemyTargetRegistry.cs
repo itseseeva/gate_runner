@@ -74,32 +74,63 @@ public static class EnemyTargetRegistry
         IReadOnlyList<Unit> units = squad.AllUnits;
         if (units == null || units.Count == 0) return null;
 
+        // Находим передний край отряда (максимальный Z среди живых активных героев)
+        float maxZ = float.MinValue;
+        foreach (Unit u in units)
+        {
+            if (u == null || u.IsDead || !u.gameObject.activeSelf) continue;
+            if (u.transform.position.z > maxZ)
+            {
+                maxZ = u.transform.position.z;
+            }
+        }
+
         Unit best = null;
         int minClaims = int.MaxValue;
         float minDistSqr = float.MaxValue;
 
-        // Двухступенчатый выбор:
-        // 1. Юнит с МЕНЬШИМ количеством клеймов имеет приоритет всегда.
-        // 2. При равных клеймах — выбираем БЛИЖАЙШЕГО (тае-брейк по дистанции).
-        // Это гарантирует что задние ряды заполнятся (пока клеймов 0, все юниты равны),
-        // и врaг не бежит через всю сцену к дальнему свободному.
-        foreach (Unit u in units)
+        // Если нашли живых героев, пробуем выбрать цель только из первого ряда (в пределах 1.0м от переднего края)
+        if (maxZ != float.MinValue)
         {
-            if (u == null || u.IsDead) continue;
-            if (!u.gameObject.activeSelf) continue;
+            float firstRowThreshold = maxZ - 1.0f;
 
-            int claims = _claimCount.TryGetValue(u, out int c) ? c : 0;
-            // Убрали лимит (claims >= MAX_ENEMIES_PER_HERO), чтобы "лишние" враги не превращались в призраков,
-            // а просто собирались в толпу вокруг героя, ожидая своей очереди.
-
-            float distSqr = SqrDistanceXZ(fromPosition, u.transform.position);
-
-            // Строгий приоритет по клеймам, при равенстве — по дистанции.
-            if (claims < minClaims || (claims == minClaims && distSqr < minDistSqr))
+            foreach (Unit u in units)
             {
-                minClaims = claims;
-                minDistSqr = distSqr;
-                best = u;
+                if (u == null || u.IsDead || !u.gameObject.activeSelf) continue;
+                if (u.transform.position.z < firstRowThreshold) continue; // игнорируем задние ряды
+
+                int claims = _claimCount.TryGetValue(u, out int c) ? c : 0;
+                float distSqr = SqrDistanceXZ(fromPosition, u.transform.position);
+
+                // Приоритет по количеству атакующих (claims), при равенстве — по расстоянию
+                if (claims < minClaims || (claims == minClaims && distSqr < minDistSqr))
+                {
+                    minClaims = claims;
+                    minDistSqr = distSqr;
+                    best = u;
+                }
+            }
+        }
+
+        // Если первый ряд не найден или пуст, ищем по всему отряду как обычно
+        if (best == null)
+        {
+            minClaims = int.MaxValue;
+            minDistSqr = float.MaxValue;
+
+            foreach (Unit u in units)
+            {
+                if (u == null || u.IsDead || !u.gameObject.activeSelf) continue;
+
+                int claims = _claimCount.TryGetValue(u, out int c) ? c : 0;
+                float distSqr = SqrDistanceXZ(fromPosition, u.transform.position);
+
+                if (claims < minClaims || (claims == minClaims && distSqr < minDistSqr))
+                {
+                    minClaims = claims;
+                    minDistSqr = distSqr;
+                    best = u;
+                }
             }
         }
 
