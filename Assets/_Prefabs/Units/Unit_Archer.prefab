@@ -54,6 +54,7 @@ MonoBehaviour:
   _currentHP: 11111
   _healthBar: {fileID: 6074484509885747108}
   _damageNumberAnchor: {fileID: 2959318085466183784}
+  _damageNumberHeight: 0.3
   _unitRenderer: {fileID: 8111781155169087978, guid: b6305aa70237da349a58965443187d04, type: 3}
   _regenDelay: 3
   _regenTimeToFull: 3
@@ -103,7 +104,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RangedAutoAttack
   _attackSpeed: 6
   _range: 15
-  _baseDamage: 1
+  _baseDamage: 2
   _projectilePool: {fileID: 0}
   _projectilePrefab: {fileID: 0}
   _spawnHeightOffset: 0

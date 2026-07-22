@@ -24,6 +24,8 @@ MonoBehaviour:
   EnemyPrefabs:
   - {fileID: 6538716731787721495, guid: e29e53421a0e8ea44b0f3c3cf030c332, type: 3}
   - {fileID: 6538716731787721495, guid: 04cfa2390fb5745429fcbf6e47441369, type: 3}
+  - {fileID: 6538716731787721495, guid: 45acd739efbc33a4182fe29a063d79fd, type: 3}
+  - {fileID: 6538716731787721495, guid: 821a3e2f9ac842543bc68be5295484dc, type: 3}
   GatePool:
   - {fileID: 3563244148941149285, guid: a324b7efa578b48459f5cef063468d10, type: 3}
   - {fileID: 5300034710362681070, guid: 2b9f238b16d9c8b4bb667495993ab306, type: 3}

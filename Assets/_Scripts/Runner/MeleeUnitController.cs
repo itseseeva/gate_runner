@@ -186,8 +186,8 @@ public class MeleeUnitController : MonoBehaviour
 
             // Если враг в чейз моде, мы можем атаковать его только если он уже в радиусе атаки.
             // Это предотвращает разворот отряда назад за убегающими врагами.
-            var meleeCombat = e.GetComponent<EnemyMeleeCombat>();
-            if (meleeCombat != null && meleeCombat.IsChasing)
+            var combat = e.GetComponent<EnemyCombatBase>();
+            if (combat != null && combat.IsChasing)
             {
                 if (d > _attackRange) continue;
             }

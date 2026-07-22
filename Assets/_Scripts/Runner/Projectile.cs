@@ -22,11 +22,14 @@ public class Projectile : MonoBehaviour
     [Tooltip("Взрыв при попадании — спавнится в точке удара.")]
     [SerializeField] private GameObject _hitEffect;
 
+    [Tooltip("Насколько сдвинуть хит-эффект вглубь цели от точки касания")]
+    [SerializeField] private float _hitEffectForward = 0.3f;
+
     [Header("Настройки попадания (Best Practice)")]
     [Tooltip("Радиус самого снаряда (чтобы не пролетал сквозь врагов).")]
     [SerializeField] private float _hitboxRadius = 0.3f;
-    [Tooltip("Маска слоев, по которым может попасть снаряд (обычно слои врагов).")]
-    [SerializeField] private LayerMask _enemyLayerMask = ~0;
+    [Tooltip("Маска слоёв, по которым может попасть снаряд. У героев — слой Enemy, у врагов — слой Unit.")]
+    [SerializeField] private LayerMask _hitLayerMask = ~0;
 
     private int         _damage;
     private float       _distanceTravelled;
@@ -122,18 +125,19 @@ public class Projectile : MonoBehaviour
         // Best Practice: Continuous Collision Detection через SphereCast.
         // Запускаем сферу из текущей позиции в следующую, чтобы снаряд не пролетал сквозь врагов при большой скорости.
         // Снаряд летит в направлении СВОЕГО forward (учитывает ротацию из Launch — для веера, конусов).
-        // Раньше был Vector3.forward — снаряды летели только в мировой +Z независимо от ротации.
         Vector3 fwd = transform.forward;
 
-        if (Physics.SphereCast(transform.position, _hitboxRadius, fwd, out RaycastHit hit, step, _enemyLayerMask, QueryTriggerInteraction.Collide))
+        if (Physics.SphereCast(transform.position, _hitboxRadius, fwd, out RaycastHit hit, step, _hitLayerMask, QueryTriggerInteraction.Collide))
         {
-            Enemy enemy = hit.collider.GetComponentInParent<Enemy>();
-            if (enemy != null)
+            // Ищем IDamageable, а не Enemy — снаряд не знает, в кого летит.
+            // Кого бить, решает _hitLayerMask на префабе снаряда.
+            IDamageable target = hit.collider.GetComponentInParent<IDamageable>();
+            if (target != null && !target.IsDead)
             {
                 // Перемещаемся в точку удара для точного спавна эффектов
                 transform.position = transform.position + fwd * hit.distance;
                 
-                HitTarget(enemy, transform.position);
+                HitTarget(target, transform.position);
                 return;
             }
         }
@@ -145,16 +149,16 @@ public class Projectile : MonoBehaviour
             ReturnToPool();
     }
 
-    private void HitTarget(Enemy directTarget, Vector3 hitPoint)
+    private void HitTarget(IDamageable directTarget, Vector3 hitPoint)
     {
         // 1. Гарантированный урон тому, в кого прямо попали
-        ApplyDamageToEnemy(directTarget);
+        ApplyDamage(directTarget);
 
         // 2. Урон по площади (AoE) — ТОЛЬКО для стихийных снарядов (не базовых)
         if (_element != ElementType.None && _aoeRadius > 0f)
         {
             // Используем NonAlloc версию, чтобы не выделять массив в памяти каждый раз
-            int hitCount = Physics.OverlapSphereNonAlloc(hitPoint, _aoeRadius, _aoeHitResults, _enemyLayerMask, QueryTriggerInteraction.Collide);
+            int hitCount = Physics.OverlapSphereNonAlloc(hitPoint, _aoeRadius, _aoeHitResults, _hitLayerMask, QueryTriggerInteraction.Collide);
             
             // Сортировка вставками (Insertion Sort) — самый быстрый вариант для маленьких массивов.
             // Без делегатов (лямбд), без GC Alloc, используем sqrMagnitude (без тяжелого вычисления корня).
@@ -175,11 +179,11 @@ public class Projectile : MonoBehaviour
             int targetsHit = 0;
             for (int i = 0; i < hitCount; i++)
             {
-                Enemy enemy = _aoeHitResults[i].GetComponentInParent<Enemy>();
+                IDamageable victim = _aoeHitResults[i].GetComponentInParent<IDamageable>();
                 // Пропускаем того, кому уже нанесли прямой урон
-                if (enemy == null || enemy == directTarget) continue;
+                if (victim == null || victim == directTarget || victim.IsDead) continue;
 
-                ApplyDamageToEnemy(enemy);
+                ApplyDamage(victim);
                 targetsHit++;
 
                 // Ограничиваем количество задетых врагов
@@ -187,16 +191,24 @@ public class Projectile : MonoBehaviour
             }
         }
 
-        // Хит-эффект — ОДИН раз, в точке попадания
+        // Хит-эффект — ОДИН раз, чуть ниже точки попадания (эффект визуально всплывает вверх)
         if (_hitEffect != null && VfxPool.Instance != null)
-            VfxPool.Instance.Spawn(hitPoint, Quaternion.identity, _hitEffect);
+        {
+            // Сдвигаем эффект от точки касания вглубь, к центру цели — взрыв "на модели", а не на краю коллайдера.
+            Vector3 toTarget = (directTarget.transform.position - hitPoint);
+            toTarget.y = 0;
+            Vector3 fxPos = hitPoint + toTarget.normalized * _hitEffectForward + Vector3.down * 0.15f;
+
+            VfxPool.Instance.Spawn(fxPos, Quaternion.identity, _hitEffect);
+        }
 
         ReturnToPool();
     }
 
-    private void ApplyDamageToEnemy(Enemy enemy)
+    private void ApplyDamage(IDamageable victim)
     {
-        StatusController status = enemy.GetComponent<StatusController>();
+        // StatusController есть только у врагов — у героев его нет, и это нормально.
+        StatusController status = (victim as MonoBehaviour)?.GetComponent<StatusController>();
         int finalDamage = DamageCalculator.CalculateFinalDamage(_damage, _element, status);
 
         DamageNumberType numberType = _element switch
@@ -207,7 +219,7 @@ public class Projectile : MonoBehaviour
             _                     => DamageNumberType.Normal
         };
 
-        bool died = enemy.TakeDamage(finalDamage, true, numberType);
+        bool died = victim.TakeDamage(finalDamage, true, numberType);
 
         if (!died && _element != ElementType.None && status != null)
         {

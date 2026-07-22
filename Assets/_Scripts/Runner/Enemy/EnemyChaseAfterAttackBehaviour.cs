@@ -1,40 +1,33 @@
 using UnityEngine;
 
+/// <summary>
+/// Лочит окончание клипа атаки и сообщает EnemyCombatBase, что пора в Chase.
+/// Состояния НЕ хранит — источник правды только в EnemyCombatBase.Machine.
+/// </summary>
 public class EnemyChaseAfterAttackBehaviour : StateMachineBehaviour
 {
-    private bool _hasTriggered = false;
+    private bool _hasTriggered;
 
     public override void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         _hasTriggered = false;
-        EnemyMeleeCombat combat = animator.GetComponentInParent<EnemyMeleeCombat>();
-        if (combat != null)
-        {
-            combat.IsInAttackStateFlag = true;
-        }
+        var combat = animator.GetComponentInParent<EnemyCombatBase>();
+        if (combat != null) combat.IsAttackAnimPlaying = true;
     }
 
     public override void OnStateUpdate(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
-        // Как только анимация почти закончилась (95%), запускаем уход в Chase.
-        // Это разорвёт дедлок: IsAttacking станет false, и аниматор сможет нормально перейти в Run.
-        if (!_hasTriggered && stateInfo.normalizedTime >= 0.95f)
-        {
-            _hasTriggered = true;
-            EnemyMeleeCombat combat = animator.GetComponentInParent<EnemyMeleeCombat>();
-            if (combat != null)
-            {
-                combat.EndAttackAndChase();
-            }
-        }
+        if (_hasTriggered) return;
+        if (stateInfo.normalizedTime < 0.95f) return;
+
+        _hasTriggered = true;
+        EnemyCombatBase combat = animator.GetComponentInParent<EnemyCombatBase>();
+        if (combat != null) combat.EndAttackAndChase();
     }
 
     public override void OnStateExit(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
-        EnemyMeleeCombat combat = animator.GetComponentInParent<EnemyMeleeCombat>();
-        if (combat != null)
-        {
-            combat.IsInAttackStateFlag = false;
-        }
+        var combat = animator.GetComponentInParent<EnemyCombatBase>();
+        if (combat != null) combat.IsAttackAnimPlaying = false;
     }
 }

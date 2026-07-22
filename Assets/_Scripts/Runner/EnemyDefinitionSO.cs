@@ -42,6 +42,19 @@ public class EnemyDefinitionSO : ScriptableObject
     [Tooltip("Высота (Y), на которой враг появляется. Подбери так, чтобы снаряд попадал в тело.")]
     [SerializeField] private float _spawnHeight = 0.5f;
 
+    [Header("Дальний бой")]
+    [Tooltip("Префаб снаряда. Пусто = ближний бой.")]
+    [SerializeField] private GameObject _projectilePrefab;
+
+    [Tooltip("Кулдаун между выстрелами в секундах (только дальний бой)")]
+    [SerializeField] private float _attackCooldown = 1.5f;
+
+    [Tooltip("Высота спавна снаряда от позиции врага")]
+    [SerializeField] private float _projectileSpawnHeight = 0.5f;
+
+    // Дистанция стрельбы = AttackRange (используем общее поле).
+    // Снаряд летит ровно на эту дистанцию + небольшой запас, чтобы точно долетел.
+
     // Публичный доступ — компоненты читают отсюда
     public string EnemyName             => _enemyName;
     public int    MaxHP                 => _maxHP;
@@ -54,4 +67,33 @@ public class EnemyDefinitionSO : ScriptableObject
     public float  ChaseDistance         => _chaseDistance;
     public float  ChaseChaosX           => _chaseChaosX;
     public float  ChaseSpeed            => _chaseSpeed;
+
+    public GameObject ProjectilePrefab => _projectilePrefab;
+    public bool IsRanged => _projectilePrefab != null;
+    public float AttackCooldown => _attackCooldown;
+    public float ProjectileSpawnHeight => _projectileSpawnHeight;
+
+    [Header("Рывок (камикадзе)")]
+    [Tooltip("Дистанция, с которой враг начинает рывок")]
+    [SerializeField] private float _rollTriggerRange = 5f;
+
+    [Tooltip("Скорость рывка (быстрее обычного движения)")]
+    [SerializeField] private float _rollSpeed = 12f;
+
+    [Tooltip("Радиус AoE-урона при столкновении")]
+    [SerializeField] private float _rollAoeRadius = 2f;
+
+    [Tooltip("Урон от рывка (обычно больше обычной атаки)")]
+    [SerializeField] private int _rollDamage = 30;
+
+    [Tooltip("Эффект взрыва при столкновении")]
+    [SerializeField] private GameObject _rollExplosionEffect;
+
+    public float      RollTriggerRange   => _rollTriggerRange;
+    public float      RollSpeed          => _rollSpeed;
+    public float      RollAoeRadius      => _rollAoeRadius;
+    public int        RollDamage         => _rollDamage;
+    public GameObject RollExplosionEffect => _rollExplosionEffect;
+
+    public bool IsRoller => _rollExplosionEffect != null || _rollDamage > 0;
 }

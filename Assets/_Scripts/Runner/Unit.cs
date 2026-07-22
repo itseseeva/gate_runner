@@ -6,7 +6,7 @@ using DG.Tweening;
 /// Знает свой тип, тир, HP и множитель силы.
 /// НЕ знает о движении и формации.
 /// </summary>
-public class Unit : MonoBehaviour
+public class Unit : MonoBehaviour, IDamageable
 {
     [Header("Состояние")]
     [SerializeField] private int _currentHP;
@@ -251,6 +251,7 @@ public class Unit : MonoBehaviour
     /// </summary>
     public bool TakeDamage(int amount, bool showDamageNumber = true, DamageNumberType numberType = DamageNumberType.Normal)
     {
+        Debug.Log($"[Урон] {name} получил {amount}, поз={transform.position:F1}", this);
         int hpBefore = _currentHP;
         _currentHP -= amount;
         _lastDamageTime = Time.time;

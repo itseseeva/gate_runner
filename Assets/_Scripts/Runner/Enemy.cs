@@ -5,7 +5,7 @@ using DG.Tweening;
 /// HP-компонент врага. Хранит здоровье и умирает при HP=0.
 /// Атака — отдельным компонентом (EnemyKamikazeAttack).
 /// </summary>
-public class Enemy : MonoBehaviour
+public class Enemy : MonoBehaviour, IDamageable
 {
     public static event System.Action<Enemy> OnAnyEnemyDied;
     [Header("Данные врага")]
@@ -27,6 +27,9 @@ public class Enemy : MonoBehaviour
     private int  _maxHP;
 
     public int MaxHP => _maxHP;
+
+    /// <summary>Мёртв ли враг. Нужно для IDamageable — снаряды не бьют трупы.</summary>
+    public bool IsDead => _isDead;
 
     public bool IsBoss => false; // TODO: вынести в EnemyDefinitionSO когда будем делать боссов
 
@@ -51,8 +54,8 @@ public class Enemy : MonoBehaviour
         WorldScroller scroller = GetComponent<WorldScroller>();
         if (scroller != null) scroller.enabled = true;
 
-        EnemyMeleeCombat melee = GetComponent<EnemyMeleeCombat>();
-        if (melee != null) melee.enabled = true;
+        EnemyCombatBase combat = GetComponent<EnemyCombatBase>();
+        if (combat != null) combat.enabled = true;
 
         EnemyKamikazeAttack kamikaze = GetComponent<EnemyKamikazeAttack>();
         if (kamikaze != null) kamikaze.enabled = true;
@@ -114,6 +117,8 @@ public class Enemy : MonoBehaviour
     {
         if (_isDead) return false;
 
+        Debug.Log($"[ВрагУрон] {name} получил {amount}", this);
+
         _currentHP -= amount;
 
         if (showDamageNumber && DamageNumberPool.Instance != null)
@@ -152,8 +157,8 @@ public class Enemy : MonoBehaviour
         WorldScroller scroller = GetComponent<WorldScroller>();
         if (scroller != null) scroller.enabled = false;
 
-        EnemyMeleeCombat melee = GetComponent<EnemyMeleeCombat>();
-        if (melee != null) melee.enabled = false;
+        EnemyCombatBase combat = GetComponent<EnemyCombatBase>();
+        if (combat != null) combat.enabled = false;
 
         EnemyKamikazeAttack kamikaze = GetComponent<EnemyKamikazeAttack>();
         if (kamikaze != null) kamikaze.enabled = false;

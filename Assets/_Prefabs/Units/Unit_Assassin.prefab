@@ -53,6 +53,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Unit
   _currentHP: 0
   _healthBar: {fileID: 2492797904897404572}
+  _damageNumberAnchor: {fileID: 2709189686451167670}
+  _damageNumberHeight: 1
   _unitRenderer: {fileID: 8111781155169087978, guid: 88df47e4a8a9a9f4b815f604a00fadf9, type: 3}
   _regenDelay: 3
   _regenTimeToFull: 3
@@ -1470,6 +1472,11 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 4610433789588039127}
   m_SourcePrefab: {fileID: 100100000, guid: 1efaca3048a322647bf7abfca928d716, type: 3}
+--- !u!4 &2709189686451167670 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2069121587302229268, guid: 1efaca3048a322647bf7abfca928d716, type: 3}
+  m_PrefabInstance: {fileID: 4120238081438581922}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &7200026946787586386 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6540815353833633264, guid: 1efaca3048a322647bf7abfca928d716, type: 3}
