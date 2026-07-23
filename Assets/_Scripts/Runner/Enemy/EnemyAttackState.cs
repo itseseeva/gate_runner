@@ -37,13 +37,18 @@ public class EnemyAttackState : EnemyState
 
         Ctrl.FaceTarget();
 
-        // Melee прибивается к Z цели, чтобы не отвалиться. Ranged держит дистанцию.
+        // Melee прибивается к цели, чтобы не отвалиться при движении отряда.
         if (Ctrl.SticksToTargetZ)
         {
             Transform t = Ctrl.transform;
-            float targetZ = Ctrl.Target.transform.position.z;
-            float newZ = Mathf.Lerp(t.position.z, targetZ, 15f * Time.deltaTime);
-            t.position = new Vector3(t.position.x, t.position.y, newZ);
+            Vector3 targetPos = Ctrl.Target.transform.position;
+
+            // Z и X тянем к цели — иначе при движении отряда вбок враг
+            // отваливается по X, вылетает из Attack и не доходит до чейза.
+            float newZ = Mathf.Lerp(t.position.z, targetPos.z, 15f * Time.deltaTime);
+            float newX = Mathf.Lerp(t.position.x, targetPos.x, 10f * Time.deltaTime);
+
+            t.position = new Vector3(newX, t.position.y, newZ);
         }
     }
 

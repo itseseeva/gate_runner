@@ -21,7 +21,7 @@ public abstract class EnemyCombatBase : MonoBehaviour
     private const float LazyChance      = 0.3f;
     private const float LazyDuration    = 0.5f;
     private const float LazyCheckPeriod = 1f;
-    private const float RotationSpeed   = 8f;
+    private const float RotationSpeed   = 4f;
 
     // Все живые враги — для взаимного отталкивания.
     private static readonly List<EnemyCombatBase> _all = new();
@@ -194,8 +194,8 @@ public abstract class EnemyCombatBase : MonoBehaviour
         // Выталкивание героями отключено в Chase — иначе враг не пройдёт сквозь отряд назад.
         if (!IsChasing) ResolveHeroOverlap();
 
-        // Граница дороги: Plane scale 0.5 × 10 / 2 = 2.5, минус радиус врага.
-        const float roadHalfWidth = 2.3f;
+        // Граница дороги.
+        const float roadHalfWidth = 2.5f;
         Vector3 clamped = transform.position;
         clamped.x = Mathf.Clamp(clamped.x, -roadHalfWidth, roadHalfWidth);
         transform.position = clamped;
@@ -433,18 +433,18 @@ public abstract class EnemyCombatBase : MonoBehaviour
         if (_target != null)
         {
             Vector3 tp = GetTargetPoint();
-            float distToTargetSqr = SqrDistanceXZ(transform.position, tp);
+            float dirX = tp.x - transform.position.x;
 
+            // Плавное следование по X — враг тянется к линии героя с отставанием,
+            // а не копирует движение один-в-один. Коэффициент < 1 = ленивее.
+            float followFactor = 0.1f;   // 1 = мгновенно как раньше, меньше = ленивее
+            trackingDeltaX = dirX * followFactor * TrackingSpeed * personalMul * Time.deltaTime;
+
+            // Tracking по Z — только вблизи и только если враг позади.
+            float distToTargetSqr = SqrDistanceXZ(transform.position, tp);
             if (distToTargetSqr < TrackingRange * TrackingRange)
             {
-                float dirX = tp.x - transform.position.x;
                 float dirZ = tp.z - transform.position.z;
-
-                trackingDeltaX = Mathf.Sign(dirX) *
-                    Mathf.Min(Mathf.Abs(dirX), TrackingSpeed * personalMul * Time.deltaTime);
-
-                // Tracking по Z — только если враг ПОЗАДИ отряда (dirZ > 0).
-                // Спереди отключён: иначе WorldScroller and tracking складываются → визуальный рывок.
                 if (dirZ > 0f)
                 {
                     float currentWorldSpeed = _scroller != null

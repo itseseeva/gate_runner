@@ -8,7 +8,7 @@ using UnityEngine;
 /// </summary>
 public class EnemyChaseState : EnemyState
 {
-    private const float SmoothTimeX = 0.4f;   // инерция по X
+    private const float SmoothTimeX = 2.0f;   // инерция по X
     private const float BlendInTime = 0.8f;   // разгон входа в строй
 
     private float _enteredAt;
