@@ -60,7 +60,7 @@ public class ResourceManager : MonoBehaviour
     {
         Iron = PlayerPrefs.GetInt(KEY_IRON, 0);
         _buffEndTicks = long.Parse(PlayerPrefs.GetString(KEY_BUFF_END, "0"));
-        Debug.Log($"[Resource] Загружено: Gold={Gold}, Iron={Iron}, BuffActive={IsBuffActive}", this);
+        {}
     }
 
     private void Save()
@@ -141,7 +141,7 @@ public class ResourceManager : MonoBehaviour
         Save();
         OnResourcesChanged?.Invoke();
 
-        Debug.Log($"[Resource] Production Buff активирован до {newEnd:HH:mm:ss}", this);
+        {}
     }
 
     // ─── Отладка ────────────────────────────────────────────

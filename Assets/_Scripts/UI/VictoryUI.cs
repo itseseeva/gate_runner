@@ -89,7 +89,7 @@ public class VictoryUI : MonoBehaviour
         {
             ResourceManager.Instance.AddIron(iron);
             ResourceManager.Instance.ActivateProductionBuff(60f); // 1 минута
-            Debug.Log($"[VictoryUI] Бафф активирован, IsBuffActive={ResourceManager.Instance.IsBuffActive}");
+            {}
         }
         else
         {
@@ -202,7 +202,7 @@ public class VictoryUI : MonoBehaviour
         if (_levelUpPopup != null)
             _levelUpPopup.Show(newLevel);
         else
-            Debug.Log($"[VictoryUI] Level-up до {newLevel} (попап не привязан)");
+            {}
     }
 
     /// <summary>

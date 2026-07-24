@@ -98,7 +98,7 @@ public class ArtifactSlotUI : MonoBehaviour
             _rarityText.color = RarityColorHelper.GetBorderColor(_rarity);
         }
 
-        Debug.Log($"[ArtifactSlotUI] Setup: {artifact.artifactName} ({_rarity})", this);
+        {}
     }
 
     /// <summary>

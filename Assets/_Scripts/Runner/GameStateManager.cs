@@ -58,7 +58,7 @@ public class GameStateManager : MonoBehaviour
         if (_currentState == newState) return;
 
         _currentState = newState;
-        Debug.Log($"[GameState] Состояние изменено: {newState}", this);
+        {}
 
         OnStateChanged?.Invoke(newState);
     }

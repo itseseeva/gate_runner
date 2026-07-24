@@ -43,17 +43,7 @@ public static class DiagLogger
             if (kv.Value.Count > maxHitsPerEnemy) maxHitsPerEnemy = kv.Value.Count;
         }
 
-        Debug.Log(
-            "═══════ ИТОГИ ═══════\n" +
-            $"Find вернул кандидатов: {_findHits} раз\n" +
-            $"Find вернул пусто:      {_findEmpty} раз\n" +
-            $"Коллизий при Claim:     {_claimCollisions}\n" +
-            $"Всего ударов:           {totalHits}\n" +
-            $"Уникальных врагов бито: {uniqueEnemies}\n" +
-            $"Из них били 2+ воина:   {multiHitEnemies}\n" +
-            $"Макс ударов по 1 врагу: {maxHitsPerEnemy}\n" +
-            "═════════════════════"
-        );
+        {}
 
         _hitsByEnemyId.Clear();
         _claimCollisions = 0;

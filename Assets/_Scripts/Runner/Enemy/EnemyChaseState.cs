@@ -34,6 +34,9 @@ public class EnemyChaseState : EnemyState
         bool worldSlowed = WorldScroller.WorldSpeed < WorldScroller.BaseWorldSpeed * 0.5f;
         if (worldSlowed)
         {
+            // Разрешаем чейз заново — враг вышел из строя по замедлению,
+            // после следующей атаки сможет снова отойти.
+            Ctrl.AllowChaseAgain();
             Ctrl.Machine.ChangeState(Ctrl.ApproachState);
             return;
         }

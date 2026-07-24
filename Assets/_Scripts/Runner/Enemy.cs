@@ -117,8 +117,6 @@ public class Enemy : MonoBehaviour, IDamageable
     {
         if (_isDead) return false;
 
-        Debug.Log($"[ВрагУрон] {name} получил {amount}", this);
-
         _currentHP -= amount;
 
         if (showDamageNumber && DamageNumberPool.Instance != null)
@@ -171,8 +169,7 @@ public class Enemy : MonoBehaviour, IDamageable
         Animator animator = GetComponentInChildren<Animator>();
         if (animator == null)
         {
-            Debug.LogWarning($"[Enemy] {name}: нет Animator, деактивирую сразу.", this);
-            gameObject.SetActive(false);
+            ReturnToPool();
             return;
         }
 
@@ -185,7 +182,16 @@ public class Enemy : MonoBehaviour, IDamageable
     /// </summary>
     public void OnDeathAnimationEnd()
     {
-        gameObject.SetActive(false);
+        ReturnToPool();
+    }
+
+    /// <summary>Возврат в пул вместо простой деактивации — иначе трупы копятся в сцене.</summary>
+    public void ReturnToPool()
+    {
+        if (EnemyPool.Instance != null)
+            EnemyPool.Instance.Return(gameObject);
+        else
+            gameObject.SetActive(false);
     }
 
     /// <summary>

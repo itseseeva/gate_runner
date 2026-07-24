@@ -59,6 +59,6 @@ public class EnemySpawner : MonoBehaviour
         Instantiate(_bossPrefab,
             new Vector3(0f, 1.5f, bossZ),
             Quaternion.identity);
-        Debug.Log($"[EnemySpawner] Босс заспавнен на Z={bossZ}", this);
+        {}
     }
 }

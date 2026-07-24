@@ -13,6 +13,6 @@ public class MobileSettings : MonoBehaviour
         Application.targetFrameRate = _targetFrameRate;
         QualitySettings.vSyncCount  = 0;
 
-        Debug.Log($"[Mobile] Target FPS: {_targetFrameRate}");
+        {}
     }
 }

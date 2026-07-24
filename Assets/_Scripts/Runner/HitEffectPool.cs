@@ -48,7 +48,7 @@ public class HitEffectPool : MonoBehaviour
         CreatePoolForElement(ElementType.Ice,       _hitIce);
         CreatePoolForElement(ElementType.Lightning, _hitLightning);
 
-        Debug.Log("[HitEffectPool] Пул эффектов попадания готов!", this);
+        {}
     }
 
     private void CreatePoolForElement(ElementType element, GameObject prefab)
@@ -76,7 +76,7 @@ public class HitEffectPool : MonoBehaviour
     /// </summary>
     public void Play(ElementType element, Vector3 position)
     {
-        Debug.Log($"[HitEffectPool] Play вызван, стихия={element}", this);
+        {}
 
         // Если для стихии нет пула — пробуем нейтральный как запасной.
         if (!_pool.ContainsKey(element))

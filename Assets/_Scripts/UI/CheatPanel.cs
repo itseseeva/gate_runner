@@ -53,7 +53,7 @@ public class CheatPanel : MonoBehaviour
 
     private void ForceVictory()
     {
-        Debug.Log("[Cheat] Принудительная победа", this);
+        {}
         LevelGenerator gen = FindAnyObjectByType<LevelGenerator>();
         if (gen != null)
             gen.ForceFinishLevel();
@@ -63,7 +63,7 @@ public class CheatPanel : MonoBehaviour
 
     private void ForceGameOver()
     {
-        Debug.Log("[Cheat] Принудительный Game Over", this);
+        {}
         if (GameStateManager.Instance != null)
             GameStateManager.Instance.SetGameOver();
     }
@@ -73,7 +73,7 @@ public class CheatPanel : MonoBehaviour
     {
         _isSlowMo = !_isSlowMo;
         Time.timeScale = _isSlowMo ? _slowMoScale : 1f;
-        Debug.Log($"[Cheat] SlowMo {(_isSlowMo ? "ON" : "OFF")} timeScale={Time.timeScale}", this);
+        {}
         UpdateSlowMoLabel();
     }
 
@@ -87,7 +87,7 @@ public class CheatPanel : MonoBehaviour
     {
         _isSlowSquad = !_isSlowSquad;
         WorldScroller.WorldSpeed = _isSlowSquad ? _slowSquadSpeed : _normalSquadSpeed;
-        Debug.Log($"[Cheat] WorldSpeed={WorldScroller.WorldSpeed}", this);
+        {}
         UpdateSlowSquadLabel();
     }
 

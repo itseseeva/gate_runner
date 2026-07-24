@@ -16,10 +16,6 @@ public class BuffTimerUI : MonoBehaviour
 
         bool active = ResourceManager.Instance.IsBuffActive;
 
-        // Диагностика — раз в секунду
-        if (Time.frameCount % 60 == 0)
-            Debug.Log($"[BuffUI] active={active}, root={_root != null}, label={_label != null}");
-
         if (_root != null && _root.activeSelf != active)
             _root.SetActive(active);
 

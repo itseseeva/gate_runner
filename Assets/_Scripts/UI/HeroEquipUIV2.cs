@@ -118,7 +118,7 @@ public class HeroEquipUIV2 : MonoBehaviour
             rt.anchorMax = new Vector2(1f, 1f);
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
-            Debug.Log($"[HeroEquipV2] UpgradeView: {_upgradeSplitY * 100:F0}%–100%", this);
+            {}
         }
 
         if (_derivedStatsPanel != null)
@@ -128,7 +128,7 @@ public class HeroEquipUIV2 : MonoBehaviour
             rt.anchorMax = new Vector2(1f, _upgradeSplitY);
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
-            Debug.Log($"[HeroEquipV2] StatsPanel: 0%–{_upgradeSplitY * 100:F0}%", this);
+            {}
         }
     }
 
@@ -137,13 +137,13 @@ public class HeroEquipUIV2 : MonoBehaviour
         _screen.SetActive(true);
         Refresh();
         ShowStats();
-        Debug.Log("[HeroEquipV2] Экран открыт");
+        {}
     }
 
     public void CloseScreen()
     {
         _screen.SetActive(false);
-        Debug.Log("[HeroEquipV2] Экран закрыт");
+        {}
     }
 
     public void SelectHero(int index)
@@ -158,7 +158,7 @@ public class HeroEquipUIV2 : MonoBehaviour
     {
         if (_allHeroes == null || _allHeroes.Length == 0)
         {
-            Debug.Log("[HeroEquipV2] Массив героев пуст!", this);
+            {}
             return;
         }
 
@@ -347,7 +347,7 @@ public class HeroEquipUIV2 : MonoBehaviour
             _upgradeButton.onClick.RemoveAllListeners();
             _upgradeButton.onClick.AddListener(() =>
             {
-                Debug.Log("[HeroEquipV2] Улучшение пока не реализовано", this);
+                {}
             });
         }
     }
@@ -408,7 +408,7 @@ public class HeroEquipUIV2 : MonoBehaviour
                 equipped++;
         }
 
-        Debug.Log($"[HeroEquipV2] EquipBest: {heroId} — надето {equipped} артефактов", this);
+        {}
         Refresh();
         ShowStats();
     }
@@ -434,7 +434,7 @@ public class HeroEquipUIV2 : MonoBehaviour
         }
 
         if (_upgradeViewActive) RefreshUpgradeView();
-        Debug.Log($"[HeroEquipV2] Прокачка: {(_upgradeViewActive ? "открыта" : "закрыта")}", this);
+        {}
     }
 
     private void RefreshUpgradeView()
@@ -557,7 +557,7 @@ public class HeroEquipUIV2 : MonoBehaviour
         SaveSystem.Instance.AddXP(heroId, 100);
         Refresh();
         if (_upgradeViewActive) RefreshUpgradeView();
-        Debug.Log($"[HeroEquipV2] [ТЕСТ] +100 XP для {heroId}", this);
+        {}
     }
 
     public void OnStatPlusClicked(string statKey)
@@ -567,7 +567,7 @@ public class HeroEquipUIV2 : MonoBehaviour
         int usedPoints = _tempAllocation.GetTotal();
         if (saveData.statPoints <= usedPoints)
         {
-            Debug.Log($"[HeroEquipV2] Нет свободных очков! Всего: {saveData.statPoints}, использовано: {usedPoints}", this);
+            {}
             return;
         }
 
@@ -579,7 +579,7 @@ public class HeroEquipUIV2 : MonoBehaviour
             case "endurance": _tempAllocation.endurance++; break;
         }
 
-        Debug.Log($"[HeroEquipV2] Временно добавлено: +1 {statKey}", this);
+        {}
         RefreshUpgradeView();
     }
 
@@ -596,7 +596,7 @@ public class HeroEquipUIV2 : MonoBehaviour
 
         if (currentTemp <= 0)
         {
-            Debug.Log($"[HeroEquipV2] Нечего убирать из {statKey}!", this);
+            {}
             return;
         }
 
@@ -608,7 +608,7 @@ public class HeroEquipUIV2 : MonoBehaviour
             case "endurance": _tempAllocation.endurance--; break;
         }
 
-        Debug.Log($"[HeroEquipV2] Временно убрано: -1 {statKey}", this);
+        {}
         RefreshUpgradeView();
     }
 
@@ -616,7 +616,7 @@ public class HeroEquipUIV2 : MonoBehaviour
     {
         if (_tempAllocation.GetTotal() <= 0)
         {
-            Debug.Log("[HeroEquipV2] Нечего применять — нет временных изменений!", this);
+            {}
             return;
         }
 
@@ -646,11 +646,7 @@ public class HeroEquipUIV2 : MonoBehaviour
         }
 
         SaveSystem.Instance.Save();
-        Debug.Log($"[HeroEquipV2] Изменения применены: " +
-                  $"Сила +{_tempAllocation.strength}, " +
-                  $"Ловкость +{_tempAllocation.agility}, " +
-                  $"Интеллект +{_tempAllocation.intellect}, " +
-                  $"Выносливость +{_tempAllocation.endurance}", this);
+        {}
 
         _tempAllocation.Reset();
         Refresh();
@@ -664,15 +660,11 @@ public class HeroEquipUIV2 : MonoBehaviour
     {
         if (_tempAllocation.GetTotal() <= 0)
         {
-            Debug.Log("[HeroEquipV2] Нечего сбрасывать!", this);
+            {}
             return;
         }
 
-        Debug.Log($"[HeroEquipV2] Сброс временных изменений: " +
-                  $"Сила {_tempAllocation.strength}, " +
-                  $"Ловкость {_tempAllocation.agility}, " +
-                  $"Интеллект {_tempAllocation.intellect}, " +
-                  $"Выносливость {_tempAllocation.endurance}", this);
+        {}
 
         _tempAllocation.Reset();
         RefreshUpgradeView();
@@ -694,7 +686,7 @@ public class HeroEquipUIV2 : MonoBehaviour
         // Полный сброс через SaveSystem
         SaveSystem.Instance.ResetAllStats(heroId);
 
-        Debug.Log($"[HeroEquipV2] ПОЛНЫЙ СБРОС статов для {heroId}", this);
+        {}
 
         // Обновляем весь UI
         Refresh();

@@ -48,7 +48,7 @@ public class BiomeManager : MonoBehaviour
         if (biome.Skybox != null)
             RenderSettings.skybox = biome.Skybox;
 
-        Debug.Log($"[BiomeManager] Применён биом: {biome.BiomeName}", this);
+        {}
     }
 
     /// <summary>Текущий применённый биом — пригодится декору и сегментам позже.</summary>

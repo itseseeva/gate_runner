@@ -67,7 +67,7 @@ public class PlayerDataManager : MonoBehaviour
             }
         }
 
-        Debug.Log($"[Player] Прогресс загружен: Gold={Gold}, XP={XP}, Level={AccountLevel}, Пройдено={_completedLevels.Count} [{string.Join(", ", _completedLevels)}]", this);
+        {}
     }
 
     private void Save()
@@ -88,7 +88,7 @@ public class PlayerDataManager : MonoBehaviour
         Gold = Mathf.Max(0, Gold + amount);
         Save();
         OnDataChanged?.Invoke();
-        Debug.Log($"[Player] {(amount > 0 ? "+" : "")}{amount} gold. Всего: {Gold}", this);
+        {}
     }
 
     /// <summary>Добавляет опыт и сохраняет. Проверяет level-up.</summary>
@@ -102,7 +102,7 @@ public class PlayerDataManager : MonoBehaviour
         {
             XP -= GetXPForNextLevel();
             AccountLevel++;
-            Debug.Log($"[Player] LEVEL UP! Теперь уровень {AccountLevel}", this);
+            {}
 
             OnLevelUp?.Invoke(AccountLevel);
         }
@@ -128,9 +128,9 @@ public class PlayerDataManager : MonoBehaviour
         OnDataChanged?.Invoke();
 
         if (isNew)
-            Debug.Log($"[Player] Уровень '{levelId}' пройден впервые! Всего пройдено: {_completedLevels.Count}", this);
+            {}
         else
-            Debug.Log($"[Player] Уровень '{levelId}' уже был пройден ранее", this);
+            {}
     }
 
     /// <summary>Пройден ли уровень?</summary>
@@ -166,7 +166,7 @@ public class PlayerDataManager : MonoBehaviour
         _completedLevels.Clear();
         Save();
         OnDataChanged?.Invoke();
-        Debug.Log("[Player] Прогресс полностью сброшен", this);
+        {}
     }
 
     [ContextMenu("Добавить 100 gold")]

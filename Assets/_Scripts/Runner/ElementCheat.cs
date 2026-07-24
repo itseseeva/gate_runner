@@ -40,7 +40,7 @@ public class ElementCheat : MonoBehaviour
             if (!u.gameObject.scene.IsValid()) continue; // пропускаем префабы-ассеты
             u.SetElement(element);
         }
-        Debug.Log($"[ElementCheat] Стихия -> {element}, стрельба: {(_forceFire ? "ВКЛ" : "ВЫКЛ")}", this);
+        {}
     }
 
     private void ForceRangedFire()

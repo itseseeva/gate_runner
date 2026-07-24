@@ -10,8 +10,7 @@ public class EnemyMeleeCombat : EnemyCombatBase
 
     public override void OnAnimationHit()
     {
-        Debug.Log($"[Hit] {name}: OnAnimationHit! state={Machine.Current?.GetType().Name}, " +
-                  $"target={(Target != null ? Target.name : "NULL")}", this);
+        {}
 
         if (Target == null || Target.IsDead) return;
         if (Machine.Current != AttackState) return;

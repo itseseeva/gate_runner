@@ -49,7 +49,7 @@ public class ExplosionPool : MonoBehaviour
         CreatePoolForElement(ElementType.Ice,       _explosionIce);
         CreatePoolForElement(ElementType.Lightning, _explosionLightning);
 
-        Debug.Log("[ExplosionPool] Пул взрывов готов!", this);
+        {}
     }
 
     private void CreatePoolForElement(ElementType element, GameObject prefab)

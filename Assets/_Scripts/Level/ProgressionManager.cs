@@ -38,7 +38,7 @@ public class ProgressionManager : MonoBehaviour
     {
         // Если ключа нет — значит первый запуск. Стартуем с 1.
         _currentLevel = PlayerPrefs.GetInt(KEY_CURRENT_LEVEL, 1);
-        Debug.Log($"[Progression] Загружен уровень: {_currentLevel}", this);
+        {}
     }
 
     /// <summary>Победил уровень — переходим на следующий.</summary>
@@ -46,7 +46,7 @@ public class ProgressionManager : MonoBehaviour
     {
         _currentLevel++;
         Save();
-        Debug.Log($"[Progression] Перешли на уровень {_currentLevel}", this);
+        {}
     }
 
     /// <summary>Сбросить прогресс (для теста или из настроек).</summary>
@@ -55,7 +55,7 @@ public class ProgressionManager : MonoBehaviour
     {
         _currentLevel = 1;
         Save();
-        Debug.Log("[Progression] Прогресс сброшен", this);
+        {}
     }
 
     private void Save()

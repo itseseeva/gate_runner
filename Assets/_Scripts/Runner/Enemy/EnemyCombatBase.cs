@@ -23,8 +23,31 @@ public abstract class EnemyCombatBase : MonoBehaviour
     private const float LazyCheckPeriod = 1f;
     private const float RotationSpeed   = 4f;
 
-    // Все живые враги — для взаимного отталкивания.
+    // Все живые враги — для взаимного отталкивания и оптимизированной очистки.
     private static readonly List<EnemyCombatBase> _all = new();
+
+    /// <summary>Все живые враги на сцене — для очистки без FindObjectsByType.</summary>
+    public static IReadOnlyList<EnemyCombatBase> AllEnemies => _all;
+
+    // Лимит врагов в чейзе — толпа сзади не должна расти бесконечно,
+    // иначе десятки врагов держат слоты и жрут FPS.
+    // TODO: вынести в конфиг, если понадобится баланс.
+    private const int MaxChasingEnemies = 20;
+
+    /// <summary>Сколько врагов сейчас в чейзе.</summary>
+    public static int ChasingCount
+    {
+        get
+        {
+            int count = 0;
+            for (int i = 0; i < _all.Count; i++)
+                if (_all[i] != null && _all[i].IsChasing) count++;
+            return count;
+        }
+    }
+
+    /// <summary>Есть ли свободное место в толпе чейза.</summary>
+    public static bool CanEnterChase => ChasingCount < MaxChasingEnemies;
 
     [Header("Слои")]
     [Tooltip("Слой, на котором находятся герои — для рывка/AoE.")]
@@ -65,6 +88,7 @@ public abstract class EnemyCombatBase : MonoBehaviour
     public EnemyRangedAttackState RangedAttackState { get; private set; }
     public EnemyRollState      RollState     { get; private set; }
     public EnemyChaseState     ChaseState    { get; private set; }
+    public EnemyRetreatState   RetreatState  { get; private set; }
 
     // ─── Публичный доступ для состояний ──────────────────────────
     public Unit               Target             => _target;
@@ -122,6 +146,17 @@ public abstract class EnemyCombatBase : MonoBehaviour
         RangedAttackState = new EnemyRangedAttackState(this);
         RollState         = new EnemyRollState(this);
         ChaseState        = new EnemyChaseState(this);
+        RetreatState      = new EnemyRetreatState(this);
+    }
+
+    /// <summary>
+    /// Тихо убирает врага в пул — без смерти, без цифр урона и событий.
+    /// Для отступающих сверх лимита толпы: они уходят за камеру и исчезают невидимо.
+    /// </summary>
+    public void DespawnSelf()
+    {
+        if (_enemy != null) _enemy.ReturnToPool();
+        else gameObject.SetActive(false);
     }
 
     private void OnEnable()
@@ -183,21 +218,18 @@ public abstract class EnemyCombatBase : MonoBehaviour
         if (Time.frameCount % 30 == 0 && _animator != null)
         {
             var info = _animator.GetCurrentAnimatorStateInfo(0);
-            Debug.Log($"[Anim] {name}: state={Machine.Current?.GetType().Name}, " +
-                      $"IsAttacking={_animator.GetBool("IsAttacking")}, " +
-                      $"clip={info.shortNameHash}, " +
-                      $"normTime={info.normalizedTime:F2}, " +
-                      $"inTransition={_animator.IsInTransition(0)}", this);
+            {}
         }
 
         ResolveOverlap();
         // Выталкивание героями отключено в Chase — иначе враг не пройдёт сквозь отряд назад.
         if (!IsChasing) ResolveHeroOverlap();
 
-        // Граница дороги.
-        const float roadHalfWidth = 2.5f;
+        // Граница дороги и фиксированная высота по Y.
+        const float roadHalfWidth = 3.3f;
         Vector3 clamped = transform.position;
         clamped.x = Mathf.Clamp(clamped.x, -roadHalfWidth, roadHalfWidth);
+        if (_enemy != null) clamped.y = _enemy.SpawnHeight;
         transform.position = clamped;
     }
 
@@ -262,7 +294,7 @@ public abstract class EnemyCombatBase : MonoBehaviour
 
     // Параметры строя чейза.
     // TODO: вынести в EnemyDefinitionSO когда будешь балансить.
-    private const float ChaseLineWidth   = 4f;    // ширина дороги
+    private const float ChaseLineWidth   = 6f;    // ширина дороги
     private const float ChaseSlotSpacing = 0.8f;  // шаг между врагами в ряду
     private const float ChaseRowSpacing  = 0.9f;  // шаг между рядами в глубину
 
@@ -345,6 +377,14 @@ public abstract class EnemyCombatBase : MonoBehaviour
     public void AllowChaseAgain()
     {
         _hasChased = false;
+    }
+
+    /// <summary>Сбрасывает параметры локации в чейзе при смене состояния.</summary>
+    public void ResetChaseOffsets()
+    {
+        _chaseSlot = -1;
+        _lagAmount = 0f;
+        _lagTarget = 0f;
     }
 
     /// <summary>Выключает режим просачивания.</summary>
@@ -525,12 +565,13 @@ public abstract class EnemyCombatBase : MonoBehaviour
     /// </summary>
     public void EndAttackAndChase()
     {
-        Debug.Log($"[Chase?] {name}: state={Machine.Current?.GetType().Name}, hasChased={_hasChased}", this);
         if (Machine.Current != AttackState) return;
         if (_hasChased) return;
 
         _hasChased = true;
-        Machine.ChangeState(ChaseState);
+
+        // Мест в толпе чейза нет — уходим в отступление и исчезаем за камерой.
+        Machine.ChangeState(CanEnterChase ? ChaseState : RetreatState);
     }
 
     // ─── Общая физика ────────────────────────────────────────────

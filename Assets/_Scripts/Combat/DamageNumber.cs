@@ -220,7 +220,6 @@ public class DamageNumber : MonoBehaviour
     /// </summary>
     private void LayoutDigits(int value, Color color, Sprite emoji, DamageNumberType type)
     {
-        Debug.Log($"[Layout] пришло value={value}, type={type}", this);
         value = Mathf.Abs(value);
 
         // Минус — на всём, кроме хила. Плюса в атласе нет, хил отличается цветом.

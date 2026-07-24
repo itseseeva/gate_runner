@@ -103,20 +103,15 @@ public class Unit : MonoBehaviour, IDamageable
         if (instance == null)
         {
             // ── ДО INSTANTIATE: что внутри префаба ──
-            Debug.Log($"═══════ [Aura Diag] СПАВН AURА для {name} ═══════", this);
-            Debug.Log($"[Prefab] {prefab.name}: pos={prefab.transform.position:F3}, " +
-                      $"localScale={prefab.transform.localScale:F3}", prefab);
+            {}
+            {}
 
             foreach (Transform child in prefab.transform)
             {
-                Debug.Log($"[Prefab Child] {child.name}: " +
-                          $"localPos={child.localPosition:F3}, " +
-                          $"localScale={child.localScale:F3}", prefab);
+                {}
             }
 
-            Debug.Log($"[Hero] {name}: worldPos={transform.position:F3}, " +
-                      $"localScale={transform.localScale:F3}, " +
-                      $"lossyScale={transform.lossyScale:F3}", this);
+            {}
 
             // ── INSTANTIATE ──
             instance = Instantiate(prefab, transform);
@@ -124,16 +119,11 @@ public class Unit : MonoBehaviour, IDamageable
 
             // ── ПОСЛЕ INSTANTIATE: что стало с аурой ──
             string parentName = instance.transform.parent != null ? instance.transform.parent.name : "NULL";
-            Debug.Log($"[Aura After Spawn] worldPos={instance.transform.position:F3}, " +
-                      $"localPos={instance.transform.localPosition:F3}, " +
-                      $"parent={parentName}", instance);
+            {}
 
             foreach (Transform child in instance.transform)
             {
-                Debug.Log($"[Aura Child After] {child.name}: " +
-                          $"worldPos={child.position:F3}, " +
-                          $"localPos={child.localPosition:F3}, " +
-                          $"localScale={child.localScale:F3}", instance);
+                {}
             }
 
             DesyncOnce(instance);
@@ -151,16 +141,13 @@ public class Unit : MonoBehaviour, IDamageable
         yield return new WaitForSeconds(delay);
         if (aura == null) yield break;
 
-        Debug.Log($"═══════ [Aura Diag] ЧЕРЕЗ {delay}с ═══════");
-        Debug.Log($"[Hero Now] worldPos={transform.position:F3}", this);
-        Debug.Log($"[Aura Now] worldPos={aura.transform.position:F3}, " +
-                  $"localPos={aura.transform.localPosition:F3}", aura);
+        {}
+        {}
+        {}
 
         foreach (Transform child in aura.transform)
         {
-            Debug.Log($"[Aura Child Now] {child.name}: " +
-                      $"worldPos={child.position:F3}, " +
-                      $"localPos={child.localPosition:F3}", aura);
+            {}
         }
     }
 
@@ -180,15 +167,6 @@ public class Unit : MonoBehaviour, IDamageable
             var inherit = ps.inheritVelocity;
             var noise = ps.noise;
             var shape = ps.shape;
-
-            Debug.Log($"[Aura Full] {ps.name}: " +
-                      $"SimSpace={main.simulationSpace}, " +
-                      $"EmitVelMode={main.emitterVelocityMode}, " +
-                      $"VelLife={vel.enabled}(x={vel.x.constant:F2},z={vel.z.constant:F2}), " +
-                      $"Force={force.enabled}(x={force.x.constant:F2},z={force.z.constant:F2}), " +
-                      $"Inherit={inherit.enabled}, " +
-                      $"Noise={noise.enabled}(str={noise.strength.constant:F2}), " +
-                      $"ShapePos={shape.position}", ps);
 
             ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             ps.randomSeed = (uint)Random.Range(1, 999999);
@@ -251,7 +229,6 @@ public class Unit : MonoBehaviour, IDamageable
     /// </summary>
     public bool TakeDamage(int amount, bool showDamageNumber = true, DamageNumberType numberType = DamageNumberType.Normal)
     {
-        Debug.Log($"[Урон] {name} получил {amount}, поз={transform.position:F1}", this);
         int hpBefore = _currentHP;
         _currentHP -= amount;
         _lastDamageTime = Time.time;
@@ -387,27 +364,21 @@ public class Unit : MonoBehaviour, IDamageable
         
         if (Time.frameCount % 60 != 0) return; // раз в секунду
         
-        Debug.Log($"═══ Frame {Time.frameCount} ═══");
-        Debug.Log($"[Hero]  worldPos={transform.position:F3}", this);
-        Debug.Log($"[Aura]  worldPos={activeAura.transform.position:F3}, " +
-                  $"localPos={activeAura.transform.localPosition:F3}", activeAura);
+        {}
+        {}
+        {}
         
         foreach (Transform child in activeAura.transform)
         {
             Vector3 offsetFromHero = child.position - transform.position;
-            Debug.Log($"  [{child.name}] worldPos={child.position:F3}, " +
-                      $"localPos={child.localPosition:F3}, " +
-                      $"offsetFromHero={offsetFromHero:F3}", child);
+            {}
         }
         
         // Позиция дочернего меша (SkinnedMeshRenderer)
         var smr = GetComponentInChildren<SkinnedMeshRenderer>();
         if (smr != null)
         {
-            Debug.Log($"[Mesh] {smr.name}: " +
-                      $"transformWorldPos={smr.transform.position:F3}, " +
-                      $"bounds.center={smr.bounds.center:F3}, " +
-                      $"offsetFromRoot={smr.bounds.center - transform.position:F3}", smr);
+            {}
         }
     }
 

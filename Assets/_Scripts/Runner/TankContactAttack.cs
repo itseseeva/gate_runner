@@ -213,19 +213,19 @@ public class TankContactAttack : MonoBehaviour
         Enemy enemy = other.GetComponent<Enemy>();
         if (enemy == null) return;
 
-        Debug.Log($"[Tank Hit Debug] {gameObject.name} коснулся {other.name}", this);
+        {}
 
         // Если врага бьёт другой танк — мы его игнорируем
         if (enemy.TargetedByTank != null && enemy.TargetedByTank != this)
         {
-            Debug.Log($"[Tank Hit Debug] Удар отменён: {enemy.name} уже занят танком {enemy.TargetedByTank.name}", this);
+            {}
             return;
         }
 
         float timeSinceLast = Time.time - _lastContactTime;
         if (timeSinceLast < _contactCooldown)
         {
-            Debug.Log($"[Tank Hit Debug] Удар отменён: кулдаун ещё не прошёл ({timeSinceLast:F2}s < {_contactCooldown}s)", this);
+            {}
             return;
         }
 
@@ -237,7 +237,7 @@ public class TankContactAttack : MonoBehaviour
         if (_targetedEnemy == enemy)
             _targetedEnemy = null;
 
-        Debug.Log($"[Tank Hit Debug] УСПЕШНЫЙ УДАР по {enemy.name}! Вызываем ApplyTankHit.", this);
+        {}
 
         // Моментально доворачиваемся к врагу перед самым ударом (в пределах допустимого угла)
         Vector3 dirToEnemy = (enemy.transform.position - transform.position).normalized;
@@ -300,7 +300,7 @@ public class TankContactAttack : MonoBehaviour
             enemy.TargetedByTank = null;
         _targetedEnemy = null;
 
-        Debug.Log($"[Tank Hit Debug] УДАР по {enemy.name} через дистанцию (dash hit).", this);
+        {}
 
         // Доворот перед ударом
         Vector3 dirToEnemy = (enemy.transform.position - transform.position).normalized;

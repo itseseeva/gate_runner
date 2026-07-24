@@ -11,6 +11,6 @@ public class QualityGate : BaseGate
     protected override void ApplyEffect(SquadController squad)
     {
         // TODO: повысить ранг юнитов когда добавим систему рангов
-        Debug.Log("[QualityGate] Ранг повышен! (пока заглушка)", this);
+        {}
     }
 }

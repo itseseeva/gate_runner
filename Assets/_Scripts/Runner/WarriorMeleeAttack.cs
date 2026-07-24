@@ -68,7 +68,7 @@ public class WarriorMeleeAttack : MeleeAutoAttackBase
             Vector3 spawnPos = transform.position
                              + transform.forward * _slashForward
                              + Vector3.up * _slashHeight;
-            Debug.Log($"[Slash] heroPos={transform.position}, forward={transform.forward}, spawnPos={spawnPos}");
+            {}
             if (slashPrefab != null)
                 VfxPool.Instance.Spawn(spawnPos, slashPrefab.transform.rotation, slashPrefab);
             else if (_vfxConfig.WarriorHitVfx != null)

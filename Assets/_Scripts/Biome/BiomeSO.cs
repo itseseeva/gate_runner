@@ -13,6 +13,20 @@ public class DecorEntry
 
     [Tooltip("Отступ от края дороги (широкому декору больше)")]
     public float SideMargin = 1.5f;
+
+    [Tooltip("Спавнить по всей ширине дороги, а не только у краёв")]
+    public bool SpawnOnRoadCenter = false;
+
+    [Tooltip("Не крутить случайно по Y — для забора, бордюров и всего, что должно стоять ровно")]
+    public bool NoRandomRotation = false;
+
+    [Tooltip("Вероятность спавна. 1 = всегда, 0.2 = изредка")]
+    [Range(0f, 1f)]
+    public float SpawnChance = 1f;
+
+    [Tooltip("Вес при выборе: чем больше, тем чаще выпадает")]
+    [Min(0.01f)]
+    public float Weight = 1f;
 }
 
 /// <summary>
@@ -40,8 +54,12 @@ public class BiomeSO : ScriptableObject
     [SerializeField] private DecorEntry[] _decor;
 
     [Header("Декор на дороге")]
-    [Tooltip("Мелкий декор на самой дороге: трава, камешки. Спавнится у краёв дороги.")]
+    [Tooltip("Мелкий декор на самой дороге: трава, камешки.")]
     [SerializeField] private DecorEntry[] _roadDecor;
+
+    [Header("Забор вдоль дороги")]
+    [Tooltip("Секция забора. Ставится сплошной линией по обеим сторонам, не конкурирует с остальным декором.")]
+    [SerializeField] private DecorEntry _fence;
 
     public string       BiomeName    => _biomeName;
     public Material      RoadMaterial => _roadMaterial;
@@ -49,4 +67,5 @@ public class BiomeSO : ScriptableObject
     public Material      Skybox       => _skybox;
     public DecorEntry[]  Decor        => _decor;
     public DecorEntry[]  RoadDecor    => _roadDecor;
+    public DecorEntry    Fence        => _fence;
 }

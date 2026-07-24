@@ -46,7 +46,7 @@ public static class EnemyTargetRegistry
             _claimCount[target]++;
         else
             _claimCount[target] = 1;
-        Debug.Log($"[Registry] Register {target.name}: count={_claimCount[target]}");
+        {}
     }
 
     /// <summary>Снимает регистрацию — враг больше не идёт к этому юниту.</summary>
@@ -59,7 +59,7 @@ public static class EnemyTargetRegistry
         if (_claimCount[target] <= 0)
             _claimCount.Remove(target);
         int c = _claimCount.ContainsKey(target) ? _claimCount[target] : 0;
-        Debug.Log($"[Registry] Unregister {target.name}: count={c}");
+        {}
     }
 
     /// <summary>

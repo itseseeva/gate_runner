@@ -23,7 +23,7 @@ public class BaseCheatPanel : MonoBehaviour
                 if (PlayerDataManager.Instance != null)
                 {
                     PlayerDataManager.Instance.AddGold(1000);
-                    Debug.Log("[Cheat] +1000 Gold");
+                    {}
                 }
             });
 
@@ -33,7 +33,7 @@ public class BaseCheatPanel : MonoBehaviour
                 if (ResourceManager.Instance != null)
                 {
                     ResourceManager.Instance.AddIron(1000);
-                    Debug.Log("[Cheat] +1000 Iron");
+                    {}
                 }
             });
 
@@ -46,7 +46,7 @@ public class BaseCheatPanel : MonoBehaviour
                 if (ResourceManager.Instance != null)
                 {
                     ResourceManager.Instance.ActivateProductionBuff(60f);
-                    Debug.Log("[Cheat] Бафф активирован на 60с");
+                    {}
                 }
             });
 
@@ -56,7 +56,7 @@ public class BaseCheatPanel : MonoBehaviour
                 if (BaseManager.Instance != null)
                 {
                     BaseManager.Instance.ResetBase();
-                    Debug.Log("[Cheat] База сброшена");
+                    {}
                 }
             });
     }
@@ -72,11 +72,11 @@ public class BaseCheatPanel : MonoBehaviour
             {
                 // Сдвигаем UpgradeEndTime в прошлое — таймер сам завершит
                 b.UpgradeEndTime = DateTime.UtcNow.AddSeconds(-1);
-                Debug.Log($"[Cheat] Принудительное завершение апгрейда {b.Type}");
+                {}
                 return;
             }
         }
 
-        Debug.Log("[Cheat] Нет активных апгрейдов");
+        {}
     }
 }

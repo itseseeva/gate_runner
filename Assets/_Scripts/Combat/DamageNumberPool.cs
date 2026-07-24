@@ -57,7 +57,6 @@ public class DamageNumberPool : MonoBehaviour
     /// <summary>Показывает цифру, прикреплённую к цели (двигается вместе с ней).</summary>
     public void Spawn(int damage, Transform followTarget, DamageNumberType type = DamageNumberType.Normal, float heightOverride = -1000f)
     {
-        Debug.Log($"[SPAWN] урон={damage}, цель={followTarget?.name}, кадр={Time.frameCount}");
         DamageNumber dn;
         if (_pool.Count > 0)
         {

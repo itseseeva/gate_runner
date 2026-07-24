@@ -34,7 +34,7 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
     public override HitResult Hit(Enemy target)
     {
         if (!IsAttackReady) return HitResult.Miss();
-        Debug.Log($"[Assassin] Hit() target={target.name}, frame={Time.frameCount}", this);
+        {}
         _lastAttackTime = Time.time;
         UpdateCooldown();
         return new HitResult { Hit = true };
@@ -60,7 +60,7 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
         }
 
         // VFX — стихийный слеш если есть, иначе базовый AssassinHitVfx
-        Debug.Log($"[Assassin VFX] element={element}, slashPrefab={_vfxConfig?.GetAssassinSlash(element)?.name ?? "NULL"}, hitVfx={_vfxConfig?.AssassinHitVfx?.name ?? "NULL"}, pos={transform.position}", this);
+        {}
         if (VfxPool.Instance != null && _vfxConfig != null)
         {
             GameObject slashPrefab = _vfxConfig.GetAssassinSlash(element);

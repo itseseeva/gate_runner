@@ -79,9 +79,9 @@ public class WarriorAutoAttack : MeleeAutoAttackBase
                 // Берём направление, куда смотрит танк, но сильно "режем" боковой отлёт (по X),
                 // чтобы враги летели красиво НАЗАД по трассе (+Z), а не улетали за край экрана.
                 Vector3 pushDir = transform.forward;
+                pushDir.y = 0f;
                 pushDir.x *= 0.25f; 
                 
-                Debug.Log($"[Knockback Debug] Tank forward: {transform.forward}. Adjusted pushDir: {pushDir.normalized}. Applying knockback for {distance}m", this);
                 knockback.ApplyKnockback(pushDir.normalized, distance, killed);
             }
         }
@@ -146,8 +146,9 @@ public class WarriorAutoAttack : MeleeAutoAttackBase
             KnockbackReceiver knockback = enemy.GetComponent<KnockbackReceiver>();
             if (knockback != null)
             {
-                Vector3 dir = (enemy.transform.position - transform.position).normalized;
-                dir = (dir + Vector3.forward).normalized;
+                Vector3 dir = enemy.transform.position - transform.position;
+                dir.y = 0f;
+                dir = (dir.normalized + Vector3.forward).normalized;
                 knockback.ApplyKnockback(dir, _knockbackForce, killed);
             }
         }

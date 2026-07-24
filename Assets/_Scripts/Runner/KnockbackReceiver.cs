@@ -49,12 +49,18 @@ public class KnockbackReceiver : MonoBehaviour
 
         if (_worldScroller != null) _worldScroller.Stop();
 
+        // Зануляем Y-составляющую — отлёт строго в горизонтальной плоскости земли
+        direction.y = 0f;
+        if (direction.sqrMagnitude > 0.0001f) direction.Normalize();
+
         Vector3 startPos  = transform.position;
+        if (_enemy != null) startPos.y = _enemy.SpawnHeight;
+
         Vector3 targetPos = startPos + direction * distance;
+        targetPos.y = startPos.y;
+
         float   duration  = distance / _knockbackSpeed;
         float   elapsed   = 0f;
-
-        Debug.Log($"[Knockback Debug] {gameObject.name} flying from {startPos} to {targetPos}. Direction: {direction}");
 
         while (elapsed < duration)
         {
@@ -74,10 +80,13 @@ public class KnockbackReceiver : MonoBehaviour
         if (_worldScroller != null) _worldScroller.Resume();
         _isBeingKnockedBack = false;
 
-        // Если убит — деактивируем после отлёта
+        // Если убит — возвращаем в пул (иначе выключенный объект со старой позицией копится)
         if (killedByHit)
-            gameObject.SetActive(false);
+        {
+            if (_enemy != null) _enemy.ReturnToPool();
+            else gameObject.SetActive(false);
+        }
 
-        Debug.Log($"[KnockbackReceiver] {gameObject.name} отлетел на {distance:F1}м", this);
+        {}
     }
 }

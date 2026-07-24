@@ -14,7 +14,9 @@ public class EnemyApproachState : EnemyState
         Ctrl.SetScroller(true);      // мир везёт врага к отряду
         Ctrl.SetSpeedMultiplier(1f);
         Ctrl.SetAnimatorAttacking(false);
-        Ctrl.AllowChaseAgain();
+        Ctrl.ResetChaseOffsets();
+        // AllowChaseAgain() убран: сброс флага возвращал отступающих
+        // обратно в бесконечный цикл «ударил → не пустили в чейз → снова бьёт».
     }
 
     public override void Tick()
@@ -28,8 +30,7 @@ public class EnemyApproachState : EnemyState
 
         if (distSqr <= trigger * trigger)
         {
-            Debug.Log($"[Approach→Attack] {Ctrl.name}: захожу в {Ctrl.AttackStateFor?.GetType().Name}, " +
-                      $"dist={Mathf.Sqrt(distSqr):F2}, range={Ctrl.AttackTriggerDistance}", Ctrl);
+            {}
             if (Ctrl.IsAttackAnimPlaying) return;
             Ctrl.Machine.ChangeState(Ctrl.AttackStateFor);
             return;

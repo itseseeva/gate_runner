@@ -87,7 +87,7 @@ public class BaseManager : MonoBehaviour
                 _state = JsonUtility.FromJson<BaseState>(json);
                 if (_state == null) _state = new BaseState();
                 if (_state.Buildings == null) _state.Buildings = new List<BuildingInstance>();
-                Debug.Log($"[Base] Загружено: {_state.Buildings.Count} зданий", this);
+                {}
             }
             catch (Exception e)
             {
@@ -145,7 +145,7 @@ public class BaseManager : MonoBehaviour
             _state.Buildings.Add(b);
         }
 
-        Debug.Log($"[Base] Стартовая база создана: {_state.Buildings.Count} зданий", this);
+        {}
     }
 
     // ─── Изменение состояния ────────────────────────────────
@@ -218,7 +218,7 @@ public class BaseManager : MonoBehaviour
         Save();
         OnBuildingsChanged?.Invoke();
 
-        Debug.Log($"[Base] Запущен апгрейд {building.Type} → Lvl {building.Level + 1} (займёт {nextLevelData.UpgradeTimeSeconds}с)", this);
+        {}
         return true;
     }
 
@@ -234,7 +234,7 @@ public class BaseManager : MonoBehaviour
         Save();
         OnBuildingsChanged?.Invoke();
 
-        Debug.Log($"[Base] Апгрейд завершён: {building.Type} теперь Lvl {building.Level}", this);
+        {}
     }
 
     /// <summary>Есть ли хоть одно здание которое сейчас апгрейдится.</summary>
@@ -271,16 +271,16 @@ public class BaseManager : MonoBehaviour
         CreateStartingBase();
         Save();
         OnBuildingsChanged?.Invoke();
-        Debug.Log("[Base] База сброшена в стартовое состояние", this);
+        {}
     }
 
     [ContextMenu("Показать список зданий")]
     public void DebugPrintBuildings()
     {
-        Debug.Log($"=== Здания на базе ({_state.Buildings.Count}) ===");
+        {}
         foreach (var b in _state.Buildings)
         {
-            Debug.Log($"  • {b.Id} [{b.Type}] Lvl {b.Level} @ {b.Position}");
+            {}
         }
     }
 }

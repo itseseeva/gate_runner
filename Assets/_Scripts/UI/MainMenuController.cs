@@ -120,7 +120,7 @@ public class MainMenuController : MonoBehaviour
 
     private void OnBaseClicked()
     {
-        Debug.Log("[MainMenu] Переход на базу");
+        {}
         SceneManager.LoadScene(_baseSceneName);
     }
 }

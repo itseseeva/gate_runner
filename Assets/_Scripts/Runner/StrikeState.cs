@@ -26,7 +26,7 @@ public class StrikeState : IUnitState
 
     public void Enter()
     {
-        Debug.Log($"[Strike Enter] {_ctrl.gameObject.name}, frame={Time.frameCount}", _ctrl);
+        {}
         _waitingAfterHit = false;
         _ctrl.PlayAttackRun();
 
@@ -111,7 +111,7 @@ public class StrikeState : IUnitState
         {
             if (_ctrl.IsTankUnit)
             {
-                Debug.Log($"[Tank] Контакт. IsReady={_ctrl.AutoAttack?.IsReady}, dist={distance:F2}, target={_target.name}", _ctrl);
+                {}
                 if (_ctrl.AutoAttack == null || !_ctrl.AutoAttack.IsReady) return;
 
                 _ctrl.AutoAttack.Hit(_target);
@@ -159,7 +159,7 @@ public class StrikeState : IUnitState
 
     private void FindNextOrReturn()
     {
-        Debug.Log($"[Strike] FindNextOrReturn: IsTankUnit={_ctrl.IsTankUnit}", _ctrl);
+        {}
 
         // Танк и Ассасин возвращаются в строй сразу — не ищут следующую цель
         if (_ctrl.IsTankUnit || _ctrl.GetComponent<AssassinAutoAttack>() != null)
@@ -172,7 +172,7 @@ public class StrikeState : IUnitState
         if (_lastHitEnemy != null && _lastHitEnemy.gameObject.activeSelf)
             _ctrl.ClaimTarget(_lastHitEnemy);
 
-        Debug.Log($"[Strike] LastHitZ={LastHitZ:F1}, ищем minZ={LastHitZ + 3f:F1}");
+        {}
         Enemy next = _ctrl.FindRandomEnemyInRange(_ctrl.DetectionRange, minZ: LastHitZ + 3f);
 
         if (_lastHitEnemy != null)
@@ -183,7 +183,7 @@ public class StrikeState : IUnitState
 
         if (next != null)
         {
-            Debug.Log($"[Strike] Найден next на Z={next.transform.position.z:F1}");
+            {}
             _ctrl.ClaimTarget(next);
             SetTarget(next);
             return;

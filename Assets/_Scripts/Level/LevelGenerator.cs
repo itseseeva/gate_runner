@@ -29,7 +29,7 @@ public class LevelGenerator : MonoBehaviour
         {
             _config = LevelLauncher.Instance.SelectedLevel.GenerationConfig;
             int lvlIndex = LevelLauncher.Instance.SelectedLevelIndex;
-            Debug.Log($"[LevelGen] Использую конфиг из шаблона, уровень={lvlIndex + 1}", this);
+            {}
         }
 
         if (_config == null)
@@ -47,7 +47,7 @@ public class LevelGenerator : MonoBehaviour
 
         BuildPlan();
         Enemy.OnAnyEnemyDied += HandleEnemyDied;
-        Debug.Log($"[LevelGen] План уровня готов: {_plan.Waves.Count} волн, {_plan.Gates.Count} ворот, длина {_plan.LevelLength}м", this);
+        {}
     }
 
     private void OnDestroy()
@@ -91,18 +91,14 @@ public class LevelGenerator : MonoBehaviour
             gate.Spawned = true;
         }
 
-        // ─── Очистка врагов которые уехали за лидера ────────────
-        CleanupEscapedEnemies();
+        // ─── Очистка врагов которые уехали за лидера (раз в 30 кадров) ────────────
+        if (Time.frameCount % 30 == 0) CleanupEscapedEnemies();
 
         // Финиш — все волны заспавнены И все враги убиты
         if (AllWavesSpawned() && GetTotalEnemiesRemaining() == 0)
         {
             _levelFinished = true;
             FinishLevel();
-        }
-        else if (Time.frameCount % 60 == 0)
-        {
-            Debug.Log($"[LevelGen] Финиш проверка: AllWavesSpawned={AllWavesSpawned()}, врагов={GetTotalEnemiesRemaining()}");
         }
     }
 
@@ -111,17 +107,21 @@ public class LevelGenerator : MonoBehaviour
         if (_leader == null) return;
 
         float threshold = _leader.position.z - 20f;
-        Enemy[] enemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
 
-        foreach (Enemy e in enemies)
+        // Идём по статическому реестру, а не FindObjectsByType —
+        // поиск по всей сцене каждый кадр съедал FPS по мере накопления объектов.
+        var list = EnemyCombatBase.AllEnemies;
+        for (int i = list.Count - 1; i >= 0; i--)
         {
-            if (e == null || !e.gameObject.activeSelf) continue;
-            if (e.transform.position.z < threshold)
-            {
-                _aliveEnemyCount = Mathf.Max(0, _aliveEnemyCount - 1);
-                e.gameObject.SetActive(false);
-                Debug.Log($"[LevelGen] Враг убежал за лидера, деактивирован", this);
-            }
+            EnemyCombatBase combat = list[i];
+            if (combat == null || !combat.gameObject.activeSelf) continue;
+            if (combat.transform.position.z >= threshold) continue;
+
+            _aliveEnemyCount = Mathf.Max(0, _aliveEnemyCount - 1);
+
+            Enemy e = combat.GetComponent<Enemy>();
+            if (e != null) e.ReturnToPool();
+            else combat.gameObject.SetActive(false);
         }
     }
 
@@ -254,16 +254,24 @@ public class LevelGenerator : MonoBehaviour
     {
         if (_config.EnemyPrefabs == null || _config.EnemyPrefabs.Count == 0) return;
 
-        // Определяем позиции врагов в зависимости от формации
-        Vector3[] positions = GenerateWavePositions(wave);
+        // Спавним относительно лидера, а не по абсолютному wave.Z.
+        // Лидер неподвижен (мир едет на него), поэтому абсолютные координаты плана
+        // с каждой волной уходили всё дальше вперёд.
+        float spawnZ = _leader.position.z + _spawnAheadDistance;
+
+        Vector3[] positions = GenerateWavePositions(wave, spawnZ);
 
         for (int i = 0; i < positions.Length; i++)
         {
             GameObject prefabToSpawn = _config.EnemyPrefabs[Random.Range(0, _config.EnemyPrefabs.Count)];
-
             if (prefabToSpawn == null) continue;
 
-            GameObject go = Instantiate(prefabToSpawn, positions[i], Quaternion.identity);
+            // Через пул — Instantiate в бою даёт фризы и копит объекты.
+            GameObject go = EnemyPool.Instance != null
+                ? EnemyPool.Instance.Get(prefabToSpawn, positions[i], Quaternion.identity)
+                : Instantiate(prefabToSpawn, positions[i], Quaternion.identity);
+
+            if (go == null) continue;
 
             Enemy enemy = go.GetComponent<Enemy>();
             if (enemy != null)
@@ -272,12 +280,10 @@ public class LevelGenerator : MonoBehaviour
                 _aliveEnemyCount++;
             }
         }
-
-        Debug.Log($"[LevelGen] Волна заспавнена на Z={wave.Z:F0}, формация={wave.Formation}, врагов={wave.EnemyCount}, HP×{wave.HealthMultiplier:F2}", this);
     }
 
     /// <summary>Генерирует позиции для волны в зависимости от формации.</summary>
-    private Vector3[] GenerateWavePositions(WaveData wave)
+    private Vector3[] GenerateWavePositions(WaveData wave, float spawnZ)
     {
         Vector3[] positions = new Vector3[wave.EnemyCount];
 
@@ -285,17 +291,17 @@ public class LevelGenerator : MonoBehaviour
         {
             case WaveFormation.LeftCluster:
                 // Плотный отряд слева (X ≈ -1.2)
-                positions = GenerateClusterPositions(wave.EnemyCount, wave.Z, centerX: -1.2f, clusterRadius: 0.8f);
+                positions = GenerateClusterPositions(wave.EnemyCount, spawnZ, centerX: -1.2f, clusterRadius: 0.8f);
                 break;
 
             case WaveFormation.RightCluster:
                 // Плотный отряд справа (X ≈ +1.2)
-                positions = GenerateClusterPositions(wave.EnemyCount, wave.Z, centerX: 1.2f, clusterRadius: 0.8f);
+                positions = GenerateClusterPositions(wave.EnemyCount, spawnZ, centerX: 1.2f, clusterRadius: 0.8f);
                 break;
 
             case WaveFormation.CenterMob:
                 // Большая толпа по центру — широкая по X и глубокая по Z
-                positions = GenerateClusterPositions(wave.EnemyCount, wave.Z, centerX: 0f, clusterRadius: 1.5f);
+                positions = GenerateClusterPositions(wave.EnemyCount, spawnZ, centerX: 0f, clusterRadius: 1.5f);
                 break;
         }
 
@@ -335,7 +341,7 @@ public class LevelGenerator : MonoBehaviour
     private void SpawnGate(GateData data)
     {
         GameObject go = Instantiate(data.Prefab, new Vector3(data.X, 0.01f, data.Z), Quaternion.identity);
-        Debug.Log($"[LevelGen] Спавню ворота {data.Prefab.name} на X={data.X:F1} Z={data.Z:F0}", this);
+        {}
 
         // Если универсальный — настраиваем QuantityGate на лету
         if (data.NeedsRandomQuantity)
@@ -361,7 +367,7 @@ public class LevelGenerator : MonoBehaviour
 
     private void FinishLevel()
     {
-        Debug.Log("[LevelGen] УРОВЕНЬ ПРОЙДЕН!", this);
+        {}
 
         // НЕ начисляем награды здесь — это делает VictoryUI после анимации
         // Просто помечаем уровень пройденным

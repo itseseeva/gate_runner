@@ -22,7 +22,7 @@ public class BaseSceneNavigation : MonoBehaviour
 
     private void OnBattleClicked()
     {
-        Debug.Log("[BaseScene] Переход в MainMenu для выбора биома");
+        {}
         SceneManager.LoadScene(_mainMenuSceneName);
     }
 }

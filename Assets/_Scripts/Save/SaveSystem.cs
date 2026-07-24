@@ -23,7 +23,7 @@ public class SaveSystem : MonoBehaviour
     {
         string json = JsonUtility.ToJson(_currentSave, true);
         File.WriteAllText(_savePath, json);
-        Debug.Log($"[Save] Сохранено → {_savePath}");
+        {}
     }
 
     /// <summary>
@@ -35,14 +35,14 @@ public class SaveSystem : MonoBehaviour
         {
             string json = File.ReadAllText(_savePath);
             _currentSave = JsonUtility.FromJson<PlayerSaveData>(json);
-            Debug.Log("[Save] Загружено успешно!");
+            {}
         }
         else
         {
             // Первый запуск — создаём новое сохранение
             _currentSave = CreateNewSave();
             Save();
-            Debug.Log("[Save] Новая игра создана!");
+            {}
         }
     }
 
@@ -67,7 +67,7 @@ public class SaveSystem : MonoBehaviour
     {
         _currentSave.gold += amount;
         Save();
-        Debug.Log($"[Save] Золото: {_currentSave.gold}");
+        {}
     }
 
     /// <summary>
@@ -77,7 +77,7 @@ public class SaveSystem : MonoBehaviour
     {
         if (_currentSave.gold < amount)
         {
-            Debug.Log("[Save] Недостаточно золота!");
+            {}
             return false;
         }
         _currentSave.gold -= amount;
@@ -92,7 +92,7 @@ public class SaveSystem : MonoBehaviour
     {
         _currentSave.crystals += amount;
         Save();
-        Debug.Log($"[Save] Кристаллы: {_currentSave.crystals}");
+        {}
     }
 
     /// <summary>
@@ -102,7 +102,7 @@ public class SaveSystem : MonoBehaviour
     {
         if (_currentSave.crystals < amount)
         {
-            Debug.Log("[Save] Недостаточно кристаллов!");
+            {}
             return false;
         }
         _currentSave.crystals -= amount;
@@ -117,7 +117,7 @@ public class SaveSystem : MonoBehaviour
     {
         _currentSave.ownedArtifactIds.Add(artifactId);
         Save();
-        Debug.Log($"[Save] Артефакт добавлен: {artifactId}");
+        {}
     }
 
     /// <summary>
@@ -182,20 +182,20 @@ public class SaveSystem : MonoBehaviour
         // Максимум 6 слотов
         if (hero.equippedArtifactIds.Count >= 6)
         {
-            Debug.Log($"[Save] У {heroId} все слоты заняты!");
+            {}
             return false;
         }
 
         // Проверяем что артефакт есть в инвентаре и свободен
         if (!GetFreeArtifacts().Contains(artifactId))
         {
-            Debug.Log($"[Save] Артефакт {artifactId} недоступен!");
+            {}
             return false;
         }
 
         hero.equippedArtifactIds.Add(artifactId);
         Save();
-        Debug.Log($"[Save] {heroId} надел: {artifactId}");
+        {}
         return true;
     }
 
@@ -208,13 +208,13 @@ public class SaveSystem : MonoBehaviour
 
         if (!hero.equippedArtifactIds.Contains(artifactId))
         {
-            Debug.Log($"[Save] У {heroId} нет {artifactId}");
+            {}
             return false;
         }
 
         hero.equippedArtifactIds.Remove(artifactId);
         Save();
-        Debug.Log($"[Save] {heroId} снял: {artifactId}");
+        {}
         return true;
     }
     /// <summary>
@@ -225,7 +225,7 @@ public class SaveSystem : MonoBehaviour
         HeroSaveData hero = GetOrCreateHeroData(heroId);
         hero.equippedArtifactIds.Clear();
         Save();
-        Debug.Log($"[Save] {heroId}: все артефакты сняты");
+        {}
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -243,7 +243,7 @@ public class SaveSystem : MonoBehaviour
         // Если уже максимальный уровень — XP не начисляем
         if (hero.level >= HeroStatsCalculator.MaxLevel)
         {
-            Debug.Log($"[Save] {heroId}: максимальный уровень достигнут!");
+            {}
             return;
         }
 
@@ -258,14 +258,11 @@ public class SaveSystem : MonoBehaviour
             hero.level      = newLevel;
             hero.statPoints += pointsGranted;
 
-            Debug.Log($"[Save] {heroId} ▲ Уровень {newLevel}! " +
-                      $"+{pointsGranted} очков статов. " +
-                      $"Итого очков: {hero.statPoints}", this);
+            {}
         }
         else
         {
-            Debug.Log($"[Save] {heroId}: +{amount} XP " +
-                      $"(итого {hero.experience})", this);
+            {}
         }
 
         Save();
@@ -282,7 +279,7 @@ public class SaveSystem : MonoBehaviour
 
         if (hero.statPoints <= 0)
         {
-            Debug.Log($"[Save] {heroId}: нет очков статов!", this);
+            {}
             return false;
         }
 
@@ -293,14 +290,13 @@ public class SaveSystem : MonoBehaviour
             case "intellect": hero.intellect++;  break;
             case "endurance": hero.endurance++; break;
             default:
-                Debug.Log($"[Save] Неизвестный стат: {statName}", this);
+                {}
                 return false;
         }
 
         hero.statPoints--;
         Save();
-        Debug.Log($"[Save] {heroId}: +1 {statName} " +
-                  $"(осталось очков: {hero.statPoints})", this);
+        {}
         return true;
     }
     /// <summary>
@@ -333,8 +329,6 @@ public class SaveSystem : MonoBehaviour
         hero.endurance = 0;
 
         Save();
-        Debug.Log($"[Save] {heroId}: ВСЕ СТАТЫ СБРОШЕНЫ! " +
-                  $"Возвращено очков: {spentPoints}. " +
-                  $"Итого очков: {hero.statPoints}", this);
+        {}
     }
 }

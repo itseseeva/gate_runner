@@ -105,7 +105,7 @@ public class BuildingSelector : MonoBehaviour
         _currentSelection = view;
         view.SetSelected(true);
 
-        Debug.Log($"[Selector] Выделено: {view.Instance.Type} Lvl {view.Instance.Level}", this);
+        {}
         OnBuildingSelected?.Invoke(view);
     }
 

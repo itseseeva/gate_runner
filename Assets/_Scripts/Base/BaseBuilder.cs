@@ -62,7 +62,7 @@ public class BaseBuilder : MonoBehaviour
             }
         }
 
-        Debug.Log($"[BaseBuilder] Заспавнено зданий: {_spawnedViews.Count}", this);
+        {}
     }
 
     private void OnBuildingsChanged()

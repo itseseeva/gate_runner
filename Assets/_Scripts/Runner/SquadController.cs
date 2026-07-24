@@ -301,7 +301,7 @@ public class SquadController : MonoBehaviour
             // Лимит 50 достигнут — усиляем существующих T1 этого типа
             // (или T2 если T1 нет)
             PowerUpCategory(type);
-            Debug.Log($"[Crowd] Лимит {MAX_TOTAL_MODELS} достигнут. {type} PowerUp!", this);
+            {}
             return;
         }
 
@@ -317,7 +317,7 @@ public class SquadController : MonoBehaviour
         if (meleeCtrl != null)
             meleeCtrl.Initialize(transform, Vector3.zero);
 
-        Debug.Log($"[Crowd] +1 {type}_T1. Всего: {CountAllUnits()}", this);
+        {}
 
         // Проверяем нужно ли сливать T1 → T2
         TryMergeT1(type);
@@ -344,7 +344,7 @@ public class SquadController : MonoBehaviour
             }
         }
 
-        Debug.Log($"[Crowd] Стихия отряда → {element}", this);
+        {}
     }
 
     /// <summary>
@@ -378,7 +378,7 @@ public class SquadController : MonoBehaviour
             removed++;
         }
 
-        Debug.Log($"[Crowd] -{removed} {type}. Всего: {CountAllUnits()}", this);
+        {}
     }
 
     /// <summary>
@@ -392,14 +392,14 @@ public class SquadController : MonoBehaviour
         {
             foreach (Unit u in t2list)
                 u.IncrementPowerMultiplier();
-            Debug.Log($"[Crowd] {type}_T2 × PowerMultiplier++", this);
+            {}
             return;
         }
 
         var t1list = GetCategory(type, UnitTier.T1);
         foreach (Unit u in t1list)
             u.IncrementPowerMultiplier();
-        Debug.Log($"[Crowd] {type}_T1 × PowerMultiplier++", this);
+        {}
     }
 
     /// <summary>
@@ -426,7 +426,7 @@ public class SquadController : MonoBehaviour
 
             _flatListDirty = true;
             AddT2(type);
-            Debug.Log($"[Crowd] {type}: 15×T1 → 1×T2", this);
+            {}
         }
     }
 
@@ -455,7 +455,7 @@ public class SquadController : MonoBehaviour
             if (meleeCtrl != null)
                 meleeCtrl.Initialize(transform, Vector3.zero);
 
-            Debug.Log($"[Crowd] +1 {type}_T2 (multiplier={MAX_T1_PER_CATEGORY}). Всего T2: {CountAllT2()}", this);
+            {}
         }
         else
         {
@@ -463,7 +463,7 @@ public class SquadController : MonoBehaviour
             var t2list = GetCategory(type, UnitTier.T2);
             foreach (Unit u in t2list)
                 u.IncrementPowerMultiplier();
-            Debug.Log($"[Crowd] Лимит! {type}_T2 PowerMultiplier++. Всего T2: {CountAllT2()}", this);
+            {}
         }
     }
 
@@ -481,7 +481,7 @@ public class SquadController : MonoBehaviour
             UnitPool.Instance.Return(unit);
             _flatListDirty = true;
 
-            Debug.Log($"[Crowd] -1 {kv.Key.Item1}_T1. Всего: {CountAllUnits()}", this);
+            {}
             return;
         }
     }
@@ -519,13 +519,12 @@ public class SquadController : MonoBehaviour
                 _flatListDirty = true;
                 unit.gameObject.SetActive(false);
 
-                Debug.Log($"[Squad] Юнит {unit.gameObject.name} удалён из отряда. " +
-                          $"Осталось: {CountAllUnits()}", this);
+                {}
 
                 // Если отряд полностью пуст — Game Over
                 if (CountAllUnits() == 0)
                 {
-                    Debug.Log("[Squad] Все юниты погибли! Game Over.", this);
+                    {}
                     if (GameStateManager.Instance != null)
                         GameStateManager.Instance.SetGameOver();
                 }

@@ -37,6 +37,6 @@ public class LevelLauncher : MonoBehaviour
     {
         SelectedBiome      = biome;
         SelectedLevelIndex = levelIndex;
-        Debug.Log($"[LevelLauncher] Выбран: {biome.DisplayName} → {biome.GetLevelDisplayName(levelIndex)}", this);
+        {}
     }
 }

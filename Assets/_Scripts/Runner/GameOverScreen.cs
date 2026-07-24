@@ -46,7 +46,7 @@ public class GameOverScreen : MonoBehaviour
     /// <summary>Перезапускает текущую сцену.</summary>
     public void RestartGame()
     {
-        Debug.Log("[GameOverScreen] Restart нажат — перезагружаем сцену", this);
+        {}
 
         Scene currentScene = SceneManager.GetActiveScene();
         SceneManager.LoadScene(currentScene.name);

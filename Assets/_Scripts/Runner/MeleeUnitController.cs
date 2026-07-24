@@ -137,7 +137,7 @@ public class MeleeUnitController : MonoBehaviour
 
     public void UpdateRejoin()
     {
-        Debug.Log($"[Rejoin] t={_rejoinTimer/_rejoinDuration:F2}, isRejoining={_isRejoining}", this);
+        {}
         if (!_isRejoining) return;
 
         _rejoinTimer += Time.deltaTime;
@@ -165,7 +165,7 @@ public class MeleeUnitController : MonoBehaviour
 
         var ice = GetComponentInChildren<ParticleSystem>();
         if (ice != null)
-            Debug.Log($"[Rejoin] aura localPos={ice.transform.localPosition}, heroPos={transform.position}");
+            {}
     }
 
     public void ChangeState(IUnitState state) => _stateMachine.ChangeState(state);

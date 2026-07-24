@@ -38,7 +38,7 @@ public abstract class BaseGate : MonoBehaviour
         float leaderX = squad.transform.position.x;
         float deltaX  = Mathf.Abs(leaderX - gateX);
 
-        Debug.Log($"[Gate] gateX={gateX:F2}, leaderX={leaderX:F2}, delta={deltaX:F2}, лимит={_passageHalfWidth}", this);
+        {}
 
         if (deltaX > _passageHalfWidth)
         {
@@ -48,7 +48,7 @@ public abstract class BaseGate : MonoBehaviour
         _alreadyTriggered = true;
 
         ApplyEffect(squad);
-        Debug.Log($"[Gate] {GetLabel()} сработали!", this);
+        {}
 
         // Если есть эффект разбития — запускаем его
         GateGlassEffect glass = GetComponent<GateGlassEffect>();

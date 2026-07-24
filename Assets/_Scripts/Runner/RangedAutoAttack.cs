@@ -79,8 +79,7 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
         if (_projectilePool == null) _projectilePool = ProjectilePool.Instance;
         if (_projectilePool == null || _unit == null) return;
 
-        Debug.Log($"[Archer ONSHOOT] frame={Time.frameCount} isSpecial={_isSpecialShot} " +
-                  $"animState={_animator.GetCurrentAnimatorStateInfo(0).shortNameHash}", this);
+        {}
 
         ElementType element = _unit.Element;
 
@@ -113,7 +112,7 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
         // прямо сейчас — только от того, сколько залпов мы ещё должны выпустить.
         if (_pendingFanShots > 0)
         {
-            Debug.Log($"[Archer FAN] залп #{_specialFanVolleys - _pendingFanShots + 1} из {_specialFanVolleys}", this);
+            {}
 
             // ── Веер: несколько стрел с равномерным разлётом по углу ──
             int count = _specialArrowCount;
@@ -131,7 +130,7 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
         }
         else
         {
-            Debug.Log($"[Archer SINGLE]", this);
+            {}
             SpawnOneArrow(prefab, spawnPos, transform.rotation, damage, element);
         }
     }
@@ -159,21 +158,16 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
 
         if (shouldLog)
         {
-            Debug.Log($"═══════ [Muzzle Diag] {name} стихия={element} prefab={muzzle.name} ═══════", this);
+            {}
 
             // 1. Где сейчас рука в мире + куда смотрит герой.
-            Debug.Log($"[Muzzle Origin] handWorld={origin.position:F3}, handRotEuler={origin.rotation.eulerAngles:F1}, " +
-                      $"heroPos={transform.position:F3}, heroForward={transform.forward:F3}", this);
+            {}
 
             // 2. Что лежит внутри самого prefab-а — до спавна.
-            Debug.Log($"[Muzzle Prefab ROOT] {muzzle.name}: " +
-                      $"pos={muzzle.transform.position:F3}, " +
-                      $"localScale={muzzle.transform.localScale:F3}", muzzle);
+            {}
             foreach (Transform child in muzzle.transform)
             {
-                Debug.Log($"[Muzzle Prefab CHILD] {child.name}: " +
-                          $"localPos={child.localPosition:F3}, " +
-                          $"localScale={child.localScale:F3}", muzzle);
+                {}
             }
         }
 
@@ -189,13 +183,10 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
 
         // 3. Где ФАКТИЧЕСКИ оказался эффект в сцене после спавна.
         string parentName = spawned.transform.parent != null ? spawned.transform.parent.name : "NULL";
-        Debug.Log($"[Muzzle After Spawn ROOT] worldPos={spawned.transform.position:F3}, " +
-                  $"parent={parentName}", spawned);
+        {}
         foreach (Transform child in spawned.transform)
         {
-            Debug.Log($"[Muzzle After Spawn CHILD] {child.name}: " +
-                      $"worldPos={child.position:F3}, " +
-                      $"localPos={child.localPosition:F3}", spawned);
+            {}
         }
 
         // 4. Настройки всех ParticleSystem — главные подозреваемые в дрейфе.
@@ -204,14 +195,7 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
         {
             var main = ps.main;
             var shape = ps.shape;
-            Debug.Log($"[Muzzle PS] {ps.name}: " +
-                      $"SimSpace={main.simulationSpace}, " +
-                      $"EmitVelMode={main.emitterVelocityMode}, " +
-                      $"StartSpeed={main.startSpeed.constant:F2}, " +
-                      $"ShapeEnabled={shape.enabled}, " +
-                      $"ShapePos={shape.position:F3}, " +
-                      $"psWorldPos={ps.transform.position:F3}, " +
-                      $"psLocalPos={ps.transform.localPosition:F3}", ps);
+            {}
         }
     }
 
@@ -269,8 +253,6 @@ public class RangedAutoAttack : MonoBehaviour, IUnitAttack
         {
             _isSpecialShot = false;
         }
-
-        Debug.Log($"[Archer PERFORM] counter={_attackCounter} isSpecial={_isSpecialShot} pendingFan={_pendingFanShots}", this);
 
         if (_animator != null)
         {

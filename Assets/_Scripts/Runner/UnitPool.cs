@@ -41,7 +41,7 @@ public class UnitPool : MonoBehaviour
                 CreatePoolForTier(data, UnitTier.T2);
             }
         }
-        Debug.Log("[UnitPool] Пул готов!", this);
+        {}
     }
 
     private void CreatePoolForTier(HeroDefinitionSO data, UnitTier tier)

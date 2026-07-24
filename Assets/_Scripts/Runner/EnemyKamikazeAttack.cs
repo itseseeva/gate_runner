@@ -156,7 +156,7 @@ public class EnemyKamikazeAttack : MonoBehaviour
         Unit unit = other.GetComponent<Unit>();
         if (unit == null) return;
 
-        Debug.Log($"[EnemyKamikaze] {gameObject.name} таранит {unit.gameObject.name}!", this);
+        {}
 
         // Наносим урон
         bool killed = unit.TakeDamage(_damage);
@@ -172,7 +172,7 @@ public class EnemyKamikazeAttack : MonoBehaviour
     private void Die()
     {
         _isDead = true;
-        Debug.Log($"[EnemyKamikaze] {gameObject.name} погиб после тарана!", this);
+        {}
 
         // Через Enemy.TakeDamage с большим уроном — чтобы сработало событие OnAnyEnemyDied
         Enemy enemy = GetComponent<Enemy>();
