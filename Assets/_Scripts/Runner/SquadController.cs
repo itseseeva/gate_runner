@@ -30,7 +30,7 @@ public class SquadController : MonoBehaviour
     [SerializeField] private float _zoneSpacing     = 0.8f;
 
     [Tooltip("Максимум юнитов в одной строке сетки")]
-    [SerializeField] private int   _maxPerRow       = 8;
+    [SerializeField] private int   _maxPerRow       = 6;
 
     [Tooltip("Смещение всего отряда вперёд от лидера по Z")]
     [SerializeField] private float _crowdForwardOffset = 1.5f;

@@ -22,6 +22,13 @@ public class EnemyRangedAttackState : EnemyState
     {
         if (Ctrl.Target == null || Ctrl.Target.IsDead) return;
 
+        // Если отряд уехал вперёд и враг оказался сзади — уходим в Chase (или Retreat/деспавн, если чейз полон)
+        if (Ctrl.IsBehindSquad)
+        {
+            Ctrl.EndAttackAndChase();
+            return;
+        }
+
         Ctrl.FaceTarget();
 
         if (Time.time >= _nextShotTime)

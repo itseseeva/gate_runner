@@ -11,16 +11,13 @@ public class DecorEntry
     [Tooltip("Разброс масштаба: 0.25 = ±25%")]
     public float ScaleVariation = 0.25f;
 
-    [Tooltip("Отступ от края дороги (широкому декору больше)")]
-    public float SideMargin = 1.5f;
-
     [Tooltip("Спавнить по всей ширине дороги, а не только у краёв")]
     public bool SpawnOnRoadCenter = false;
 
     [Tooltip("Не крутить случайно по Y — для забора, бордюров и всего, что должно стоять ровно")]
     public bool NoRandomRotation = false;
 
-    [Tooltip("Вероятность спавна. 1 = всегда, 0.2 = изредка")]
+    [Tooltip("Шанс появления при спавне (1 = всегда, 0.1 = в 10% случаев)")]
     [Range(0f, 1f)]
     public float SpawnChance = 1f;
 
@@ -50,8 +47,25 @@ public class BiomeSO : ScriptableObject
     [Tooltip("Skybox биома (можно оставить пустым, если общий)")]
     [SerializeField] private Material _skybox;
 
-    [Header("Декор")]
-    [SerializeField] private DecorEntry[] _decor;
+    [Header("Трава")]
+    [Tooltip("Модели травы по бокам дороги.")]
+    [SerializeField] private DecorEntry[] _grassDecor;
+
+    [Header("Цветы")]
+    [Tooltip("Модели цветов по бокам дороги.")]
+    [SerializeField] private DecorEntry[] _flowerDecor;
+
+    [Header("Кусты")]
+    [Tooltip("Модели кустов по бокам дороги.")]
+    [SerializeField] private DecorEntry[] _bushDecor;
+
+    [Header("Камни")]
+    [Tooltip("Модели камней по бокам дороги.")]
+    [SerializeField] private DecorEntry[] _rockDecor;
+
+    [Header("Деревья")]
+    [Tooltip("Деревья по бокам дороги.")]
+    [SerializeField] private DecorEntry[] _treeDecor;
 
     [Header("Декор на дороге")]
     [Tooltip("Мелкий декор на самой дороге: трава, камешки.")]
@@ -65,7 +79,11 @@ public class BiomeSO : ScriptableObject
     public Material      RoadMaterial => _roadMaterial;
     public Color         FogColor     => _fogColor;
     public Material      Skybox       => _skybox;
-    public DecorEntry[]  Decor        => _decor;
+    public DecorEntry[]  GrassDecor   => _grassDecor;
+    public DecorEntry[]  FlowerDecor  => _flowerDecor;
+    public DecorEntry[]  BushDecor    => _bushDecor;
+    public DecorEntry[]  RockDecor    => _rockDecor;
+    public DecorEntry[]  TreeDecor    => _treeDecor;
     public DecorEntry[]  RoadDecor    => _roadDecor;
     public DecorEntry    Fence        => _fence;
 }

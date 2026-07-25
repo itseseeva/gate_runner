@@ -14,13 +14,18 @@ public class LevelGenerator : MonoBehaviour
     [SerializeField] private Transform          _leader;
 
     [Header("Lazy spawn")]
-    [Tooltip("На какой дистанции от лидера спавнить объекты")]
-    [SerializeField] private float _spawnAheadDistance = 50f;
+    [Tooltip("На какой дистанции от лидера спавнить объекты (строго 37 метров)")]
+    [SerializeField] private float _spawnAheadDistance = 37f;
 
     private LevelPlan _plan;
     private bool      _levelFinished;
     private float     _virtualLeaderZ;
     private int       _aliveEnemyCount = 0;  // сколько врагов сейчас живо на сцене
+
+    private void Awake()
+    {
+        _spawnAheadDistance = 37f;
+    }
 
     private void Start()
     {
@@ -181,14 +186,14 @@ public class LevelGenerator : MonoBehaviour
 
         if (isDouble)
         {
-            GateData left  = MakeGateData(gateZ, -1.2f);
-            GateData right = MakeGateData(gateZ, +1.2f);
+            GateData left  = MakeGateData(gateZ, -1.0f);
+            GateData right = MakeGateData(gateZ, +1.0f);
 
             // Гарантируем что вторые ворота — другой prefab
             int attempts = 0;
             while (right.Prefab == left.Prefab && attempts < 10)
             {
-                right = MakeGateData(gateZ, +1.2f);
+                right = MakeGateData(gateZ, +1.0f);
                 attempts++;
             }
 
@@ -208,7 +213,7 @@ public class LevelGenerator : MonoBehaviour
         else
         {
             // Одна ворота — рандомно слева или справа
-            float side = Random.value < 0.5f ? -1.2f : +1.2f;
+            float side = Random.value < 0.5f ? -1.0f : +1.0f;
             _plan.Gates.Add(MakeGateData(gateZ, side));
         }
     }
@@ -290,18 +295,18 @@ public class LevelGenerator : MonoBehaviour
         switch (wave.Formation)
         {
             case WaveFormation.LeftCluster:
-                // Плотный отряд слева (X ≈ -1.2)
-                positions = GenerateClusterPositions(wave.EnemyCount, spawnZ, centerX: -1.2f, clusterRadius: 0.8f);
+                // Плотный отряд слева (X ≈ -1.0)
+                positions = GenerateClusterPositions(wave.EnemyCount, spawnZ, centerX: -1.0f, clusterRadius: 0.6f);
                 break;
 
             case WaveFormation.RightCluster:
-                // Плотный отряд справа (X ≈ +1.2)
-                positions = GenerateClusterPositions(wave.EnemyCount, spawnZ, centerX: 1.2f, clusterRadius: 0.8f);
+                // Плотный отряд справа (X ≈ +1.0)
+                positions = GenerateClusterPositions(wave.EnemyCount, spawnZ, centerX: 1.0f, clusterRadius: 0.6f);
                 break;
 
             case WaveFormation.CenterMob:
                 // Большая толпа по центру — широкая по X и глубокая по Z
-                positions = GenerateClusterPositions(wave.EnemyCount, spawnZ, centerX: 0f, clusterRadius: 1.5f);
+                positions = GenerateClusterPositions(wave.EnemyCount, spawnZ, centerX: 0f, clusterRadius: 1.2f);
                 break;
         }
 

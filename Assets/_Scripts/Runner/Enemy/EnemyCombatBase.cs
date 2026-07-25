@@ -31,8 +31,7 @@ public abstract class EnemyCombatBase : MonoBehaviour
 
     // Лимит врагов в чейзе — толпа сзади не должна расти бесконечно,
     // иначе десятки врагов держат слоты и жрут FPS.
-    // TODO: вынести в конфиг, если понадобится баланс.
-    private const int MaxChasingEnemies = 20;
+    private const int MaxChasingEnemies = 8;
 
     /// <summary>Сколько врагов сейчас в чейзе.</summary>
     public static int ChasingCount
@@ -100,8 +99,19 @@ public abstract class EnemyCombatBase : MonoBehaviour
     /// <summary>True, пока аниматор ещё проигрывает комбо атаки.</summary>
     public bool IsAttackAnimPlaying { get; set; }
 
+    /// <summary>True, если враг находится позади отряда/цели по Z (за спиной у героев).</summary>
+    public bool IsBehindSquad
+    {
+        get
+        {
+            if (_target != null) return transform.position.z < _target.transform.position.z - 0.1f;
+            if (_leader != null) return transform.position.z < _leader.position.z - 0.1f;
+            return false;
+        }
+    }
+
     // Балансные числа из SO через Enemy.Data
-    public  float AttackRange     => Data != null ? Data.AttackRange      : 0.7f;
+    public virtual float AttackRange     => Data != null ? Data.AttackRange      : 0.7f;
     public  float AttackSpeed     => Data != null ? Data.AttackSpeed      : 1f;
     public  float AttackCooldown  => Data != null ? Data.AttackCooldown   : 1.5f;
     private float SeparationRadius => Data != null ? Data.SeparationRadius : 0.5f;
@@ -226,7 +236,7 @@ public abstract class EnemyCombatBase : MonoBehaviour
         if (!IsChasing) ResolveHeroOverlap();
 
         // Граница дороги и фиксированная высота по Y.
-        const float roadHalfWidth = 3.3f;
+        const float roadHalfWidth = 2.0f;
         Vector3 clamped = transform.position;
         clamped.x = Mathf.Clamp(clamped.x, -roadHalfWidth, roadHalfWidth);
         if (_enemy != null) clamped.y = _enemy.SpawnHeight;
@@ -560,13 +570,11 @@ public abstract class EnemyCombatBase : MonoBehaviour
     }
 
     /// <summary>
-    /// Вызывается из EnemyChaseAfterAttackBehaviour в конце клипа атаки.
-    /// Единственная точка перехода Attack → Chase.
+    /// Вызывается при завершении атаки или при переходе из атаки.
     /// </summary>
-    public void EndAttackAndChase()
+    public virtual void EndAttackAndChase()
     {
-        if (Machine.Current != AttackState) return;
-        if (_hasChased) return;
+        if (Machine.Current != AttackState && Machine.Current != RangedAttackState) return;
 
         _hasChased = true;
 

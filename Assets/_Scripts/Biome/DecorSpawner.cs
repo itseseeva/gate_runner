@@ -9,32 +9,76 @@ using System.Collections.Generic;
 public class DecorSpawner : MonoBehaviour
 {
     [Header("Дорога")]
-    [Tooltip("Полуширина дороги — за этот край ставим декор")]
-    [SerializeField] private float _roadHalfWidth = 2.5f;
+    [Tooltip("Полуширина дороги — за этот край ставим декор (2.0м при Scale X = 0.4)")]
+    [SerializeField] private float _roadHalfWidth = 2.0f;
 
-    [Tooltip("Отступ декора от края дороги (метры)")]
-    [SerializeField] private float _sideMargin = 1.5f;
+    [Header("Разброс вбок (Side Spread Min/Max)")]
+    [Tooltip("Трава: минимальный отступ от края (метры)")]
+    [SerializeField] private float _grassSideSpreadMin = 0.1f;
+    [Tooltip("Трава: максимальный отступ от края (метры)")]
+    [SerializeField] private float _grassSideSpreadMax = 2.5f;
 
-    [Tooltip("Разброс декора вбок за краем (метры)")]
-    [SerializeField] private float _sideSpread = 4f;
+    [Tooltip("Цветы: минимальный отступ от края (метры)")]
+    [SerializeField] private float _flowerSideSpreadMin = 0.2f;
+    [Tooltip("Цветы: максимальный отступ от края (метры)")]
+    [SerializeField] private float _flowerSideSpreadMax = 2.5f;
 
-    [Header("Декор на дороге")]
-    [Tooltip("Отступ от края дороги внутрь — насколько глубоко залезает декор")]
-    [SerializeField] private float _roadEdgeInset = 0.3f;
+    [Tooltip("Кусты: минимальный отступ от края (метры)")]
+    [SerializeField] private float _bushSideSpreadMin = 0.3f;
+    [Tooltip("Кусты: максимальный отступ от края (метры)")]
+    [SerializeField] private float _bushSideSpreadMax = 4.5f;
 
-    [Tooltip("Хаос позиции по X на дороге")]
-    [SerializeField] private float _roadChaosX = 0.4f;
+    [Tooltip("Камни: минимальный отступ от края (метры)")]
+    [SerializeField] private float _rockSideSpreadMin = 0.2f;
+    [Tooltip("Камни: максимальный отступ от края (метры)")]
+    [SerializeField] private float _rockSideSpreadMax = 4.0f;
+
+    [Tooltip("Деревья: минимальный отступ от края (метры)")]
+    [SerializeField] private float _treeSideSpreadMin = 1.5f;
+    [Tooltip("Деревья: максимальный отступ от края (метры — глубина леса)")]
+    [SerializeField] private float _treeSideSpreadMax = 9.0f;
+
+    [Tooltip("Спавнить ли траву по бокам")]
+    [SerializeField] private bool _spawnGrass = true;
+
+    [Tooltip("Спавнить ли цветы по бокам")]
+    [SerializeField] private bool _spawnFlowers = true;
+
+    [Tooltip("Спавнить ли кусты по бокам")]
+    [SerializeField] private bool _spawnBushes = true;
+
+    [Tooltip("Спавнить ли камни по бокам")]
+    [SerializeField] private bool _spawnRocks = true;
+
+    [Tooltip("Спавнить ли деревья по бокам")]
+    [SerializeField] private bool _spawnTrees = true;
 
     [Tooltip("Спавнить ли декор на дороге")]
     [SerializeField] private bool _spawnRoadDecor = true;
 
     [Header("Плотность")]
-    [Tooltip("Сколько объектов декора ставить с каждой стороны за один ряд")]
-    [Range(1, 10)]
-    [SerializeField] private int _decorPerSide = 1;
+    [Tooltip("Сколько пучков травы ставить с каждой стороны за один ряд")]
+    [Range(0, 10)]
+    [SerializeField] private int _grassPerSide = 1;
+
+    [Tooltip("Сколько цветов ставить с каждой стороны за один ряд")]
+    [Range(0, 10)]
+    [SerializeField] private int _flowersPerSide = 1;
+
+    [Tooltip("Сколько кустов ставить с каждой стороны за один ряд")]
+    [Range(0, 10)]
+    [SerializeField] private int _bushesPerSide = 1;
+
+    [Tooltip("Сколько камней ставить с каждой стороны за один ряд")]
+    [Range(0, 10)]
+    [SerializeField] private int _rocksPerSide = 1;
+
+    [Tooltip("Сколько деревьев ставить с каждой стороны за один ряд")]
+    [Range(0, 10)]
+    [SerializeField] private int _treesPerSide = 1;
 
     [Tooltip("Сколько объектов дорожного декора за ряд с каждой стороны")]
-    [Range(1, 8)]
+    [Range(0, 8)]
     [SerializeField] private int _roadDecorPerSide = 1;
 
     [Tooltip("Разброс по Z внутри одного ряда — чтобы декор не стоял ровной шеренгой")]
@@ -50,19 +94,21 @@ public class DecorSpawner : MonoBehaviour
     [Tooltip("Дистанция между рядами декора по Z")]
     [SerializeField] private float _spacingZ = 6f;
 
-    [Header("Разброс")]
-    [Tooltip("Случайный разброс масштаба: 0.25 = ±25%")]
-    [SerializeField] private float _scaleVariation = 0.25f;
-
     [Header("Забор")]
     [Tooltip("Ставить ли забор вдоль дороги")]
     [SerializeField] private bool _spawnFence = true;
 
-    [Tooltip("Длина секции забора по Z — шаг между секциями. Должен совпадать с реальной длиной модели.")]
+    [Tooltip("Длина секции забора по Z — шаг между секциями.")]
     [SerializeField] private float _fenceSpacing = 2f;
 
     [Tooltip("Отступ забора от края дороги")]
-    [SerializeField] private float _fenceOffset = 0.2f;
+    [SerializeField] private float _fenceOffset = 0.15f;
+
+    [Tooltip("Дополнительное смещение левого забора вправо (чтобы перекрывать обрыв текстур)")]
+    [SerializeField] private float _leftFenceOffset = 0.15f;
+
+    [Tooltip("Дополнительное смещение правого забора влево (чтобы перекрывать обрыв текстур)")]
+    [SerializeField] private float _rightFenceOffset = 0.0f;
 
     // Активный декор в сцене — двигаем и проверяем каждый кадр.
     private readonly List<GameObject> _active = new();
@@ -71,8 +117,9 @@ public class DecorSpawner : MonoBehaviour
 
     private void Awake()
     {
-        // Защита: если в инспекторе сцены осталось значение < 50, устанавливаем 70
-        if (_spawnZ < 50f) _spawnZ = 70f;
+        _spawnZ = 70f;
+        _roadHalfWidth = 2.0f;
+        if (_leftFenceOffset <= 0f) _leftFenceOffset = 0.15f;
     }
 
     private void Start()
@@ -93,6 +140,10 @@ public class DecorSpawner : MonoBehaviour
         BiomeSO biome = BiomeManager.Instance != null ? BiomeManager.Instance.CurrentBiome : null;
         if (biome == null) return;
 
+        // Предзагружаем пул объектов для всего биома за один шаг
+        if (DecorPool.Instance != null)
+            DecorPool.Instance.PrewarmBiome(biome);
+
         // Забор идёт своим шагом — плотнее остального декора.
         if (_spawnFence)
         {
@@ -103,10 +154,49 @@ public class DecorSpawner : MonoBehaviour
         // Идём от точки спавна назад к камере с тем же шагом, что в обычном спавне.
         for (float z = _spawnZ; z > _despawnZ; z -= _spacingZ)
         {
-            for (int i = 0; i < _decorPerSide; i++)
+            if (_spawnGrass)
             {
-                SpawnOne(biome, leftSide: true,  atZ: z);
-                SpawnOne(biome, leftSide: false, atZ: z);
+                for (int i = 0; i < _grassPerSide; i++)
+                {
+                    SpawnOne(biome, biome.GrassDecor, leftSide: true,  minSpread: _grassSideSpreadMin, maxSpread: _grassSideSpreadMax, atZ: z);
+                    SpawnOne(biome, biome.GrassDecor, leftSide: false, minSpread: _grassSideSpreadMin, maxSpread: _grassSideSpreadMax, atZ: z);
+                }
+            }
+
+            if (_spawnFlowers)
+            {
+                for (int i = 0; i < _flowersPerSide; i++)
+                {
+                    SpawnOne(biome, biome.FlowerDecor, leftSide: true,  minSpread: _flowerSideSpreadMin, maxSpread: _flowerSideSpreadMax, atZ: z);
+                    SpawnOne(biome, biome.FlowerDecor, leftSide: false, minSpread: _flowerSideSpreadMin, maxSpread: _flowerSideSpreadMax, atZ: z);
+                }
+            }
+
+            if (_spawnBushes)
+            {
+                for (int i = 0; i < _bushesPerSide; i++)
+                {
+                    SpawnOne(biome, biome.BushDecor, leftSide: true,  minSpread: _bushSideSpreadMin, maxSpread: _bushSideSpreadMax, atZ: z);
+                    SpawnOne(biome, biome.BushDecor, leftSide: false, minSpread: _bushSideSpreadMin, maxSpread: _bushSideSpreadMax, atZ: z);
+                }
+            }
+
+            if (_spawnRocks)
+            {
+                for (int i = 0; i < _rocksPerSide; i++)
+                {
+                    SpawnOne(biome, biome.RockDecor, leftSide: true,  minSpread: _rockSideSpreadMin, maxSpread: _rockSideSpreadMax, atZ: z);
+                    SpawnOne(biome, biome.RockDecor, leftSide: false, minSpread: _rockSideSpreadMin, maxSpread: _rockSideSpreadMax, atZ: z);
+                }
+            }
+
+            if (_spawnTrees)
+            {
+                for (int i = 0; i < _treesPerSide; i++)
+                {
+                    SpawnOne(biome, biome.TreeDecor, leftSide: true,  minSpread: _treeSideSpreadMin, maxSpread: _treeSideSpreadMax, atZ: z);
+                    SpawnOne(biome, biome.TreeDecor, leftSide: false, minSpread: _treeSideSpreadMin, maxSpread: _treeSideSpreadMax, atZ: z);
+                }
             }
 
             if (_spawnRoadDecor)
@@ -169,22 +259,63 @@ public class DecorSpawner : MonoBehaviour
             SpawnFence(biome, _spawnZ);
         }
 
-        // Остальной декор — как было.
-        if (_nextSpawnZ > _spawnZ - _spacingZ) return;
-        _nextSpawnZ = _spawnZ;
-
-        for (int i = 0; i < _decorPerSide; i++)
+        // Остальной декор — по шагу spacingZ.
+        if (_nextSpawnZ <= _spawnZ - _spacingZ)
         {
-            SpawnOne(biome, leftSide: true);
-            SpawnOne(biome, leftSide: false);
-        }
+            _nextSpawnZ = _spawnZ;
 
-        if (_spawnRoadDecor)
-        {
-            for (int i = 0; i < _roadDecorPerSide; i++)
+            if (_spawnGrass)
             {
-                SpawnOnRoad(biome, leftSide: true);
-                SpawnOnRoad(biome, leftSide: false);
+                for (int i = 0; i < _grassPerSide; i++)
+                {
+                    SpawnOne(biome, biome.GrassDecor, leftSide: true,  minSpread: _grassSideSpreadMin, maxSpread: _grassSideSpreadMax);
+                    SpawnOne(biome, biome.GrassDecor, leftSide: false, minSpread: _grassSideSpreadMin, maxSpread: _grassSideSpreadMax);
+                }
+            }
+
+            if (_spawnFlowers)
+            {
+                for (int i = 0; i < _flowersPerSide; i++)
+                {
+                    SpawnOne(biome, biome.FlowerDecor, leftSide: true,  minSpread: _flowerSideSpreadMin, maxSpread: _flowerSideSpreadMax);
+                    SpawnOne(biome, biome.FlowerDecor, leftSide: false, minSpread: _flowerSideSpreadMin, maxSpread: _flowerSideSpreadMax);
+                }
+            }
+
+            if (_spawnBushes)
+            {
+                for (int i = 0; i < _bushesPerSide; i++)
+                {
+                    SpawnOne(biome, biome.BushDecor, leftSide: true,  minSpread: _bushSideSpreadMin, maxSpread: _bushSideSpreadMax);
+                    SpawnOne(biome, biome.BushDecor, leftSide: false, minSpread: _bushSideSpreadMin, maxSpread: _bushSideSpreadMax);
+                }
+            }
+
+            if (_spawnRocks)
+            {
+                for (int i = 0; i < _rocksPerSide; i++)
+                {
+                    SpawnOne(biome, biome.RockDecor, leftSide: true,  minSpread: _rockSideSpreadMin, maxSpread: _rockSideSpreadMax);
+                    SpawnOne(biome, biome.RockDecor, leftSide: false, minSpread: _rockSideSpreadMin, maxSpread: _rockSideSpreadMax);
+                }
+            }
+
+            if (_spawnTrees)
+            {
+                for (int i = 0; i < _treesPerSide; i++)
+                {
+                    SpawnOne(biome, biome.TreeDecor, leftSide: true,  minSpread: _treeSideSpreadMin, maxSpread: _treeSideSpreadMax);
+                    SpawnOne(biome, biome.TreeDecor, leftSide: false, minSpread: _treeSideSpreadMin, maxSpread: _treeSideSpreadMax);
+                }
+            }
+
+            if (_spawnRoadDecor)
+            {
+                for (int i = 0; i < _roadDecorPerSide; i++)
+                {
+                    SpawnOnRoad(biome, leftSide: true);
+                    SpawnOnRoad(biome, leftSide: false);
+                }
             }
         }
     }
@@ -219,13 +350,14 @@ public class DecorSpawner : MonoBehaviour
         return null;
     }
 
-    private void SpawnOne(BiomeSO biome, bool leftSide, float atZ = float.NaN)
+    private void SpawnOne(BiomeSO biome, DecorEntry[] list, bool leftSide, float minSpread, float maxSpread, float atZ = float.NaN)
     {
-        DecorEntry entry = PickWeighted(biome.Decor);
+        DecorEntry entry = PickWeighted(list);
         if (entry == null || entry.Prefab == null) return;
 
-        float baseX = _roadHalfWidth + entry.SideMargin;
-        float x = baseX + Random.Range(0f, _sideSpread);
+        if (Random.value > entry.SpawnChance) return;
+
+        float x = _roadHalfWidth + Random.Range(minSpread, maxSpread);
         if (leftSide) x = -x;
 
         float z = float.IsNaN(atZ) ? _spawnZ : atZ;
@@ -240,8 +372,6 @@ public class DecorSpawner : MonoBehaviour
 
         GameObject go = DecorPool.Instance.Get(entry.Prefab, pos, rot);
         if (go == null) return;
-
-        DisableColliders(go);
 
         float variation = 1f + Random.Range(-entry.ScaleVariation, entry.ScaleVariation);
         // Умножаем исходный масштаб префаба, а не заменяем — модели бывают
@@ -260,20 +390,19 @@ public class DecorSpawner : MonoBehaviour
         DecorEntry entry = PickWeighted(biome.RoadDecor);
         if (entry == null || entry.Prefab == null) return;
 
-        // Своя вероятность у каждой записи — редкие вещи ставятся не всегда.
         if (Random.value > entry.SpawnChance) return;
 
         float x;
         if (entry.SpawnOnRoadCenter)
         {
-            // По всей ширине дороги, с отступом от краёв.
-            float limit = _roadHalfWidth - _roadEdgeInset;
+            // По всей ширине дороги.
+            float limit = Mathf.Max(0f, _roadHalfWidth);
             x = Random.Range(-limit, limit);
         }
         else
         {
-            // У края, как раньше.
-            x = _roadHalfWidth - _roadEdgeInset + Random.Range(-_roadChaosX, _roadChaosX);
+            // У края дороги.
+            x = _roadHalfWidth;
             if (leftSide) x = -x;
         }
 
@@ -291,8 +420,6 @@ public class DecorSpawner : MonoBehaviour
         GameObject go = DecorPool.Instance.Get(entry.Prefab, pos, rot);
         if (go == null) return;
 
-        DisableColliders(go);
-
         float variation = 1f + Random.Range(-entry.ScaleVariation, entry.ScaleVariation);
         go.transform.localScale = entry.Prefab.transform.localScale * entry.Scale * variation;
 
@@ -308,10 +435,11 @@ public class DecorSpawner : MonoBehaviour
         DecorEntry entry = biome.Fence;
         if (entry == null || entry.Prefab == null) return;
 
-        float x = _roadHalfWidth + _fenceOffset;
+        float rightX = (_roadHalfWidth + _fenceOffset) - _rightFenceOffset;
+        float leftX  = -(_roadHalfWidth + _fenceOffset) + _leftFenceOffset;
 
-        SpawnFenceSide(entry, x, atZ);
-        SpawnFenceSide(entry, -x, atZ);
+        SpawnFenceSide(entry, rightX, atZ);
+        SpawnFenceSide(entry, leftX, atZ);
     }
 
     private void SpawnFenceSide(DecorEntry entry, float x, float z)
@@ -324,19 +452,9 @@ public class DecorSpawner : MonoBehaviour
         GameObject go = DecorPool.Instance.Get(entry.Prefab, pos, rot);
         if (go == null) return;
 
-        DisableColliders(go);
-
         // Масштаб без разброса — иначе секции разной высоты не состыкуются.
         go.transform.localScale = entry.Prefab.transform.localScale * entry.Scale;
 
         _active.Add(go);
-    }
-
-    /// <summary>Выключает все коллайдеры на декоре и его детях.</summary>
-    private void DisableColliders(GameObject go)
-    {
-        Collider[] colliders = go.GetComponentsInChildren<Collider>(true);
-        foreach (Collider c in colliders)
-            c.enabled = false;
     }
 }

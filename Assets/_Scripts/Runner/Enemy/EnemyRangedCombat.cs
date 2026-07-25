@@ -6,10 +6,12 @@ using UnityEngine;
 /// </summary>
 public class EnemyRangedCombat : EnemyCombatBase
 {
-    // Запас дальности снаряда сверх дистанции стрельбы — чтобы точно долетел.
-    private const float RangeMargin = 1.3f;
+    [Tooltip("Дальность стрельбы (дистанция в метрах, начиная с которой маг стреляет по отряду)")]
+    [SerializeField] private float _rangedAttackRange = 20f;
 
     private int Damage => Data != null ? Data.AttackDamage : 10;
+
+    public override float AttackRange => _rangedAttackRange > 0f ? _rangedAttackRange : (Data != null ? Data.AttackRange : 20f);
 
     // Рейнджер не прибивается к Z цели и заходит в своё состояние атаки.
     public override bool SticksToTargetZ => false;
@@ -18,7 +20,7 @@ public class EnemyRangedCombat : EnemyCombatBase
 
     public override void FireProjectile()
     {
-        if (Data == null || Target == null) return;
+        if (Data == null || Target == null || IsBehindSquad) return;
 
         float fireRange = AttackRange;
         if (DistToTargetPointSqr() > fireRange * fireRange) return;
@@ -38,5 +40,16 @@ public class EnemyRangedCombat : EnemyCombatBase
         if (p == null) return;
 
         p.Launch(Damage, AttackRange * 1.5f, ElementType.None);
+    }
+
+    /// <summary>
+    /// Маги/рейнджеры не уходят в чейз — при отставании сразу уходят в Retreat и исчезают в пуле.
+    /// </summary>
+    public override void EndAttackAndChase()
+    {
+        if (Machine != null && RetreatState != null)
+        {
+            Machine.ChangeState(RetreatState);
+        }
     }
 }
