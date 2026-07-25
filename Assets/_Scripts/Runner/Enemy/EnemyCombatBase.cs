@@ -121,6 +121,9 @@ public abstract class EnemyCombatBase : MonoBehaviour
     /// <summary>Радиус капсулы врага — для точного детекта столкновения в рывке.</summary>
     public float CombatColliderRadius => _myCollider != null ? _myCollider.radius : 0.1f;
 
+    /// <summary>Личная скорость врага вперёд поверх конвейера (м/сек), из EnemyDefinitionSO.</summary>
+    private float SelfMoveSpeed => Data != null ? Data.SelfMoveSpeed : 0f;
+
     /// <summary>Множитель скорости движения врага. Heavy медленнее.</summary>
     public virtual float MoveSpeedMultiplier => 1f;
 
@@ -469,6 +472,18 @@ public abstract class EnemyCombatBase : MonoBehaviour
 
         float personalMul = _personalSpeedFactor * MoveSpeedMultiplier;
 
+        // ── ДИАГНОСТИКА: доходим ли до движения (убрать после) ──
+        if (Time.frameCount % 30 == 0 && _target != null)
+        {
+            float dSqr = SqrDistanceXZ(transform.position, GetTargetPoint());
+            Debug.Log(
+                $"[SelfMove-Entry] {name} | distSqr={dSqr:F2} " +
+                $"| trackRangeSqr={TrackingRange * TrackingRange:F2} " +
+                $"| inRange={dSqr < TrackingRange * TrackingRange} " +
+                $"| state={Machine.Current?.GetType().Name}",
+                this);
+        }
+
         // Lazy штраф ТОЛЬКО когда близко к цели — не когда ещё догоняем.
         bool isLazyClose = _target != null &&
             SqrDistanceXZ(transform.position, _target.transform.position) < 4f;
@@ -484,25 +499,35 @@ public abstract class EnemyCombatBase : MonoBehaviour
         {
             Vector3 tp = GetTargetPoint();
             float dirX = tp.x - transform.position.x;
+            float dirZ = tp.z - transform.position.z;
 
-            // Плавное следование по X — враг тянется к линии героя с отставанием,
-            // а не копирует движение один-в-один. Коэффициент < 1 = ленивее.
-            float followFactor = 0.1f;   // 1 = мгновенно как раньше, меньше = ленивее
+            // Плавное следование по X — враг тянется к линии героя с отставанием.
+            float followFactor = 0.1f;
             trackingDeltaX = dirX * followFactor * TrackingSpeed * personalMul * Time.deltaTime;
 
-            // Tracking по Z — только вблизи и только если враг позади.
-            float distToTargetSqr = SqrDistanceXZ(transform.position, tp);
-            if (distToTargetSqr < TrackingRange * TrackingRange)
+            // ── Self-move: личная скорость врага к цели по Z, на ВСЁМ подлёте ──
+            // Вынесено ЗА гейт дальности — работает всегда, пока враг не у цели.
+            // Толкает в сторону цели независимо от знака dirZ. Гаснет вплотную.
+            float absDirZ = Mathf.Abs(dirZ);
+            if (absDirZ > 0.05f)
             {
-                float dirZ = tp.z - transform.position.z;
-                if (dirZ > 0f)
-                {
-                    float currentWorldSpeed = _scroller != null
-                        ? WorldScroller.WorldSpeed * _scroller.SpeedMultiplier
-                        : WorldScroller.WorldSpeed;
-                    float scrollerComp = currentWorldSpeed * Time.deltaTime;
-                    trackingDeltaZ = scrollerComp + (dirZ * TrackingSpeed * personalMul * Time.deltaTime);
-                }
+                float selfMove = SelfMoveSpeed
+                               * _personalSpeedFactor
+                               * Mathf.Sign(dirZ)
+                               * Mathf.Clamp01(absDirZ)   // гаснет в последние ~1м
+                               * Time.deltaTime;
+                trackingDeltaZ += selfMove;
+            }
+
+            // ── Z-tracking (компенсация конвейера) — только вблизи, как было ──
+            float distToTargetSqr = SqrDistanceXZ(transform.position, tp);
+            if (distToTargetSqr < TrackingRange * TrackingRange && dirZ > 0f)
+            {
+                float currentWorldSpeed = _scroller != null
+                    ? WorldScroller.WorldSpeed * _scroller.SpeedMultiplier
+                    : WorldScroller.WorldSpeed;
+                float scrollerComp = currentWorldSpeed * Time.deltaTime;
+                trackingDeltaZ += scrollerComp + (dirZ * TrackingSpeed * personalMul * Time.deltaTime);
             }
         }
 

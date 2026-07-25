@@ -6,9 +6,6 @@ using UnityEngine;
 /// </summary>
 public class EnemyRollCombat : EnemyCombatBase
 {
-    // На 30% медленнее обычных врагов.
-    public override float MoveSpeedMultiplier => 0.7f;
-
     // Вместо обычной атаки заходит в рывок.
     public override EnemyState AttackStateFor => RollState;
 

@@ -25,6 +25,9 @@ public class EnemyDefinitionSO : ScriptableObject
     [Tooltip("На какой дистанции сзади отряда преследовать (метры)")]
     [SerializeField, Range(0f, 20f)] private float _chaseDistance = 5f;
 
+    [Tooltip("Личная скорость врага ВПЕРЁД поверх конвейера (м/сек). 0 = едет ровно со скоростью мира. 1.5 = наседает на отряд быстрее. Гаснет у самой цели, обгона не будет.")]
+    [SerializeField, Range(0f, 5f)] private float _selfMoveSpeed = 0f;
+
     [Tooltip("Хаос по X — разброс позиций (метры)")]
     [SerializeField, Range(0f, 3f)] private float _chaseChaosX = 1.5f;
 
@@ -61,6 +64,7 @@ public class EnemyDefinitionSO : ScriptableObject
     public float  AttackRange           => _attackRange;
     public float  AttackSpeed           => _attackSpeed;
     public int    AttackDamage          => _attackDamage;
+    public float  SelfMoveSpeed         => _selfMoveSpeed;
     public float  SeparationRadius      => _separationRadius;
     public float  SeparationTargetRadius=> _separationTargetRadius;
     public float  SpawnHeight           => _spawnHeight;
