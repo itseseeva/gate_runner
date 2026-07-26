@@ -195,6 +195,10 @@ public abstract class EnemyCombatBase : MonoBehaviour
         _lagTarget    = 0f;
         _nextLagCheck = 0f;
 
+        // Личная скорость наседания — в скроллер, применится ко ВСЕМ врагам всегда.
+        if (_scroller != null)
+            _scroller.BonusSpeed = SelfMoveSpeed * _personalSpeedFactor;
+
         // Стартовое состояние. Machine создан в Awake, но OnEnable из пула
         // может прийти раньше первого Update — поэтому ставим тут.
         Machine?.ChangeState(StartState);
@@ -472,18 +476,6 @@ public abstract class EnemyCombatBase : MonoBehaviour
 
         float personalMul = _personalSpeedFactor * MoveSpeedMultiplier;
 
-        // ── ДИАГНОСТИКА: доходим ли до движения (убрать после) ──
-        if (Time.frameCount % 30 == 0 && _target != null)
-        {
-            float dSqr = SqrDistanceXZ(transform.position, GetTargetPoint());
-            Debug.Log(
-                $"[SelfMove-Entry] {name} | distSqr={dSqr:F2} " +
-                $"| trackRangeSqr={TrackingRange * TrackingRange:F2} " +
-                $"| inRange={dSqr < TrackingRange * TrackingRange} " +
-                $"| state={Machine.Current?.GetType().Name}",
-                this);
-        }
-
         // Lazy штраф ТОЛЬКО когда близко к цели — не когда ещё догоняем.
         bool isLazyClose = _target != null &&
             SqrDistanceXZ(transform.position, _target.transform.position) < 4f;
@@ -499,35 +491,25 @@ public abstract class EnemyCombatBase : MonoBehaviour
         {
             Vector3 tp = GetTargetPoint();
             float dirX = tp.x - transform.position.x;
-            float dirZ = tp.z - transform.position.z;
 
-            // Плавное следование по X — враг тянется к линии героя с отставанием.
-            float followFactor = 0.1f;
+            // Плавное следование по X — враг тянется к линии героя с отставанием,
+            // а не копирует движение один-в-один. Коэффициент < 1 = ленивее.
+            float followFactor = 0.1f;   // 1 = мгновенно как раньше, меньше = ленивее
             trackingDeltaX = dirX * followFactor * TrackingSpeed * personalMul * Time.deltaTime;
 
-            // ── Self-move: личная скорость врага к цели по Z, на ВСЁМ подлёте ──
-            // Вынесено ЗА гейт дальности — работает всегда, пока враг не у цели.
-            // Толкает в сторону цели независимо от знака dirZ. Гаснет вплотную.
-            float absDirZ = Mathf.Abs(dirZ);
-            if (absDirZ > 0.05f)
-            {
-                float selfMove = SelfMoveSpeed
-                               * _personalSpeedFactor
-                               * Mathf.Sign(dirZ)
-                               * Mathf.Clamp01(absDirZ)   // гаснет в последние ~1м
-                               * Time.deltaTime;
-                trackingDeltaZ += selfMove;
-            }
-
-            // ── Z-tracking (компенсация конвейера) — только вблизи, как было ──
+            // Tracking по Z — только вблизи и только если враг позади.
             float distToTargetSqr = SqrDistanceXZ(transform.position, tp);
-            if (distToTargetSqr < TrackingRange * TrackingRange && dirZ > 0f)
+            if (distToTargetSqr < TrackingRange * TrackingRange)
             {
-                float currentWorldSpeed = _scroller != null
-                    ? WorldScroller.WorldSpeed * _scroller.SpeedMultiplier
-                    : WorldScroller.WorldSpeed;
-                float scrollerComp = currentWorldSpeed * Time.deltaTime;
-                trackingDeltaZ += scrollerComp + (dirZ * TrackingSpeed * personalMul * Time.deltaTime);
+                float dirZ = tp.z - transform.position.z;
+                if (dirZ > 0f)
+                {
+                    float currentWorldSpeed = _scroller != null
+                        ? WorldScroller.WorldSpeed * _scroller.SpeedMultiplier
+                        : WorldScroller.WorldSpeed;
+                    float scrollerComp = currentWorldSpeed * Time.deltaTime;
+                    trackingDeltaZ = scrollerComp + (dirZ * TrackingSpeed * personalMul * Time.deltaTime);
+                }
             }
         }
 

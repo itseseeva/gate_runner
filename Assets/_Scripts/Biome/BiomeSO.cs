@@ -38,9 +38,6 @@ public class BiomeSO : ScriptableObject
     [SerializeField] private string _biomeName = "Forest";
 
     [Header("Визуал")]
-    [Tooltip("Материал дороги для этого биома")]
-    [SerializeField] private Material _roadMaterial;
-
     [Tooltip("Цвет тумана")]
     [SerializeField] private Color _fogColor = Color.gray;
 
@@ -76,7 +73,6 @@ public class BiomeSO : ScriptableObject
     [SerializeField] private DecorEntry _fence;
 
     public string       BiomeName    => _biomeName;
-    public Material      RoadMaterial => _roadMaterial;
     public Color         FogColor     => _fogColor;
     public Material      Skybox       => _skybox;
     public DecorEntry[]  GrassDecor   => _grassDecor;

@@ -26,12 +26,20 @@ public class WorldScroller : MonoBehaviour
     /// </summary>
     public float SpeedMultiplier { get; set; } = 1f;
 
+    /// <summary>
+    /// Личная ДОБАВКА скорости этого объекта к мировой, м/сек.
+    /// 0 = едет ровно с миром. У врагов сюда идёт SelfMoveSpeed из конфига —
+    /// враг наседает на отряд быстрее фона. Не зависит от Frozen (SpeedMultiplier).
+    /// </summary>
+    public float BonusSpeed { get; set; } = 0f;
+
     [SerializeField] private bool _isMoving = true;
 
     private void OnEnable()
     {
         GameStateManager.OnStateChanged += HandleStateChanged;
         SpeedMultiplier = 1f;  // сбрасываем при возврате из пула
+        BonusSpeed = 0f;
     }
 
     private void OnDisable()
@@ -47,7 +55,7 @@ public class WorldScroller : MonoBehaviour
     private void Update()
     {
         if (!_isMoving) return;
-        transform.position += Vector3.back * WorldSpeed * SpeedMultiplier * Time.deltaTime;
+        transform.position += Vector3.back * (WorldSpeed + BonusSpeed) * SpeedMultiplier * Time.deltaTime;
     }
 
     public void Stop()   => _isMoving = false;

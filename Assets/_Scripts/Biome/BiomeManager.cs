@@ -13,6 +13,12 @@ public class BiomeManager : MonoBehaviour
     [Tooltip("Renderer дороги — того самого Plane, по которому идут враги")]
     [SerializeField] private Renderer _roadRenderer;
 
+    [Tooltip("Renderer левой части дороги")]
+    [SerializeField] private Renderer _leftRoadRenderer;
+
+    [Tooltip("Renderer правой части дороги")]
+    [SerializeField] private Renderer _rightRoadRenderer;
+
     [Header("Биом этого уровня")]
     [Tooltip("Какой биом применить при старте. Позже будет задаваться прогрессом уровня.")]
     [SerializeField] private BiomeSO _currentBiome;
@@ -37,20 +43,18 @@ public class BiomeManager : MonoBehaviour
 
         _appliedBiome = biome;
 
-        // Материал дороги
-        if (_roadRenderer != null && biome.RoadMaterial != null)
-            _roadRenderer.material = biome.RoadMaterial;
-
         // Туман
         RenderSettings.fogColor = biome.FogColor;
 
         // Skybox (только если задан в биоме)
         if (biome.Skybox != null)
             RenderSettings.skybox = biome.Skybox;
-
-        {}
     }
 
     /// <summary>Текущий применённый биом — пригодится декору и сегментам позже.</summary>
     public BiomeSO CurrentBiome => _appliedBiome != null ? _appliedBiome : _currentBiome;
+
+    public Renderer RoadRenderer => _roadRenderer;
+    public Renderer LeftRoadRenderer => _leftRoadRenderer;
+    public Renderer RightRoadRenderer => _rightRoadRenderer;
 }
