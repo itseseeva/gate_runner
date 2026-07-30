@@ -20,7 +20,7 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField] private int   _enemiesPerWave  = 4;   // врагов в волне
     [SerializeField] private float _waveSpacing     = 15f; // расстояние между волнами
     [SerializeField] private float _firstWaveZ      = 37f; // Z первой волны (строго 37м)
-    [SerializeField] private float _enemySpreadX    = 1.2f; // разброс по X
+    [SerializeField] private float _enemySpreadX    = 1.5f; // разброс по X (при Scale X = 0.5)
 
     private void Start()
     {

@@ -28,8 +28,59 @@ public class BiomeManager : MonoBehaviour
     private void Awake()
     {
         Instance = this;
-        if (_currentBiome != null)
-            ApplyBiome(_currentBiome);
+        ActivateRoadRenderers();
+
+        BiomeSO biomeToApply = _currentBiome;
+        if (LevelLauncher.Instance != null && LevelLauncher.Instance.SelectedBiome != null && LevelLauncher.Instance.SelectedBiome.VisualBiome != null)
+        {
+            biomeToApply = LevelLauncher.Instance.SelectedBiome.VisualBiome;
+        }
+
+        if (biomeToApply != null)
+            ApplyBiome(biomeToApply);
+    }
+
+    private void OnEnable()
+    {
+        ActivateRoadRenderers();
+    }
+
+    /// <summary>Активирует объекты дороги и обочин в сцене, чтобы они отображались в игре.</summary>
+    public void ActivateRoadRenderers()
+    {
+        EnableRendererObject(_roadRenderer);
+        EnableRendererObject(_leftRoadRenderer);
+        EnableRendererObject(_rightRoadRenderer);
+    }
+
+    private void EnableRendererObject(Renderer rend)
+    {
+        if (rend == null) return;
+
+        if (!rend.gameObject.activeSelf)
+            rend.gameObject.SetActive(true);
+
+        rend.enabled = true;
+
+        // Если нет скрипта скролла текстуры, добавляем его автоматической прокрутке
+        if (rend.GetComponent<ScrollingTexture>() == null)
+        {
+            rend.gameObject.AddComponent<ScrollingTexture>();
+        }
+    }
+
+    /// <summary>Устанавливает и активирует указанные объекты дороги в игре.</summary>
+    public void SetRoadRenderers(Renderer road, Renderer left, Renderer right)
+    {
+        if (_roadRenderer != null && _roadRenderer != road) _roadRenderer.gameObject.SetActive(false);
+        if (_leftRoadRenderer != null && _leftRoadRenderer != left) _leftRoadRenderer.gameObject.SetActive(false);
+        if (_rightRoadRenderer != null && _rightRoadRenderer != right) _rightRoadRenderer.gameObject.SetActive(false);
+
+        _roadRenderer = road;
+        _leftRoadRenderer = left;
+        _rightRoadRenderer = right;
+
+        ActivateRoadRenderers();
     }
 
     /// <summary>Красит сцену под указанный биом.</summary>
@@ -42,6 +93,7 @@ public class BiomeManager : MonoBehaviour
         }
 
         _appliedBiome = biome;
+        ActivateRoadRenderers();
 
         // Туман
         RenderSettings.fogColor = biome.FogColor;

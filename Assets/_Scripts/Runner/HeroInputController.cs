@@ -10,7 +10,7 @@ public class HeroInputController : MonoBehaviour
     [Header("Движение")]
     [SerializeField] private float _sensitivity  = 0.02f;  // чувствительность свайпа
     [SerializeField] private float _smoothSpeed  = 12f;    // плавность (lerp)
-    [SerializeField] private float _trackHalfWidth = 1.6f;   // граница дорожки (-1.6 до +1.6)
+    [SerializeField] private float _trackHalfWidth = 2.0f;   // граница дорожки (-2.0 до +2.0 при Scale X = 0.5)
 
     private float   _targetX;       // куда хотим попасть
     private Vector2 _prevPointerPos; // позиция пальца в прошлом кадре

@@ -9,8 +9,8 @@ using System.Collections.Generic;
 public class DecorSpawner : MonoBehaviour
 {
     [Header("Дорога")]
-    [Tooltip("Полуширина дороги — за этот край ставим декор (2.0м при Scale X = 0.4)")]
-    [SerializeField] private float _roadHalfWidth = 2.0f;
+    [Tooltip("Полуширина дороги — за этот край ставим декор (2.5м при Scale X = 0.5)")]
+    [SerializeField] private float _roadHalfWidth = 2.5f;
 
     [Header("Разброс вбок (Side Spread Min/Max)")]
     [Tooltip("Трава: минимальный отступ от края (метры)")]
@@ -102,10 +102,10 @@ public class DecorSpawner : MonoBehaviour
     [SerializeField] private float _fenceSpacing = 2f;
 
     [Tooltip("Отступ забора от края дороги")]
-    [SerializeField] private float _fenceOffset = 0.15f;
+    [SerializeField] private float _fenceOffset = 0.2f;
 
     [Tooltip("Дополнительное смещение левого забора вправо (чтобы перекрывать обрыв текстур)")]
-    [SerializeField] private float _leftFenceOffset = 0.15f;
+    [SerializeField] private float _leftFenceOffset = 0.2f;
 
     [Tooltip("Дополнительное смещение правого забора влево (чтобы перекрывать обрыв текстур)")]
     [SerializeField] private float _rightFenceOffset = 0.0f;
@@ -118,8 +118,8 @@ public class DecorSpawner : MonoBehaviour
     private void Awake()
     {
         _spawnZ = 70f;
-        _roadHalfWidth = 2.0f;
-        if (_leftFenceOffset <= 0f) _leftFenceOffset = 0.15f;
+        _roadHalfWidth = 2.5f;
+        if (_leftFenceOffset <= 0f) _leftFenceOffset = 0.2f;
     }
 
     private void Start()

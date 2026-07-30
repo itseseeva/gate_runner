@@ -34,9 +34,12 @@ public class ScrollingTexture : MonoBehaviour
         // Материал берём каждый кадр — BiomeManager может его подменить.
         Material mat = _renderer.material;
 
+        // Поддержка как URP (_BaseMap), так и Standard шейдеров (_MainTex)
+        string textureProp = mat.HasProperty("_BaseMap") ? "_BaseMap" : "_MainTex";
+
         // Сколько метров мира покрывает один цикл текстуры.
         // Длина меша по оси × сколько раз текстура на нём повторяется.
-        Vector2 tiling = mat.GetTextureScale("_BaseMap");
+        Vector2 tiling = mat.GetTextureScale(textureProp);
         Vector3 scale = transform.lossyScale;
 
         float meshLength = (_scrollY ? scale.z : scale.x) * PlaneBaseSize;
@@ -55,6 +58,6 @@ public class ScrollingTexture : MonoBehaviour
         if (_offset > 1f) _offset -= 1f;
 
         Vector2 uv = _scrollY ? new Vector2(0f, -_offset) : new Vector2(-_offset, 0f);
-        mat.SetTextureOffset("_BaseMap", uv);
+        mat.SetTextureOffset(textureProp, uv);
     }
 }

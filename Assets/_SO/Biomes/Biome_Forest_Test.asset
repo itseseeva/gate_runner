@@ -15,5 +15,6 @@ MonoBehaviour:
   Id: forest
   DisplayName: Forest
   Icon: {fileID: 0}
+  VisualBiome: {fileID: 11400000, guid: 0105aef286b93e64db7382173b63da1c, type: 2}
   LevelCount: 10
   LevelTemplate: {fileID: 11400000, guid: 6caf991755f94ab4b8994afb8027c3c5, type: 2}

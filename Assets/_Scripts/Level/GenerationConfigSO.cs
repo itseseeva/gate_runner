@@ -35,7 +35,7 @@ public class GenerationConfigSO : ScriptableObject
     public float FirstWaveZ = 37f;
 
     [Tooltip("Разброс врагов по X внутри волны")]
-    public float EnemySpreadX = 1.2f;
+    public float EnemySpreadX = 1.5f;
 
     [Tooltip("Список префабов врагов. Если здесь несколько, генератор будет выбирать их случайно.")]
     public List<GameObject> EnemyPrefabs = new();

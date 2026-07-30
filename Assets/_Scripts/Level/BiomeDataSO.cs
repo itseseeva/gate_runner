@@ -17,6 +17,9 @@ public class BiomeDataSO : ScriptableObject
     [Tooltip("Иконка биома для меню (опционально)")]
     public Sprite Icon;
 
+    [Tooltip("Визуальная настройка биома (скайбокс, туман, декор)")]
+    public BiomeSO VisualBiome;
+
     [Header("Уровни биома (авто-генерация)")]
     [Tooltip("Сколько уровней в биоме")]
     [Min(1)] public int LevelCount = 10;

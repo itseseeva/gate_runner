@@ -186,14 +186,14 @@ public class LevelGenerator : MonoBehaviour
 
         if (isDouble)
         {
-            GateData left  = MakeGateData(gateZ, -1.0f);
-            GateData right = MakeGateData(gateZ, +1.0f);
+            GateData left  = MakeGateData(gateZ, -1.25f);
+            GateData right = MakeGateData(gateZ, +1.25f);
 
             // Гарантируем что вторые ворота — другой prefab
             int attempts = 0;
             while (right.Prefab == left.Prefab && attempts < 10)
             {
-                right = MakeGateData(gateZ, +1.0f);
+                right = MakeGateData(gateZ, +1.25f);
                 attempts++;
             }
 
@@ -295,18 +295,18 @@ public class LevelGenerator : MonoBehaviour
         switch (wave.Formation)
         {
             case WaveFormation.LeftCluster:
-                // Плотный отряд слева (X ≈ -1.0)
-                positions = GenerateClusterPositions(wave.EnemyCount, spawnZ, centerX: -1.0f, clusterRadius: 0.6f);
+                // Плотный отряд слева (X ≈ -1.25)
+                positions = GenerateClusterPositions(wave.EnemyCount, spawnZ, centerX: -1.25f, clusterRadius: 0.75f);
                 break;
 
             case WaveFormation.RightCluster:
-                // Плотный отряд справа (X ≈ +1.0)
-                positions = GenerateClusterPositions(wave.EnemyCount, spawnZ, centerX: 1.0f, clusterRadius: 0.6f);
+                // Плотный отряд справа (X ≈ +1.25)
+                positions = GenerateClusterPositions(wave.EnemyCount, spawnZ, centerX: 1.25f, clusterRadius: 0.75f);
                 break;
 
             case WaveFormation.CenterMob:
                 // Большая толпа по центру — широкая по X и глубокая по Z
-                positions = GenerateClusterPositions(wave.EnemyCount, spawnZ, centerX: 0f, clusterRadius: 1.2f);
+                positions = GenerateClusterPositions(wave.EnemyCount, spawnZ, centerX: 0f, clusterRadius: 1.5f);
                 break;
         }
 

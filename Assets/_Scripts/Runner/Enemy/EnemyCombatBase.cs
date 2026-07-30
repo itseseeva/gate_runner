@@ -243,7 +243,7 @@ public abstract class EnemyCombatBase : MonoBehaviour
         if (!IsChasing) ResolveHeroOverlap();
 
         // Граница дороги и фиксированная высота по Y.
-        const float roadHalfWidth = 2.0f;
+        const float roadHalfWidth = 2.5f;
         Vector3 clamped = transform.position;
         clamped.x = Mathf.Clamp(clamped.x, -roadHalfWidth, roadHalfWidth);
         if (_enemy != null) clamped.y = _enemy.SpawnHeight;

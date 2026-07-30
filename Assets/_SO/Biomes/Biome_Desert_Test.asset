@@ -15,5 +15,6 @@ MonoBehaviour:
   Id: desert
   DisplayName: Desert
   Icon: {fileID: 0}
+  VisualBiome: {fileID: 11400000, guid: 4d3af4fcbdbc8e24dad5b9cfb2ce8fa4, type: 2}
   LevelCount: 10
   LevelTemplate: {fileID: 11400000, guid: 6f4a63cb4893cef45bb17cb90e27e430, type: 2}
