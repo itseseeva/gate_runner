@@ -10,6 +10,7 @@ public class EnemyRollState : EnemyState
     private static readonly Collider[] _hitBuffer = new Collider[16];
 
     private bool  _exploded;
+    private bool  _launched;
     private float _enteredAt;
     private float _nextPushTime;
 
@@ -17,11 +18,13 @@ public class EnemyRollState : EnemyState
 
     public override void Enter()
     {
-        Ctrl.SetScroller(false);           // Z полностью под нашим контролем
-        Ctrl.TriggerRoll();                // аниматор: Run → Roll_Start
+        // Скроллер НЕ выключаем — в фазе разгона враг едет с конвейером,
+        // как до рывка. Выключим при переходе в полёт (в Tick).
+        Ctrl.TriggerRoll();
         _exploded = false;
         _enteredAt = Time.time;
-        _nextPushTime = 0f;                // первый толчок сразу
+        _nextPushTime = 0f;
+        _launched = false;
     }
 
     public override void Tick()
@@ -29,10 +32,20 @@ public class EnemyRollState : EnemyState
         if (_exploded) return;
         if (Ctrl.Data == null) return;
 
-        // ── Фаза разгона: стоим, играет Roll_Start. Не двигаемся, не толкаем. ──
+        // ── Фаза разгона: едем с конвейером (как до рывка), не рвёмся, не толкаем. ──
         float startup = Ctrl.Data.RollStartupTime;
         if (Time.time < _enteredAt + startup)
+        {
+            // Скроллер сам двигает врага по -Z со скоростью мира — ничего не делаем.
             return;
+        }
+
+        // ── Переход в полёт (один раз): выключаем конвейер, дальше Z под нами. ──
+        if (!_launched)
+        {
+            _launched = true;
+            Ctrl.SetScroller(false);
+        }
 
         // Летим вперёд к отряду. У гоблина forward смотрит ОТ цели (модель -190°),
         // поэтому двигаемся в сторону цели напрямую по вектору, а не по forward.
@@ -103,19 +116,14 @@ public class EnemyRollState : EnemyState
 
     private static readonly Collider[] _pushBuffer = new Collider[16];
 
-    // Сила и интервал тарана. TODO: вынести в EnemyDefinitionSO при балансировке.
-    private const float PushForce       = 5f;
-    private const float PushInterval    = 0.15f;   // как часто бьём импульсом (сек)
-    private const float PushTouchMargin = 0.15f;   // насколько шире габарита роллера ловим касание (0 = ровно тело)
-
     /// <summary>Толкает врагов, которых реально накрыл габарит роллера (по касанию).</summary>
     private void PushEnemiesAside()
     {
         if (Time.time < _nextPushTime) return;
-        _nextPushTime = Time.time + PushInterval;
+        _nextPushTime = Time.time + Ctrl.Data.RollPushInterval;
 
         Vector3 myPos = Ctrl.transform.position;
-        float touchRadius = Ctrl.CombatColliderRadius + PushTouchMargin;
+        float touchRadius = Ctrl.CombatColliderRadius + Ctrl.Data.RollPushMargin;
 
         int count = Physics.OverlapSphereNonAlloc(
             myPos, touchRadius, _pushBuffer, Ctrl.EnemyLayerMask, QueryTriggerInteraction.Collide);
@@ -130,7 +138,7 @@ public class EnemyRollState : EnemyState
             float dSqr = d.x * d.x + d.z * d.z;
             if (dSqr < 0.0001f) continue;
 
-            other.ApplyKnockback(d, PushForce);
+            other.ApplyKnockback(d, Ctrl.Data.RollPushForce);
         }
     }
 }

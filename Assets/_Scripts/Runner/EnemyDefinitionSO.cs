@@ -87,6 +87,16 @@ public class EnemyDefinitionSO : ScriptableObject
     [Tooltip("Длительность фазы разгона перед полётом (сек). Пока идёт — роллер стоит и играет Roll_Start, не двигается и не толкает. Синхронизируй с длиной клипа Roll_Start.")]
     [SerializeField] private float _rollStartupTime = 0.3f;
 
+    [Header("Рывок — расталкивание врагов")]
+    [Tooltip("Насколько шире габарита роллера ловится касание врага (метры). Итоговый радиус захвата = радиус капсулы + это число. Больше = толкает с большего расстояния.")]
+    [SerializeField, Range(0f, 2f)] private float _rollPushMargin = 0.5f;
+
+    [Tooltip("Сила толчка — как далеко отлетает задетый враг. Больше = дальше улетает.")]
+    [SerializeField, Range(0f, 20f)] private float _rollPushForce = 5f;
+
+    [Tooltip("Как часто роллер бьёт импульсом, пока катится (секунды между толчками). Меньше = чаще толкает.")]
+    [SerializeField, Range(0.02f, 1f)] private float _rollPushInterval = 0.15f;
+
     [Tooltip("Радиус AoE-урона при столкновении")]
     [SerializeField] private float _rollAoeRadius = 2f;
 
@@ -99,6 +109,9 @@ public class EnemyDefinitionSO : ScriptableObject
     public float      RollTriggerRange   => _rollTriggerRange;
     public float      RollSpeed          => _rollSpeed;
     public float      RollStartupTime    => _rollStartupTime;
+    public float      RollPushMargin     => _rollPushMargin;
+    public float      RollPushForce      => _rollPushForce;
+    public float      RollPushInterval   => _rollPushInterval;
     public float      RollAoeRadius      => _rollAoeRadius;
     public int        RollDamage         => _rollDamage;
     public GameObject RollExplosionEffect => _rollExplosionEffect;

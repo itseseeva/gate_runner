@@ -54,6 +54,11 @@ public abstract class EnemyCombatBase : MonoBehaviour
     [Tooltip("Слой обычных врагов — для расталкивания роллером.")]
     [SerializeField] private LayerMask _enemyLayerMask;
 
+    [Header("Despawn")]
+    [Tooltip("За каким Z позади враг уходит в пул (отвалился навсегда). " +
+             "Должен быть заметно ниже despawnZ декора, чтобы не задеть чейз.")]
+    [SerializeField] private float _despawnZ = -5f;
+
     private Enemy           _enemy;
     private WorldScroller   _scroller;
     private Animator        _animator;
@@ -84,6 +89,8 @@ public abstract class EnemyCombatBase : MonoBehaviour
 
     // ─── Knockback (толчок с инерцией) ───────────────────────────
     private Vector3    _knockbackVelocity;   // текущая скорость отлёта, гаснет трением
+    /// <summary>True, пока враг активно отлетает от толчка — ResolveOverlap его не трогает.</summary>
+    public bool IsKnockedBack => _knockbackVelocity.sqrMagnitude > 0.0001f;
     private Transform  _modelRoot;           // дочерняя модель для крена (не корень!)
     private Quaternion _modelBaseRotation;   // исходный локальный поворот модели
     private const float KnockbackFriction = 6f;    // чем больше — тем быстрее тормозит
@@ -174,14 +181,34 @@ public abstract class EnemyCombatBase : MonoBehaviour
         RetreatState      = new EnemyRetreatState(this);
     }
 
+    public float DespawnZ => _despawnZ;
+
     /// <summary>
     /// Тихо убирает врага в пул — без смерти, без цифр урона и событий.
     /// Для отступающих сверх лимита толпы: они уходят за камеру и исчезают невидимо.
     /// </summary>
     public void DespawnSelf()
     {
-        if (_enemy != null) _enemy.ReturnToPool();
-        else gameObject.SetActive(false);
+        DespawnToPool();
+    }
+
+    /// <summary>
+    /// Тихо убирает врага в пул, когда он уехал за экран назад.
+    /// Не смерть — без наград, анимации и события OnAnyEnemyDied.
+    /// Чистит регистрацию цели, иначе счётчик атак на герое повиснет.
+    /// </summary>
+    public void DespawnToPool()
+    {
+        if (_target != null)
+        {
+            EnemyTargetRegistry.Unregister(_target);
+            _target = null;
+        }
+
+        if (EnemyRef != null)
+            EnemyRef.ReturnToPool();
+        else
+            gameObject.SetActive(false);
     }
 
     private void OnEnable()
@@ -232,8 +259,22 @@ public abstract class EnemyCombatBase : MonoBehaviour
 
     private void Update()
     {
-        if (_enemy == null || _squad == null) return;
+        // 1. Деспавн — САМЫЙ ПЕРВЫЙ ШАГ. Даже если отряд не найден или пауза,
+        // уехавший назад объект ОБЯЗАН вернутся в пул, не улетая в бесконечность.
+        if (transform.position.z < _despawnZ)
+        {
+            DespawnToPool();
+            return;
+        }
+
         if (GameStateManager.Instance != null && !GameStateManager.Instance.IsPlaying) return;
+
+        if (_squad == null)
+        {
+            _squad = FindAnyObjectByType<SquadController>();
+            if (_squad != null) _leader = _squad.transform;
+        }
+        if (_enemy == null || _squad == null) return;
 
         // Личная скорость наседания — в скроллер, каждый кадр, для всех врагов.
         // Ставится здесь (не в OnEnable) чтобы избежать гонки порядка OnEnable
@@ -664,6 +705,9 @@ public abstract class EnemyCombatBase : MonoBehaviour
     {
         if (_isPhasing) return;
 
+        // Пока я или сосед в активном отлёте — не расталкиваем, knockback главнее.
+        if (IsKnockedBack) return;
+
         const float minDistance = 0.5f;
         const float minDistSqr = minDistance * minDistance;
 
@@ -672,7 +716,7 @@ public abstract class EnemyCombatBase : MonoBehaviour
 
         foreach (EnemyCombatBase other in _all)
         {
-            if (other == this || other._isPhasing) continue;
+            if (other == this || other._isPhasing || other.IsKnockedBack) continue;
 
             Vector3 diff = transform.position - other.transform.position;
             diff.y = 0;
@@ -723,6 +767,15 @@ public abstract class EnemyCombatBase : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Как враг выбирает цель. База — через реестр (распределение по отряду).
+    /// Роллер переопределяет — летит в ближайшего без очереди.
+    /// </summary>
+    protected virtual Unit SelectTarget()
+    {
+        return EnemyTargetRegistry.GetLeastAttacked(transform.position, _squad);
+    }
+
     private void UpdateTarget()
     {
         bool needsNewTarget = _target == null || _target.IsDead || !_target.gameObject.activeSelf;
@@ -738,7 +791,7 @@ public abstract class EnemyCombatBase : MonoBehaviour
         Unit oldTarget = _target;
         if (oldTarget != null) EnemyTargetRegistry.Unregister(oldTarget);
 
-        Unit newTarget = EnemyTargetRegistry.GetLeastAttacked(transform.position, _squad);
+        Unit newTarget = SelectTarget();
 
         if (newTarget != null)
         {

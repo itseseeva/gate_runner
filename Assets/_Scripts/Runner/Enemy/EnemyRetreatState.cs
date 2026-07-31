@@ -7,11 +7,8 @@ using UnityEngine;
 /// </summary>
 public class EnemyRetreatState : EnemyState
 {
-    // Насколько медленнее мира едет отступающий — отряд от него отрывается.
-    private const float LagMultiplier = 0.4f;
-
-    // За сколько метров позади отряда враг уходит в пул.
-    private const float DespawnBehind = 12f;
+    // Скорость отхода назад — едем с миром (1.0), чтобы враг динамично и без задержек уходил за камеру.
+    private const float LagMultiplier = 1.0f;
 
     private Unit _lookTarget;
 
@@ -19,8 +16,7 @@ public class EnemyRetreatState : EnemyState
 
     public override void Enter()
     {
-        // Скроллер включён, но замедленный — отряд уезжает вперёд сам,
-        // враг не гребёт назад, а просто отстаёт.
+        // Скроллер включён — мир везёт врага назад за камеру.
         Ctrl.SetScroller(true);
         Ctrl.SetSpeedMultiplier(LagMultiplier);
         Ctrl.SetAnimatorAttacking(false);
@@ -49,10 +45,9 @@ public class EnemyRetreatState : EnemyState
             }
         }
 
-        // Ушёл достаточно далеко назад — в пул.
-        float backZ = Ctrl.GetSquadBackZ();
-        if (Ctrl.transform.position.z < backZ - DespawnBehind)
-            Ctrl.DespawnSelf();
+        // Ушёл позади порога DespawnZ — возвращаем в пул с чисткой реестра.
+        if (Ctrl.transform.position.z < Ctrl.DespawnZ)
+            Ctrl.DespawnToPool();
     }
 
     public override void Exit()

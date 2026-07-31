@@ -102,7 +102,6 @@ public class DecorSpawner : MonoBehaviour
 
     private void Awake()
     {
-        _spawnZ = 70f;
         _roadHalfWidth = 2.5f;
     }
 
