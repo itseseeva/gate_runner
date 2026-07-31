@@ -23,7 +23,7 @@ public class EnemyDefinitionSO : ScriptableObject
 
     [Header("Преследование")]
     [Tooltip("На какой дистанции сзади отряда преследовать (метры)")]
-    [SerializeField, Range(0f, 20f)] private float _chaseDistance = 5f;
+    [SerializeField, Range(0f, 20f)] private float _chaseDistance = 1.2f;
 
     [Tooltip("Личная скорость врага ВПЕРЁД поверх конвейера (м/сек). 0 = едет ровно со скоростью мира. 1.5 = наседает на отряд быстрее. Гаснет у самой цели, обгона не будет.")]
     [SerializeField, Range(0f, 5f)] private float _selfMoveSpeed = 0f;

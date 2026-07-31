@@ -57,7 +57,7 @@ public abstract class EnemyCombatBase : MonoBehaviour
     [Header("Despawn")]
     [Tooltip("За каким Z позади враг уходит в пул (отвалился навсегда). " +
              "Должен быть заметно ниже despawnZ декора, чтобы не задеть чейз.")]
-    [SerializeField] private float _despawnZ = -5f;
+    [SerializeField] private float _despawnZ = -25f;
 
     private Enemy           _enemy;
     private WorldScroller   _scroller;
