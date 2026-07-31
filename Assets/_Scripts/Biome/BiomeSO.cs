@@ -11,6 +11,12 @@ public class DecorEntry
     [Tooltip("Разброс масштаба: 0.25 = ±25%")]
     public float ScaleVariation = 0.25f;
 
+    [Tooltip("Смещение по высоте (Y) — позволяет поднимать или опускать конкретную модель.")]
+    public float OffsetY = 0f;
+
+    [Tooltip("Смещение вдоль дороги (Z) — позволяет смещать модель вперёд или назад (например, подгонять столб под стык гирлянды).")]
+    public float OffsetZ = 0f;
+
     [Tooltip("Спавнить по всей ширине дороги, а не только у краёв")]
     public bool SpawnOnRoadCenter = false;
 
@@ -69,17 +75,41 @@ public class BiomeSO : ScriptableObject
     [SerializeField] private DecorEntry[] _roadDecor;
 
     [Header("Забор вдоль дороги")]
-    [Tooltip("Секция забора. Ставится сплошной линией по обеим сторонам, не конкурирует с остальным декором.")]
-    [SerializeField] private DecorEntry _fence;
+    [Tooltip("Ставить ли забор вдоль дороги")]
+    [SerializeField] private bool _spawnFence = true;
 
-    public string       BiomeName    => _biomeName;
-    public Color         FogColor     => _fogColor;
-    public Material      Skybox       => _skybox;
-    public DecorEntry[]  GrassDecor   => _grassDecor;
-    public DecorEntry[]  FlowerDecor  => _flowerDecor;
-    public DecorEntry[]  BushDecor    => _bushDecor;
-    public DecorEntry[]  RockDecor    => _rockDecor;
-    public DecorEntry[]  TreeDecor    => _treeDecor;
-    public DecorEntry[]  RoadDecor    => _roadDecor;
-    public DecorEntry    Fence        => _fence;
+    [Tooltip("Шаг спавна забора по Z в метрах (каждые N метров ставится следующая секция/столб).")]
+    [SerializeField] private float _fenceSpacing = 2f;
+
+    [Tooltip("Отступ забора от края дороги (X)")]
+    [SerializeField] private float _fenceOffset = 0.2f;
+
+    [Tooltip("Высота посадки забора (смещение по Y)")]
+    [SerializeField] private float _fenceOffsetY = 0.0f;
+
+    [Tooltip("Дополнительное смещение левого забора вправо (чтобы перекрывать обрыв текстур)")]
+    [SerializeField] private float _leftFenceOffset = 0.2f;
+
+    [Tooltip("Дополнительное смещение правого забора влево (чтобы перекрывать обрыв текстур)")]
+    [SerializeField] private float _rightFenceOffset = 0.0f;
+
+    [Tooltip("Модели забора (можно добавить 1, 2 или более видов забора).")]
+    [SerializeField] private DecorEntry[] _fence;
+
+    public string       BiomeName        => _biomeName;
+    public Color        FogColor         => _fogColor;
+    public Material     Skybox           => _skybox;
+    public DecorEntry[] GrassDecor       => _grassDecor;
+    public DecorEntry[] FlowerDecor      => _flowerDecor;
+    public DecorEntry[] BushDecor        => _bushDecor;
+    public DecorEntry[] RockDecor        => _rockDecor;
+    public DecorEntry[] TreeDecor        => _treeDecor;
+    public DecorEntry[] RoadDecor        => _roadDecor;
+    public bool         SpawnFence       => _spawnFence;
+    public float        FenceSpacing     => _fenceSpacing;
+    public float        FenceOffset      => _fenceOffset;
+    public float        FenceOffsetY     => _fenceOffsetY;
+    public float        LeftFenceOffset  => _leftFenceOffset;
+    public float        RightFenceOffset => _rightFenceOffset;
+    public DecorEntry[] Fence            => _fence;
 }

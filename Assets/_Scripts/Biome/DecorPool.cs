@@ -99,8 +99,7 @@ public class DecorPool : MonoBehaviour
         PrewarmEntries(biome.RockDecor);
         PrewarmEntries(biome.TreeDecor);
         PrewarmEntries(biome.RoadDecor);
-        if (biome.Fence != null && biome.Fence.Prefab != null)
-            PrewarmPrefab(biome.Fence.Prefab, _preloadCount * 2);
+        PrewarmEntries(biome.Fence);
     }
 
     private void PrewarmEntries(DecorEntry[] entries)

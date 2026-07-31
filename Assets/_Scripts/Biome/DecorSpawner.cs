@@ -94,21 +94,6 @@ public class DecorSpawner : MonoBehaviour
     [Tooltip("Дистанция между рядами декора по Z")]
     [SerializeField] private float _spacingZ = 6f;
 
-    [Header("Забор")]
-    [Tooltip("Ставить ли забор вдоль дороги")]
-    [SerializeField] private bool _spawnFence = true;
-
-    [Tooltip("Длина секции забора по Z — шаг между секциями.")]
-    [SerializeField] private float _fenceSpacing = 2f;
-
-    [Tooltip("Отступ забора от края дороги")]
-    [SerializeField] private float _fenceOffset = 0.2f;
-
-    [Tooltip("Дополнительное смещение левого забора вправо (чтобы перекрывать обрыв текстур)")]
-    [SerializeField] private float _leftFenceOffset = 0.2f;
-
-    [Tooltip("Дополнительное смещение правого забора влево (чтобы перекрывать обрыв текстур)")]
-    [SerializeField] private float _rightFenceOffset = 0.0f;
 
     // Активный декор в сцене — двигаем и проверяем каждый кадр.
     private readonly List<GameObject> _active = new();
@@ -119,7 +104,6 @@ public class DecorSpawner : MonoBehaviour
     {
         _spawnZ = 70f;
         _roadHalfWidth = 2.5f;
-        if (_leftFenceOffset <= 0f) _leftFenceOffset = 0.2f;
     }
 
     private void Start()
@@ -145,9 +129,9 @@ public class DecorSpawner : MonoBehaviour
             DecorPool.Instance.PrewarmBiome(biome);
 
         // Забор идёт своим шагом — плотнее остального декора.
-        if (_spawnFence)
+        if (biome.SpawnFence && biome.FenceSpacing > 0f)
         {
-            for (float z = _spawnZ; z > _despawnZ; z -= _fenceSpacing)
+            for (float z = _spawnZ; z > _despawnZ; z -= biome.FenceSpacing)
                 SpawnFence(biome, z);
         }
 
@@ -252,10 +236,10 @@ public class DecorSpawner : MonoBehaviour
         BiomeSO biome = BiomeManager.Instance != null ? BiomeManager.Instance.CurrentBiome : null;
         if (biome == null) return;
 
-        // Забор — свой шаг, чтобы секции стыковались без щелей.
-        if (_spawnFence && _nextFenceZ <= _spawnZ - _fenceSpacing)
+        // Забор — ровно каждые FenceSpacing метров без сдвига и накопления погрешности.
+        if (biome.SpawnFence && biome.FenceSpacing > 0f && _nextFenceZ <= _spawnZ - biome.FenceSpacing)
         {
-            _nextFenceZ = _spawnZ;
+            _nextFenceZ += biome.FenceSpacing;
             SpawnFence(biome, _spawnZ);
         }
 
@@ -360,10 +344,10 @@ public class DecorSpawner : MonoBehaviour
         float x = _roadHalfWidth + Random.Range(minSpread, maxSpread);
         if (leftSide) x = -x;
 
-        float z = float.IsNaN(atZ) ? _spawnZ : atZ;
+        float z = (float.IsNaN(atZ) ? _spawnZ : atZ) + entry.OffsetZ;
         // Забору разброс не нужен — иначе в линии появятся щели и нахлёсты.
         if (!entry.NoRandomRotation) z += Random.Range(-_rowChaosZ, _rowChaosZ);
-        Vector3 pos = new Vector3(x, 0f, z);
+        Vector3 pos = new Vector3(x, entry.OffsetY, z);
 
         // Забор и подобное не крутим — секции должны смотреть одинаково.
         Quaternion rot = entry.NoRandomRotation
@@ -406,11 +390,11 @@ public class DecorSpawner : MonoBehaviour
             if (leftSide) x = -x;
         }
 
-        float z = float.IsNaN(atZ) ? _spawnZ : atZ;
+        float z = (float.IsNaN(atZ) ? _spawnZ : atZ) + entry.OffsetZ;
         // Забору разброс не нужен — иначе в линии появятся щели и нахлёсты.
         if (!entry.NoRandomRotation) z += Random.Range(-_rowChaosZ, _rowChaosZ);
 
-        Vector3 pos = new Vector3(x, 0.01f, z);
+        Vector3 pos = new Vector3(x, 0.01f + entry.OffsetY, z);
 
         // Забор и подобное не крутим — секции должны смотреть одинаково.
         Quaternion rot = entry.NoRandomRotation
@@ -432,19 +416,26 @@ public class DecorSpawner : MonoBehaviour
     /// </summary>
     private void SpawnFence(BiomeSO biome, float atZ)
     {
-        DecorEntry entry = biome.Fence;
-        if (entry == null || entry.Prefab == null) return;
+        if (biome.Fence == null || biome.Fence.Length == 0) return;
 
-        float rightX = (_roadHalfWidth + _fenceOffset) - _rightFenceOffset;
-        float leftX  = -(_roadHalfWidth + _fenceOffset) + _leftFenceOffset;
+        float rightX = (_roadHalfWidth + biome.FenceOffset) - biome.RightFenceOffset;
+        float leftX  = -(_roadHalfWidth + biome.FenceOffset) + biome.LeftFenceOffset;
 
-        SpawnFenceSide(entry, rightX, atZ);
-        SpawnFenceSide(entry, leftX, atZ);
+        for (int i = 0; i < biome.Fence.Length; i++)
+        {
+            DecorEntry entry = biome.Fence[i];
+            if (entry == null || entry.Prefab == null) continue;
+
+            if (Random.value > entry.SpawnChance) continue;
+
+            SpawnFenceSide(biome, entry, rightX, atZ);
+            SpawnFenceSide(biome, entry, leftX, atZ);
+        }
     }
 
-    private void SpawnFenceSide(DecorEntry entry, float x, float z)
+    private void SpawnFenceSide(BiomeSO biome, DecorEntry entry, float x, float z)
     {
-        Vector3 pos = new Vector3(x, 0f, z);
+        Vector3 pos = new Vector3(x, biome.FenceOffsetY + entry.OffsetY, z + entry.OffsetZ);
 
         // Забор не крутим случайно — секции должны стоять ровно в линию.
         Quaternion rot = entry.Prefab.transform.rotation;

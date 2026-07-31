@@ -1,112 +1,118 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Применяет биом к сцене: материал дороги, туман, skybox.
-/// Один на сцену. Пока просто перекрашивает мир под текущий биом.
-/// В следующих фазах сюда добавится декор и сегменты.
+/// Один биом: имя, данные (BiomeSO для декора) и префабы трёх дорог.
+/// [System.Serializable] позволяет Unity показать этот класс блоком в Inspector.
+/// </summary>
+[System.Serializable]
+public class BiomeRoadSet
+{
+    [Tooltip("Название биома для удобства (Forest, Desert...)")]
+    public string Name = "Biome";
+
+    [Tooltip("Данные биома: декор (трава, деревья, камни, забор). Нужно для DecorSpawner.")]
+    public BiomeSO Data;
+
+    [Tooltip("Префаб центральной дороги")]
+    public GameObject RoadCenter;
+
+    [Tooltip("Префаб левой обочины")]
+    public GameObject RoadLeft;
+
+    [Tooltip("Префаб правой обочины")]
+    public GameObject RoadRight;
+}
+
+/// <summary>
+/// Собирает биом: спавнит префабы дорог и отдаёт данные декора текущего биома.
+/// Хранит несколько биомов списком, переключается по индексу —
+/// удобно тестировать биомы прямо в редакторе.
 /// </summary>
 public class BiomeManager : MonoBehaviour
 {
     public static BiomeManager Instance { get; private set; }
 
-    [Header("Ссылки на сцену")]
-    [Tooltip("Renderer дороги — того самого Plane, по которому идут враги")]
-    [SerializeField] private Renderer _roadRenderer;
+    [Header("Биомы (добавляй сюда через +)")]
+    [Tooltip("Список всех биомов. Каждый хранит данные декора и префабы дорог.")]
+    [SerializeField] private BiomeRoadSet[] _biomes;
 
-    [Tooltip("Renderer левой части дороги")]
-    [SerializeField] private Renderer _leftRoadRenderer;
+    [Header("Какой биом показать")]
+    [Tooltip("Индекс биома из списка выше: 0 = первый, 1 = второй...")]
+    [SerializeField] private int _currentBiomeIndex = 0;
 
-    [Tooltip("Renderer правой части дороги")]
-    [SerializeField] private Renderer _rightRoadRenderer;
+    [Header("Куда спавнить дороги")]
+    [Tooltip("Родитель для заспавненных дорог. Если пусто — спавнит в корень сцены.")]
+    [SerializeField] private Transform _roadParent;
 
-    [Header("Биом этого уровня")]
-    [Tooltip("Какой биом применить при старте. Позже будет задаваться прогрессом уровня.")]
-    [SerializeField] private BiomeSO _currentBiome;
-
-    private BiomeSO _appliedBiome;
+    // Заспавненные сейчас дороги — чтобы удалить их при смене биома.
+    private readonly List<GameObject> _spawnedRoads = new List<GameObject>();
 
     private void Awake()
     {
         Instance = this;
-        ActivateRoadRenderers();
+        SpawnBiome(_currentBiomeIndex);
+    }
 
-        BiomeSO biomeToApply = _currentBiome;
-        if (LevelLauncher.Instance != null && LevelLauncher.Instance.SelectedBiome != null && LevelLauncher.Instance.SelectedBiome.VisualBiome != null)
+    /// <summary>Удаляет текущие дороги и спавнит дороги биома по индексу.</summary>
+    public void SpawnBiome(int index)
+    {
+        if (_biomes == null || _biomes.Length == 0)
         {
-            biomeToApply = LevelLauncher.Instance.SelectedBiome.VisualBiome;
-        }
-
-        if (biomeToApply != null)
-            ApplyBiome(biomeToApply);
-    }
-
-    private void OnEnable()
-    {
-        ActivateRoadRenderers();
-    }
-
-    /// <summary>Активирует объекты дороги и обочин в сцене, чтобы они отображались в игре.</summary>
-    public void ActivateRoadRenderers()
-    {
-        EnableRendererObject(_roadRenderer);
-        EnableRendererObject(_leftRoadRenderer);
-        EnableRendererObject(_rightRoadRenderer);
-    }
-
-    private void EnableRendererObject(Renderer rend)
-    {
-        if (rend == null) return;
-
-        if (!rend.gameObject.activeSelf)
-            rend.gameObject.SetActive(true);
-
-        rend.enabled = true;
-
-        // Если нет скрипта скролла текстуры, добавляем его автоматической прокрутке
-        if (rend.GetComponent<ScrollingTexture>() == null)
-        {
-            rend.gameObject.AddComponent<ScrollingTexture>();
-        }
-    }
-
-    /// <summary>Устанавливает и активирует указанные объекты дороги в игре.</summary>
-    public void SetRoadRenderers(Renderer road, Renderer left, Renderer right)
-    {
-        if (_roadRenderer != null && _roadRenderer != road) _roadRenderer.gameObject.SetActive(false);
-        if (_leftRoadRenderer != null && _leftRoadRenderer != left) _leftRoadRenderer.gameObject.SetActive(false);
-        if (_rightRoadRenderer != null && _rightRoadRenderer != right) _rightRoadRenderer.gameObject.SetActive(false);
-
-        _roadRenderer = road;
-        _leftRoadRenderer = left;
-        _rightRoadRenderer = right;
-
-        ActivateRoadRenderers();
-    }
-
-    /// <summary>Красит сцену под указанный биом.</summary>
-    public void ApplyBiome(BiomeSO biome)
-    {
-        if (biome == null)
-        {
-            Debug.LogWarning("[BiomeManager] Передан пустой биом.", this);
+            Debug.LogWarning("[BiomeManager] Список биомов пуст.", this);
             return;
         }
 
-        _appliedBiome = biome;
-        ActivateRoadRenderers();
+        if (index < 0 || index >= _biomes.Length)
+        {
+            Debug.LogWarning($"[BiomeManager] Индекс биома {index} вне списка (0..{_biomes.Length - 1}).", this);
+            return;
+        }
 
-        // Туман
-        RenderSettings.fogColor = biome.FogColor;
+        ClearSpawnedRoads();
 
-        // Skybox (только если задан в биоме)
-        if (biome.Skybox != null)
-            RenderSettings.skybox = biome.Skybox;
+        _currentBiomeIndex = index;
+        BiomeRoadSet biome = _biomes[index];
+
+        SpawnRoad(biome.RoadCenter);
+        SpawnRoad(biome.RoadLeft);
+        SpawnRoad(biome.RoadRight);
+
+        Debug.Log($"[BiomeManager] Биом '{biome.Name}' собран.", this);
     }
 
-    /// <summary>Текущий применённый биом — пригодится декору и сегментам позже.</summary>
-    public BiomeSO CurrentBiome => _appliedBiome != null ? _appliedBiome : _currentBiome;
+    /// <summary>Спавнит один префаб дороги, если он задан.</summary>
+    private void SpawnRoad(GameObject prefab)
+    {
+        if (prefab == null) return;
 
-    public Renderer RoadRenderer => _roadRenderer;
-    public Renderer LeftRoadRenderer => _leftRoadRenderer;
-    public Renderer RightRoadRenderer => _rightRoadRenderer;
+        GameObject instance = Instantiate(prefab, _roadParent);
+        _spawnedRoads.Add(instance);
+    }
+
+    /// <summary>Удаляет все ранее заспавненные дороги.</summary>
+    private void ClearSpawnedRoads()
+    {
+        foreach (GameObject road in _spawnedRoads)
+        {
+            if (road != null)
+                Destroy(road);
+        }
+        _spawnedRoads.Clear();
+    }
+
+    /// <summary>
+    /// Данные текущего биома (декор: трава, деревья, забор).
+    /// DecorSpawner берёт отсюда модели для спавна.
+    /// </summary>
+    public BiomeSO CurrentBiome =>
+        (_biomes != null && _currentBiomeIndex >= 0 && _currentBiomeIndex < _biomes.Length)
+            ? _biomes[_currentBiomeIndex].Data
+            : null;
+
+    /// <summary>Имя текущего биома.</summary>
+    public string CurrentBiomeName =>
+        (_biomes != null && _currentBiomeIndex >= 0 && _currentBiomeIndex < _biomes.Length)
+            ? _biomes[_currentBiomeIndex].Name
+            : "None";
 }

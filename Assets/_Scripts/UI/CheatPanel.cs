@@ -14,10 +14,14 @@ public class CheatPanel : MonoBehaviour
     [Header("Слоу Мо")]
     [SerializeField] private Button _slowMoButton;
     [SerializeField] private TextMeshProUGUI _slowMoLabel;
+    [SerializeField] private string _slowMoOnText = "SLOW: ON";
+    [SerializeField] private string _slowMoOffText = "SLOW: OFF";
 
     [Header("Скорость отряда")]
     [SerializeField] private Button _slowSquadButton;
     [SerializeField] private TextMeshProUGUI _slowSquadLabel;
+    [SerializeField] private string _slowSquadOnText = "SPEED: SLOW";
+    [SerializeField] private string _slowSquadOffText = "SPEED: NORM";
 
     // TODO: вынести в RemoteConfig
     [Tooltip("Множитель Time.timeScale в режиме SlowMo. 0.1 = 10× медленнее, 0.05 = 20×")]
@@ -42,10 +46,18 @@ public class CheatPanel : MonoBehaviour
             _gameOverButton.onClick.AddListener(ForceGameOver);
 
         if (_slowMoButton != null)
+        {
             _slowMoButton.onClick.AddListener(ToggleSlowMo);
+            if (_slowMoLabel == null)
+                _slowMoLabel = _slowMoButton.GetComponentInChildren<TextMeshProUGUI>();
+        }
 
         if (_slowSquadButton != null)
+        {
             _slowSquadButton.onClick.AddListener(ToggleSlowSquad);
+            if (_slowSquadLabel == null)
+                _slowSquadLabel = _slowSquadButton.GetComponentInChildren<TextMeshProUGUI>();
+        }
 
         UpdateSlowMoLabel();
         UpdateSlowSquadLabel();
@@ -53,7 +65,6 @@ public class CheatPanel : MonoBehaviour
 
     private void ForceVictory()
     {
-        {}
         LevelGenerator gen = FindAnyObjectByType<LevelGenerator>();
         if (gen != null)
             gen.ForceFinishLevel();
@@ -63,7 +74,6 @@ public class CheatPanel : MonoBehaviour
 
     private void ForceGameOver()
     {
-        {}
         if (GameStateManager.Instance != null)
             GameStateManager.Instance.SetGameOver();
     }
@@ -73,28 +83,32 @@ public class CheatPanel : MonoBehaviour
     {
         _isSlowMo = !_isSlowMo;
         Time.timeScale = _isSlowMo ? _slowMoScale : 1f;
-        {}
         UpdateSlowMoLabel();
     }
 
     private void UpdateSlowMoLabel()
     {
+        if (_slowMoLabel == null && _slowMoButton != null)
+            _slowMoLabel = _slowMoButton.GetComponentInChildren<TextMeshProUGUI>();
+
         if (_slowMoLabel != null)
-            _slowMoLabel.text = _isSlowMo ? "SLOW: ON" : "SLOW: OFF";
+            _slowMoLabel.text = _isSlowMo ? _slowMoOnText : _slowMoOffText;
     }
 
     private void ToggleSlowSquad()
     {
         _isSlowSquad = !_isSlowSquad;
         WorldScroller.WorldSpeed = _isSlowSquad ? _slowSquadSpeed : _normalSquadSpeed;
-        {}
         UpdateSlowSquadLabel();
     }
 
     private void UpdateSlowSquadLabel()
     {
+        if (_slowSquadLabel == null && _slowSquadButton != null)
+            _slowSquadLabel = _slowSquadButton.GetComponentInChildren<TextMeshProUGUI>();
+
         if (_slowSquadLabel != null)
-            _slowSquadLabel.text = _isSlowSquad ? "SPEED: SLOW" : "SPEED: NORM";
+            _slowSquadLabel.text = _isSlowSquad ? _slowSquadOnText : _slowSquadOffText;
     }
 
     private void OnDestroy()
