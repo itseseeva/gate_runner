@@ -39,7 +39,6 @@ public class WorldScroller : MonoBehaviour
     {
         GameStateManager.OnStateChanged += HandleStateChanged;
         SpeedMultiplier = 1f;  // сбрасываем при возврате из пула
-        BonusSpeed = 0f;
     }
 
     private void OnDisable()

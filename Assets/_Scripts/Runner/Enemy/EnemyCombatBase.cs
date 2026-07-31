@@ -51,6 +51,8 @@ public abstract class EnemyCombatBase : MonoBehaviour
     [Header("Слои")]
     [Tooltip("Слой, на котором находятся герои — для рывка/AoE.")]
     [SerializeField] private LayerMask _heroLayerMask;
+    [Tooltip("Слой обычных врагов — для расталкивания роллером.")]
+    [SerializeField] private LayerMask _enemyLayerMask;
 
     private Enemy           _enemy;
     private WorldScroller   _scroller;
@@ -79,6 +81,13 @@ public abstract class EnemyCombatBase : MonoBehaviour
     private float _lagAmount;      // текущее отставание в метрах
     private float _lagTarget;      // к чему стремимся
     private float _nextLagCheck;   // когда следующий бросок
+
+    // ─── Knockback (толчок с инерцией) ───────────────────────────
+    private Vector3    _knockbackVelocity;   // текущая скорость отлёта, гаснет трением
+    private Transform  _modelRoot;           // дочерняя модель для крена (не корень!)
+    private Quaternion _modelBaseRotation;   // исходный локальный поворот модели
+    private const float KnockbackFriction = 6f;    // чем больше — тем быстрее тормозит
+    private const float KnockbackTiltMax  = 18f;   // макс. крен модели в градусах
 
     // ─── Состояния ───────────────────────────────────────────────
     public EnemyStateMachine   Machine       { get; private set; }
@@ -117,6 +126,7 @@ public abstract class EnemyCombatBase : MonoBehaviour
     private float SeparationRadius => Data != null ? Data.SeparationRadius : 0.5f;
 
     public LayerMask HeroLayerMask => _heroLayerMask;
+    public LayerMask EnemyLayerMask => _enemyLayerMask;
 
     /// <summary>Радиус капсулы врага — для точного детекта столкновения в рывке.</summary>
     public float CombatColliderRadius => _myCollider != null ? _myCollider.radius : 0.1f;
@@ -148,10 +158,12 @@ public abstract class EnemyCombatBase : MonoBehaviour
 
     private void Awake()
     {
-        _enemy      = GetComponent<Enemy>();
-        _scroller   = GetComponent<WorldScroller>();
-        _animator   = GetComponentInChildren<Animator>();
-        _myCollider = GetComponent<CapsuleCollider>();
+        _enemy             = GetComponent<Enemy>();
+        _scroller          = GetComponent<WorldScroller>();
+        _animator          = GetComponentInChildren<Animator>();
+        _modelRoot         = _animator != null ? _animator.transform : transform;
+        _modelBaseRotation = _modelRoot.localRotation;
+        _myCollider        = GetComponent<CapsuleCollider>();
 
         Machine           = new EnemyStateMachine();
         ApproachState     = new EnemyApproachState(this);
@@ -175,6 +187,7 @@ public abstract class EnemyCombatBase : MonoBehaviour
     private void OnEnable()
     {
         _all.Add(this);
+        _knockbackVelocity   = Vector3.zero;
         _personalSpeedFactor = Random.Range(0.7f, 1.3f);
         _wobblePhase         = Random.Range(0f, Mathf.PI * 2f);
         _nextLazyCheck       = 0f;
@@ -194,10 +207,6 @@ public abstract class EnemyCombatBase : MonoBehaviour
         _lagAmount    = 0f;
         _lagTarget    = 0f;
         _nextLagCheck = 0f;
-
-        // Личная скорость наседания — в скроллер, применится ко ВСЕМ врагам всегда.
-        if (_scroller != null)
-            _scroller.BonusSpeed = SelfMoveSpeed * _personalSpeedFactor;
 
         // Стартовое состояние. Machine создан в Awake, но OnEnable из пула
         // может прийти раньше первого Update — поэтому ставим тут.
@@ -226,17 +235,18 @@ public abstract class EnemyCombatBase : MonoBehaviour
         if (_enemy == null || _squad == null) return;
         if (GameStateManager.Instance != null && !GameStateManager.Instance.IsPlaying) return;
 
+        // Личная скорость наседания — в скроллер, каждый кадр, для всех врагов.
+        // Ставится здесь (не в OnEnable) чтобы избежать гонки порядка OnEnable
+        // между WorldScroller и этим компонентом, и работать из пула.
+        if (_scroller != null)
+            _scroller.BonusSpeed = SelfMoveSpeed * _personalSpeedFactor;
+
         if (_myCollider != null) _myCollider.enabled = !_isPhasing;
 
         UpdateTarget();
 
-        Machine.Tick();
-
-        if (Time.frameCount % 30 == 0 && _animator != null)
-        {
-            var info = _animator.GetCurrentAnimatorStateInfo(0);
-            {}
-        }
+        Machine?.Tick();
+        UpdateKnockback();
 
         ResolveOverlap();
         // Выталкивание героями отключено в Chase — иначе враг не пройдёт сквозь отряд назад.
@@ -248,6 +258,61 @@ public abstract class EnemyCombatBase : MonoBehaviour
         clamped.x = Mathf.Clamp(clamped.x, -roadHalfWidth, roadHalfWidth);
         if (_enemy != null) clamped.y = _enemy.SpawnHeight;
         transform.position = clamped;
+    }
+
+    /// <summary>
+    /// Толкает врага в направлении dir с силой force. Источник любой:
+    /// рывок роллера, взрыв, удар танка. Даёт импульс — дальше инерция и трение.
+    /// </summary>
+    /// <param name="dir">Направление толчка (нормализуется внутри).</param>
+    /// <param name="force">Сила импульса — начальная скорость отлёта, м/сек.</param>
+    public void ApplyKnockback(Vector3 dir, float force)
+    {
+        dir.y = 0f;
+        if (dir.sqrMagnitude < 0.0001f) return;
+        // Добавляем к текущей скорости, а не перезаписываем — два толчка подряд
+        // складываются, враг не «залипает» на одном импульсе.
+        _knockbackVelocity += dir.normalized * force;
+    }
+
+    /// <summary>
+    /// Применяет скорость толчка к позиции, гасит её трением, кренит модель
+    /// в сторону отлёта. Вызывается каждый кадр из Update.
+    /// </summary>
+    private void UpdateKnockback()
+    {
+        // Пока есть скорость — двигаем врага по инерции.
+        if (_knockbackVelocity.sqrMagnitude > 0.0001f)
+        {
+            transform.position += _knockbackVelocity * Time.deltaTime;
+
+            // Трение: экспоненциальное затухание, кадронезависимое.
+            _knockbackVelocity = Vector3.Lerp(
+                _knockbackVelocity, Vector3.zero, KnockbackFriction * Time.deltaTime);
+        }
+        else
+        {
+            _knockbackVelocity = Vector3.zero;
+        }
+
+        // Крен модели пропорционально текущей скорости толчка.
+        if (_modelRoot != null)
+        {
+            // Локальное направление толчка → крен вбок и вперёд.
+            float speed = _knockbackVelocity.magnitude;
+            float tilt = Mathf.Clamp01(speed / 6f) * KnockbackTiltMax;
+
+            Vector3 localDir = _modelRoot.InverseTransformDirection(_knockbackVelocity.normalized);
+            // Крен: наклон вокруг X (вперёд/назад) и Z (вбок) по направлению отлёта.
+            Quaternion tiltOffset = Quaternion.Euler(localDir.z * tilt, 0f, -localDir.x * tilt);
+
+            // Крен ПОВЕРХ базового поворота модели, а не вместо него.
+            Quaternion target = _modelBaseRotation * tiltOffset;
+
+            // Плавно к целевому крену и обратно к нулевому крену, когда толчок гаснет.
+            _modelRoot.localRotation = Quaternion.Slerp(
+                _modelRoot.localRotation, target, 12f * Time.deltaTime);
+        }
     }
 
     // ─── API для состояний ───────────────────────────────────────

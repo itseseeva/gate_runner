@@ -1,3 +1,5 @@
+using UnityEngine;
+
 /// <summary>
 /// Хранит текущее состояние врага и переключает их.
 /// Обычный C#-класс, не MonoBehaviour — не нужен свой Update,

@@ -84,6 +84,9 @@ public class EnemyDefinitionSO : ScriptableObject
     [Tooltip("Скорость рывка (быстрее обычного движения)")]
     [SerializeField] private float _rollSpeed = 12f;
 
+    [Tooltip("Длительность фазы разгона перед полётом (сек). Пока идёт — роллер стоит и играет Roll_Start, не двигается и не толкает. Синхронизируй с длиной клипа Roll_Start.")]
+    [SerializeField] private float _rollStartupTime = 0.3f;
+
     [Tooltip("Радиус AoE-урона при столкновении")]
     [SerializeField] private float _rollAoeRadius = 2f;
 
@@ -95,6 +98,7 @@ public class EnemyDefinitionSO : ScriptableObject
 
     public float      RollTriggerRange   => _rollTriggerRange;
     public float      RollSpeed          => _rollSpeed;
+    public float      RollStartupTime    => _rollStartupTime;
     public float      RollAoeRadius      => _rollAoeRadius;
     public int        RollDamage         => _rollDamage;
     public GameObject RollExplosionEffect => _rollExplosionEffect;
