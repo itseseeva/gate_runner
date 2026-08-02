@@ -23,14 +23,24 @@ public class EnemyApproachState : EnemyState
     {
         Ctrl.UpdatePhasing();        // просачивание сквозь застрявших врагов
 
+        // Нет цели — берём ближайшего (поток, без резерва).
+        if (Ctrl.Target == null || Ctrl.Target.IsDead || !Ctrl.Target.gameObject.activeSelf)
+            Ctrl.RefreshTarget();
         if (Ctrl.Target == null) return;
 
-        float distSqr = Ctrl.DistToTargetPointSqr();
-        float trigger = Ctrl.AttackTriggerDistance * 0.9f;
+        // Считаем дистанцию до самого героя, а не до идеальной точки со смещением.
+        // Это спасает от ситуаций, когда врага оттерли товарищи по толпе, и он не может встать на свою точку.
+        Vector3 heroPos = Ctrl.Target.transform.position;
+        float dx = heroPos.x - Ctrl.transform.position.x;
+        float dz = heroPos.z - Ctrl.transform.position.z;
+        float distSqr = dx * dx + dz * dz;
+
+        // Делаем триггер чуть шире (1.2 вместо 0.9), чтобы в плотной толпе можно было бить из-за спин.
+        float trigger = Ctrl.AttackTriggerDistance * 1.2f;
 
         if (distSqr <= trigger * trigger)
         {
-            {}
+            Debug.Log($"[TrigCheck] {Ctrl.name} dist={Mathf.Sqrt(distSqr):F2} trigger={trigger:F2} animPlaying={Ctrl.IsAttackAnimPlaying}");
             if (Ctrl.IsAttackAnimPlaying) return;
             Ctrl.Machine.ChangeState(Ctrl.AttackStateFor);
             return;

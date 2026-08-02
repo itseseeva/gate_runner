@@ -12,25 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c9c9aee1649db848ba8282db1e541d1, type: 3}
   m_Name: GenerationConfig_Default
   m_EditorClassIdentifier: Assembly-CSharp::GenerationConfigSO
-  LevelLength: 300
-  WaveCountMin: 20
-  WaveCountMax: 20
-  EnemiesPerWaveMin: 20
-  EnemiesPerWaveMax: 20
-  WaveSpacingMin: 22
-  WaveSpacingMax: 38
-  FirstWaveZ: 30
-  EnemySpreadX: 1.5
+  MinWaves: 5
+  MaxWaves: 7
+  PressurePeaks: 2
+  EnemiesPerLane_Calm: 2
+  EnemiesPerLane_Peak: 5
+  GapBetweenWavesMin: 20
+  GapBetweenWavesMax: 28
+  FirstWaveDistance: 7
   EnemyPrefabs:
   - {fileID: 6538716731787721495, guid: 04cfa2390fb5745429fcbf6e47441369, type: 3}
   - {fileID: 6538716731787721495, guid: 45acd739efbc33a4182fe29a063d79fd, type: 3}
   - {fileID: 6538716731787721495, guid: 821a3e2f9ac842543bc68be5295484dc, type: 3}
   - {fileID: 6538716731787721495, guid: e29e53421a0e8ea44b0f3c3cf030c332, type: 3}
-  GatePool:
-  - {fileID: 3563244148941149285, guid: a324b7efa578b48459f5cef063468d10, type: 3}
-  - {fileID: 5300034710362681070, guid: 2b9f238b16d9c8b4bb667495993ab306, type: 3}
-  - {fileID: 5096216531739346512, guid: 010e478c500d05542871144eb7a95b69, type: 3}
-  - {fileID: 4177263134620102634, guid: fe48aeabd0d018245b943395d9437c80, type: 3}
+  DangerRatioAtPeak: 0.5
+  GatePool: []
   DoubleGateChance: 0.1
   QuantityHeroPool: 01000000020000000000000003000000
   MultiplyChance: 0.2
@@ -38,5 +34,5 @@ MonoBehaviour:
   AddValueRange: {x: 2, y: 6}
   MultiplyValueRange: {x: 2, y: 3}
   NegativeValueRange: {x: 2, y: 4}
-  ZScalingMultiplier: 0.005
-  LevelScalingPerLevel: 0.2
+  HpScalingPerMeter: 0.005
+  HpScalingPerLevel: 0.2

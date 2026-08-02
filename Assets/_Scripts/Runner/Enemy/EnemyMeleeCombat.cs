@@ -10,15 +10,19 @@ public class EnemyMeleeCombat : EnemyCombatBase
 
     public override void OnAnimationHit()
     {
-        {}
+        base.OnAnimationHit();
 
-        if (Target == null || Target.IsDead) return;
         if (Machine.Current != AttackState) return;
 
-        // Цель могла отойти, пока играла анимация.
-        if (DistToTargetPointSqr() > AttackRange * AttackRange) return;
+        // Наносим урон, если цель ещё в радиусе.
+        if (Target != null && !Target.IsDead
+            && DistToTargetPointSqr() <= AttackRange * AttackRange)
+        {
+            bool killed = Target.TakeDamage(Damage);
+            if (killed) ClearTarget();
+        }
 
-        bool killed = Target.TakeDamage(Damage);
-        if (killed) ClearTarget();
+        // Удар состоялся — атака завершена. В чейз (или retreat, если полон).
+        EndAttackAndChase();
     }
 }

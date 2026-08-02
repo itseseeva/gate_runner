@@ -81,6 +81,7 @@ public abstract class EnemyCombatBase : MonoBehaviour
     private float _nextTargetReevaluateTime;
     private bool  _isPhasing;
     private float _blockedTimer;
+    private int   _laneIndex = -1;   // -1 = полоса не назначена (свободное движение)
 
     // Личный "сбой темпа" в чейзе — враг иногда отваливается назад и подтягивается.
     private float _lagAmount;      // текущее отставание в метрах
@@ -112,8 +113,8 @@ public abstract class EnemyCombatBase : MonoBehaviour
     public float              RotationSpeedValue => RotationSpeed;
     public bool               IsChasing          => Machine != null && Machine.Current == ChaseState;
 
-    /// <summary>True, пока аниматор ещё проигрывает комбо атаки.</summary>
-    public bool IsAttackAnimPlaying { get; set; }
+    /// <summary>Идёт ли атака — определяется состоянием, не аниматором. Не зависает.</summary>
+    public bool IsAttackAnimPlaying => Machine != null && Machine.Current == AttackState;
 
     /// <summary>True, если враг находится позади отряда/цели по Z (за спиной у героев).</summary>
     public bool IsBehindSquad
@@ -159,6 +160,12 @@ public abstract class EnemyCombatBase : MonoBehaviour
     /// </summary>
     public virtual bool SticksToTargetZ => true;
 
+    /// <summary>Ограничен ли враг своей полосой по X. Тяжёлые роллеры игнорируют полосы и едут в любого героя.</summary>
+    public virtual bool UsesLaneRestriction => true;
+
+    private bool _hasAttackedOnce;                   // ударил ли хоть раз — для логики "сдался"
+    public  bool HasAttackedOnce => _hasAttackedOnce;
+
     // Доступ для наследников
     protected Enemy           EnemyRef => _enemy;
     protected SquadController Squad    => _squad;
@@ -195,15 +202,10 @@ public abstract class EnemyCombatBase : MonoBehaviour
     /// <summary>
     /// Тихо убирает врага в пул, когда он уехал за экран назад.
     /// Не смерть — без наград, анимации и события OnAnyEnemyDied.
-    /// Чистит регистрацию цели, иначе счётчик атак на герое повиснет.
     /// </summary>
     public void DespawnToPool()
     {
-        if (_target != null)
-        {
-            EnemyTargetRegistry.Unregister(_target);
-            _target = null;
-        }
+        _target = null;
 
         if (EnemyRef != null)
             EnemyRef.ReturnToPool();
@@ -222,6 +224,8 @@ public abstract class EnemyCombatBase : MonoBehaviour
         _hasChased           = false;
         _isPhasing           = false;
         _blockedTimer        = 0f;
+        _laneIndex           = -1;
+        _hasAttackedOnce     = false;
 
         // Статичный разброс — только по X. По Z хаоса быть не должно:
         // Z — это ChaseDistance, геймплейный параметр, его нельзя размывать.
@@ -243,12 +247,7 @@ public abstract class EnemyCombatBase : MonoBehaviour
     private void OnDisable()
     {
         _all.Remove(this);
-
-        if (_target != null)
-        {
-            EnemyTargetRegistry.Unregister(_target);
-            _target = null;
-        }
+        _target = null;
     }
 
     private void Start()
@@ -280,18 +279,86 @@ public abstract class EnemyCombatBase : MonoBehaviour
         // Ставится здесь (не в OnEnable) чтобы избежать гонки порядка OnEnable
         // между WorldScroller и этим компонентом, и работать из пула.
         if (_scroller != null)
-            _scroller.BonusSpeed = SelfMoveSpeed * _personalSpeedFactor;
+        {
+            float bonus = SelfMoveSpeed * _personalSpeedFactor;
+            if (_target != null && transform.position.z < _target.transform.position.z)
+            {
+                // Если мы оказались за спиной цели, нам нужно догонять (+Z).
+                // Поскольку WorldScroller едет по -Z, мы делаем бонус отрицательным.
+                bonus = -bonus;
+            }
+            _scroller.BonusSpeed = bonus;
+        }
 
         if (_myCollider != null) _myCollider.enabled = !_isPhasing;
 
         UpdateTarget();
 
         Machine?.Tick();
+
+        if (Time.frameCount % 60 == 0 && _target != null)
+        {
+            float relZ = transform.position.z - _target.transform.position.z;
+            if (relZ < -0.5f && !IsChasing && Machine?.Current != RetreatState)
+            {
+                float dx = transform.position.x - _target.transform.position.x;
+                float dz = transform.position.z - _target.transform.position.z;
+                Debug.Log($"[STUCK_DEBUG] {name} relZ={relZ:F2} state={Machine.Current?.GetType().Name} " +
+                          $"pos={transform.position:F2} targetPos={_target.transform.position:F2} " +
+                          $"dist={Mathf.Sqrt(dx*dx + dz*dz):F2} hasAttacked={_hasAttackedOnce}");
+            }
+        }
+
         UpdateKnockback();
 
+        // Полоса растворяется ПЛАВНО по мере приближения к отряду.
+        // Далеко — узкий коридор (три колонны). Ближе — коридор расширяется
+        // до полной ширины дороги, враг мягко втягивается за отрядом. Без рывка.
+        if (_laneIndex >= 0 && UsesLaneRestriction && Machine?.Current != RollState)
+        {
+            const float holdDistance    = 12f;  // дальше этого — строгий коридор
+            const float releaseDistance = 4f;   // ближе этого — полная свобода
+
+            float distToSquadZ = _leader != null
+                ? transform.position.z - _leader.position.z
+                : holdDistance + 1f;
+
+            if (distToSquadZ <= releaseDistance)
+            {
+                // Совсем близко — снимаем полосу навсегда.
+                _laneIndex = -1;
+            }
+            else
+            {
+                // Плавно расширяем коридор: 0 = строгая полоса, 1 = вся дорога.
+                float loosen = Mathf.InverseLerp(holdDistance, releaseDistance, distToSquadZ);
+                loosen = Mathf.Clamp01(loosen);
+
+                float laneMin = LaneSystem.GetLaneMinX(_laneIndex);
+                float laneMax = LaneSystem.GetLaneMaxX(_laneIndex);
+                float roadMin = -LaneSystem.RoadWidth * 0.5f;
+                float roadMax =  LaneSystem.RoadWidth * 0.5f;
+
+                // Границы едут от полосы к полной дороге по мере приближения.
+                float minX = Mathf.Lerp(laneMin, roadMin, loosen);
+                float maxX = Mathf.Lerp(laneMax, roadMax, loosen);
+
+                Vector3 p = transform.position;
+                p.x = Mathf.Clamp(p.x, minX, maxX);
+                transform.position = p;
+            }
+        }
+
         ResolveOverlap();
-        // Выталкивание героями отключено в Chase — иначе враг не пройдёт сквозь отряд назад.
-        if (!IsChasing) ResolveHeroOverlap();
+        // Выталкивание героями отключено в Chase, а также если враг отстал и догоняет сзади,
+        // чтобы он мог подойти на дистанцию удара, а не упирался в коллайдер спины.
+        bool shouldResolveHero = !IsChasing;
+        if (Machine?.Current == ApproachState && _target != null && transform.position.z < _target.transform.position.z)
+        {
+            shouldResolveHero = false;
+        }
+        
+        if (shouldResolveHero) ResolveHeroOverlap();
 
         // Граница дороги и фиксированная высота по Y.
         const float roadHalfWidth = 2.5f;
@@ -510,11 +577,28 @@ public abstract class EnemyCombatBase : MonoBehaviour
         _lagTarget = 0f;
     }
 
+    /// <summary>Включает/выключает режим просачивания (отключает коллайдер и физику расталкивания).</summary>
+    public void SetPhasing(bool phasing)
+    {
+        _isPhasing = phasing;
+        if (_myCollider != null) _myCollider.enabled = !_isPhasing;
+        if (!phasing) _blockedTimer = 0f;
+    }
+
     /// <summary>Выключает режим просачивания.</summary>
     public void StopPhasing()
     {
-        _isPhasing = false;
-        _blockedTimer = 0f;
+        SetPhasing(false);
+    }
+
+    /// <summary>
+    /// Назначает врагу полосу дороги. Враг двигается хаотично, но X зажат
+    /// в границах этой полосы — толпа рыщет внутри коридора, не вываливаясь.
+    /// -1 = без полосы (свободное движение по всей дороге).
+    /// </summary>
+    public void SetLane(int laneIndex)
+    {
+        _laneIndex = laneIndex;
     }
 
     /// <summary>
@@ -639,7 +723,8 @@ public abstract class EnemyCombatBase : MonoBehaviour
 
             foreach (EnemyCombatBase other in _all)
             {
-                if (other == this) continue;
+                if (other == this || other.IsChasing) continue;
+
                 Vector3 d = myPos - other.transform.position;
                 float dSqr = d.x * d.x + d.z * d.z;
                 if (dSqr > sepRadSqr) continue;
@@ -666,10 +751,16 @@ public abstract class EnemyCombatBase : MonoBehaviour
     /// Вызывается через Animation Event на клипе атаки.
     /// EnemyAnimationEventReceiver пробрасывает вызов сюда.
     /// </summary>
-    public virtual void OnAnimationHit() { }
+    public virtual void OnAnimationHit()
+    {
+        _hasAttackedOnce = true;
+    }
 
     /// <summary>Пускает снаряд. Реализуется в EnemyRangedCombat.</summary>
-    public virtual void FireProjectile() { }
+    public virtual void FireProjectile()
+    {
+        _hasAttackedOnce = true;
+    }
 
     /// <summary>Убирает цель после её смерти — вызывается наследниками.</summary>
     protected void ClearTarget()
@@ -677,7 +768,6 @@ public abstract class EnemyCombatBase : MonoBehaviour
         if (_target != null)
         {
             _squad?.OnUnitDied(_target);
-            EnemyTargetRegistry.Unregister(_target);
             _target = null;
         }
     }
@@ -688,11 +778,10 @@ public abstract class EnemyCombatBase : MonoBehaviour
     public virtual void EndAttackAndChase()
     {
         if (Machine.Current != AttackState && Machine.Current != RangedAttackState) return;
-
         _hasChased = true;
 
-        // Мест в толпе чейза нет — уходим в отступление и исчезаем за камерой.
-        Machine.ChangeState(CanEnterChase ? ChaseState : RetreatState);
+        bool canChase = CanEnterChase;
+        Machine.ChangeState(canChase ? ChaseState : RetreatState);
     }
 
     // ─── Общая физика ────────────────────────────────────────────
@@ -717,6 +806,9 @@ public abstract class EnemyCombatBase : MonoBehaviour
         foreach (EnemyCombatBase other in _all)
         {
             if (other == this || other._isPhasing || other.IsKnockedBack) continue;
+            
+            // Чейзеры (отступающие) и бегущие в атаку могут проходить друг сквозь друга.
+            if (other.IsChasing != iChase) continue;
 
             Vector3 diff = transform.position - other.transform.position;
             diff.y = 0;
@@ -729,6 +821,14 @@ public abstract class EnemyCombatBase : MonoBehaviour
             Vector3 pushDir = diff / dist;
 
             bool otherAttack = other.Machine != null && other.Machine.Current == other.AttackState;
+
+            // Оба атакуют — расталкиваем СЛАБО: модельки стоят с нахлёстом,
+            // но не влезают полностью друг в друга.
+            if (iAttack && otherAttack)
+            {
+                transform.position += pushDir * (penetration * 0.15f);
+                continue;
+            }
 
             float weight = 0.5f;
             if (iAttack && !otherAttack)      weight = 0f;
@@ -750,11 +850,13 @@ public abstract class EnemyCombatBase : MonoBehaviour
     {
         if (_squad == null || _myCollider == null) return;
 
-        foreach (Unit u in _squad.AllUnits)
+        var units = _squad.AllUnits;
+        for (int i = 0; i < units.Count; i++)
         {
+            Unit u = units[i];
             if (u == null || u.IsDead || !u.gameObject.activeSelf) continue;
 
-            var heroCollider = u.GetComponent<CapsuleCollider>();
+            CapsuleCollider heroCollider = u.CachedCollider;   // кеш вместо GetComponent
             if (heroCollider == null) continue;
 
             if (Physics.ComputePenetration(
@@ -768,53 +870,117 @@ public abstract class EnemyCombatBase : MonoBehaviour
     }
 
     /// <summary>
-    /// Как враг выбирает цель. База — через реестр (распределение по отряду).
-    /// Роллер переопределяет — летит в ближайшего без очереди.
+    /// Как враг выбирает цель. Без лимитов — предпочитает ближайшего,
+    /// но штрафует героя за количество уже целящихся в него врагов.
+    /// Толпа равномерно распределяется по отряду, не лимитируя.
     /// </summary>
     protected virtual Unit SelectTarget()
     {
-        return EnemyTargetRegistry.GetLeastAttacked(transform.position, _squad);
+        if (_squad == null) return null;
+        var units = _squad.AllUnits;
+        if (units == null || units.Count == 0) return null;
+
+        float maxZ = float.MinValue;
+        for (int i = 0; i < units.Count; i++)
+        {
+            Unit u = units[i];
+            if (u == null || u.IsDead || !u.gameObject.activeSelf) continue;
+            if (u.transform.position.z > maxZ) maxZ = u.transform.position.z;
+        }
+        if (maxZ == float.MinValue) return null;
+
+        float firstRow = maxZ - 1.5f;
+        Unit best = null;
+        float bestScore = float.MaxValue;
+        Vector3 myPos = transform.position;
+
+        for (int i = 0; i < units.Count; i++)
+        {
+            Unit u = units[i];
+            if (u == null || u.IsDead || !u.gameObject.activeSelf) continue;
+            if (u.transform.position.z < firstRow) continue;
+
+            float dx = u.transform.position.x - myPos.x;
+            float dz = u.transform.position.z - myPos.z;
+            float distSqr = dx * dx + dz * dz;
+
+            // Сколько врагов уже целят в этого героя — штраф за занятость.
+            int attackers = CountAttackersOf(u);
+
+            // Оценка: ближе = лучше, занятее = хуже. Не лимит — просто предпочтение.
+            float score = distSqr + attackers * attackers * 2f;
+
+            if (score < bestScore) { bestScore = score; best = u; }
+        }
+
+        // Первый ряд пуст — ближайший из всех живых.
+        if (best == null)
+        {
+            for (int i = 0; i < units.Count; i++)
+            {
+                Unit u = units[i];
+                if (u == null || u.IsDead || !u.gameObject.activeSelf) continue;
+                float dx = u.transform.position.x - myPos.x;
+                float dz = u.transform.position.z - myPos.z;
+                float distSqr = dx * dx + dz * dz;
+                if (distSqr < bestScore) { bestScore = distSqr; best = u; }
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>Сколько живых врагов сейчас целят в этого героя.</summary>
+    private static int CountAttackersOf(Unit hero)
+    {
+        int count = 0;
+        for (int i = 0; i < _all.Count; i++)
+        {
+            var e = _all[i];
+            if (e != null && e._target == hero) count++;
+        }
+        return count;
     }
 
     private void UpdateTarget()
     {
-        bool needsNewTarget = _target == null || _target.IsDead || !_target.gameObject.activeSelf;
+        // Поток как в Last War: не резервируем героя, просто держим ближайшего.
+        // Обновляем только в approach — в атаке/чейзе цель не дёргаем.
+        if (Machine.Current != ApproachState && _target != null
+            && !_target.IsDead && _target.gameObject.activeSelf)
+            return;
 
-        // Переоцениваем цель только в Approach — чтобы не менять её посреди удара или отхода.
-        bool canReevaluate = Machine.Current == ApproachState
-                          && Time.time >= _nextTargetReevaluateTime;
+        _target = GetNearestHero();
+    }
 
-        if (!needsNewTarget && !canReevaluate) return;
+    /// <summary>Ближайший живой герой переднего края. Без резерва, без очереди.</summary>
+    private Unit GetNearestHero()
+    {
+        if (_squad == null) return null;
+        var units = _squad.AllUnits;
+        if (units == null || units.Count == 0) return null;
 
-        _nextTargetReevaluateTime = Time.time + Random.Range(1f, 1.5f);
+        Unit best = null;
+        float minDistSqr = float.MaxValue;
+        Vector3 myPos = transform.position;
 
-        Unit oldTarget = _target;
-        if (oldTarget != null) EnemyTargetRegistry.Unregister(oldTarget);
-
-        Unit newTarget = SelectTarget();
-
-        if (newTarget != null)
+        for (int i = 0; i < units.Count; i++)
         {
-            _target = newTarget;
-            EnemyTargetRegistry.Register(_target);
+            Unit u = units[i];
+            if (u == null || u.IsDead || !u.gameObject.activeSelf) continue;
 
-            if (newTarget != oldTarget)
-            {
-                float maxOffset = Mathf.Clamp(AttackRange * 0.6f, 0.05f, 0.4f);
-                float angle  = Random.Range(0f, Mathf.PI * 2f);
-                float radius = Random.Range(maxOffset * 0.3f, maxOffset);
-                _targetOffset = new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
-            }
+            float dx = u.transform.position.x - myPos.x;
+            float dz = u.transform.position.z - myPos.z;
+            float distSqr = dx * dx + dz * dz;
+            if (distSqr < minDistSqr) { minDistSqr = distSqr; best = u; }
         }
-        else if (oldTarget != null && !oldTarget.IsDead && oldTarget.gameObject.activeSelf)
-        {
-            _target = oldTarget;
-            EnemyTargetRegistry.Register(_target);
-        }
-        else
-        {
-            _target = null;
-        }
+        return best;
+    }
+
+    /// <summary>Берёт ближайшего героя как цель. Для состояний, потерявших цель.</summary>
+    public void RefreshTarget()
+    {
+        _target = GetNearestHero();
     }
 
     private Vector3 GetTargetPoint()

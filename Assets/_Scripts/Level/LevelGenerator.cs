@@ -20,7 +20,8 @@ public class LevelGenerator : MonoBehaviour
     private LevelPlan _plan;
     private bool      _levelFinished;
     private float     _virtualLeaderZ;
-    private int       _aliveEnemyCount = 0;  // сколько врагов сейчас живо на сцене
+    private int       _aliveEnemyCount  = 0;  // сколько врагов сейчас живо на сцене
+    private int       _waveSpawnCounter = 0;  // для равномерной раздачи полос по кругу
 
     private void Awake()
     {
@@ -99,6 +100,12 @@ public class LevelGenerator : MonoBehaviour
         // ─── Очистка врагов которые уехали за лидера (раз в 30 кадров) ────────────
         if (Time.frameCount % 30 == 0) CleanupEscapedEnemies();
 
+        // ДИАГ (убрать после)
+        if (Time.frameCount % 60 == 0)
+            Debug.Log($"[Finish] AllWavesSpawned={AllWavesSpawned()} " +
+                      $"remaining={GetTotalEnemiesRemaining()} " +
+                      $"activeRegistry={EnemyCombatBase.AllEnemies.Count} finished={_levelFinished}");
+
         // Финиш — все волны заспавнены И все враги убиты
         if (AllWavesSpawned() && GetTotalEnemiesRemaining() == 0)
         {
@@ -122,8 +129,6 @@ public class LevelGenerator : MonoBehaviour
             if (combat == null || !combat.gameObject.activeSelf) continue;
             if (combat.transform.position.z >= threshold) continue;
 
-            _aliveEnemyCount = Mathf.Max(0, _aliveEnemyCount - 1);
-
             Enemy e = combat.GetComponent<Enemy>();
             if (e != null) e.ReturnToPool();
             else combat.gameObject.SetActive(false);
@@ -134,7 +139,7 @@ public class LevelGenerator : MonoBehaviour
 
     private void BuildPlan()
     {
-        _plan = new LevelPlan { LevelLength = _config.LevelLength };
+        _plan = new LevelPlan();
 
         // Номер уровня в биоме определяет сложность
         int currentLevel = LevelLauncher.Instance != null && LevelLauncher.Instance.SelectedLevelIndex >= 0
@@ -142,34 +147,48 @@ public class LevelGenerator : MonoBehaviour
             : 1;
 
         // Множитель сложности от номера уровня
-        float levelMul = 1f + currentLevel * _config.LevelScalingPerLevel;
+        float levelMul = 1f + currentLevel * _config.HpScalingPerLevel;
 
         // Решаем сколько волн
-        int waveCount = Random.Range(_config.WaveCountMin, _config.WaveCountMax + 1);
+        int waveCount = Random.Range(_config.MinWaves, _config.MaxWaves + 1);
 
         // Расставляем волны
-        float currentZ = _config.FirstWaveZ;
+        float currentZ = _config.FirstWaveDistance;
         for (int w = 0; w < waveCount; w++)
         {
-            // HP множитель = от Z × от уровня
-            float zMul = 1f + currentZ * _config.ZScalingMultiplier;
-            float totalMul = zMul * levelMul;
+            // Прогресс волны по уровню: 0 (первая) .. 1 (последняя).
+            float t = waveCount > 1 ? (float)w / (waveCount - 1) : 1f;
 
-            // Формация: рандом среди 3 вариантов
-            WaveFormation formation = (WaveFormation)Random.Range(0, 3);
+            // Базовое нарастание: линейно ползёт от 0.3 (первая) до 1.0 (последняя).
+            // Каждая волна в среднем сильнее предыдущей — это прогрессия.
+            float baseline = Mathf.Lerp(0.3f, 1f, t);
+
+            // Лёгкий ритм поверх: небольшие спады-передышки, но не обнуляют прогрессию.
+            float ripple = Mathf.Sin(t * Mathf.PI * _config.PressurePeaks * 2f) * 0.15f;
+
+            float intensity = Mathf.Clamp01(baseline + ripple);
+
+            int perLane = Mathf.RoundToInt(Mathf.Lerp(
+                _config.EnemiesPerLane_Calm, _config.EnemiesPerLane_Peak, intensity));
+
+            // ДИАГ (убрать после)
+            Debug.Log($"[Wave] #{w} t={t:F2} intensity={intensity:F2} perLane={perLane} " +
+                      $"calm={_config.EnemiesPerLane_Calm} peak={_config.EnemiesPerLane_Peak}");
+
+            float zMul = 1f + currentZ * _config.HpScalingPerMeter;
+            float totalMul = zMul * levelMul;
 
             _plan.Waves.Add(new WaveData
             {
                 Z                = currentZ,
-                EnemyCount       = Random.Range(_config.EnemiesPerWaveMin, _config.EnemiesPerWaveMax + 1),
+                EnemiesPerLane   = perLane,
+                Intensity        = intensity,
                 HealthMultiplier = totalMul,
-                Formation        = formation,
             });
 
-            // Между волнами — ворота
             if (w < waveCount - 1)
             {
-                float nextWaveZ = currentZ + Random.Range(_config.WaveSpacingMin, _config.WaveSpacingMax);
+                float nextWaveZ = currentZ + Random.Range(_config.GapBetweenWavesMin, _config.GapBetweenWavesMax);
                 AddGatesBetween(currentZ, nextWaveZ);
                 currentZ = nextWaveZ;
             }
@@ -178,6 +197,9 @@ public class LevelGenerator : MonoBehaviour
 
     private void AddGatesBetween(float fromZ, float toZ)
     {
+        // Если GatePool не заполнен в конфиге — пропускаем спавн ворот
+        if (_config == null || _config.GatePool == null || _config.GatePool.Count == 0) return;
+
         // Ворота посередине, рандом ± 5м
         float middleZ = (fromZ + toZ) / 2f;
         float gateZ   = middleZ + Random.Range(-5f, 5f);
@@ -189,21 +211,30 @@ public class LevelGenerator : MonoBehaviour
             GateData left  = MakeGateData(gateZ, -1.25f);
             GateData right = MakeGateData(gateZ, +1.25f);
 
+            if (left == null || right == null) return;
+
             // Гарантируем что вторые ворота — другой prefab
             int attempts = 0;
-            while (right.Prefab == left.Prefab && attempts < 10)
+            while (right != null && left != null && right.Prefab == left.Prefab && attempts < 10)
             {
                 right = MakeGateData(gateZ, +1.25f);
                 attempts++;
             }
 
-            // Если оба универсальных GatePair — гарантируем разные настройки
+            if (left == null || right == null) return;
+
+            // Если оба универсальных GatePair — гарантируем разные настройки (если в пуле больше 1 типа)
             if (right.Prefab == left.Prefab && right.NeedsRandomQuantity)
             {
-                // Если выпало одинаковое (например 2 универсальных) — меняем тип юнита у второго
-                while (right.HeroType == left.HeroType)
+                var pool = _config.QuantityHeroPool;
+                if (pool != null && pool.Count > 1)
                 {
-                    right.HeroType = _config.QuantityHeroPool[Random.Range(0, _config.QuantityHeroPool.Count)];
+                    int attemptsType = 0;
+                    while (right.HeroType == left.HeroType && attemptsType < 10)
+                    {
+                        right.HeroType = pool[Random.Range(0, pool.Count)];
+                        attemptsType++;
+                    }
                 }
             }
 
@@ -214,14 +245,19 @@ public class LevelGenerator : MonoBehaviour
         {
             // Одна ворота — рандомно слева или справа
             float side = Random.value < 0.5f ? -1.0f : +1.0f;
-            _plan.Gates.Add(MakeGateData(gateZ, side));
+            GateData singleGate = MakeGateData(gateZ, side);
+            if (singleGate != null)
+                _plan.Gates.Add(singleGate);
         }
     }
 
     private GateData MakeGateData(float z, float x)
     {
+        if (_config == null || _config.GatePool == null || _config.GatePool.Count == 0) return null;
+
         // Выбираем рандомный prefab из пула
         GameObject prefab = _config.GatePool[Random.Range(0, _config.GatePool.Count)];
+        if (prefab == null) return null;
 
         var data = new GateData { Z = z, X = x, Prefab = prefab };
 
@@ -232,7 +268,10 @@ public class LevelGenerator : MonoBehaviour
         if (!isElement)
         {
             data.NeedsRandomQuantity = true;
-            data.HeroType   = _config.QuantityHeroPool[Random.Range(0, _config.QuantityHeroPool.Count)];
+            if (_config.QuantityHeroPool != null && _config.QuantityHeroPool.Count > 0)
+            {
+                data.HeroType = _config.QuantityHeroPool[Random.Range(0, _config.QuantityHeroPool.Count)];
+            }
             data.IsMultiply = Random.value < _config.MultiplyChance;
 
             if (data.IsMultiply)
@@ -255,92 +294,99 @@ public class LevelGenerator : MonoBehaviour
 
     // ─── Спавн ───────────────────────────────────────────────────
 
+    /// <summary>Тип врага для смеси волн.</summary>
+    private enum EnemyKind { Melee, Mage, Roller }
+
+    private EnemyKind ClassifyEnemy(GameObject prefab)
+    {
+        if (prefab == null) return EnemyKind.Melee;
+
+        // Роллер — по компоненту EnemyRollCombat.
+        if (prefab.GetComponent<EnemyRollCombat>() != null) return EnemyKind.Roller;
+
+        // Маг — по IsRanged в конфиге.
+        Enemy e = prefab.GetComponent<Enemy>();
+        if (e != null && e.Data != null && e.Data.IsRanged) return EnemyKind.Mage;
+
+        return EnemyKind.Melee;
+    }
+
+    /// <summary>
+    /// Выбирает врага для полосы с учётом интенсивности волны.
+    /// Опасные типы (маг/роллер) появляются чаще на пике и только по бокам.
+    /// Центр — всегда melee (таранная толпа).
+    /// </summary>
+    private GameObject PickEnemy(bool isCenterLane, float intensity)
+    {
+        var pool = _config.EnemyPrefabs;
+        if (pool == null || pool.Count == 0) return null;
+
+        // Шанс, что этот враг будет "опасным" (маг/роллер) — растёт с интенсивностью.
+        float dangerChance = intensity * _config.DangerRatioAtPeak;
+        bool wantDanger = Random.value < dangerChance;
+
+        // Центр — только melee, никаких магов/роллеров, каким бы ни был пик.
+        if (isCenterLane) wantDanger = false;
+
+        // Несколько попыток найти врага нужной категории.
+        for (int attempt = 0; attempt < 10; attempt++)
+        {
+            GameObject candidate = pool[Random.Range(0, pool.Count)];
+            EnemyKind kind = ClassifyEnemy(candidate);
+
+            bool isDanger = kind != EnemyKind.Melee;
+
+            if (wantDanger && isDanger) return candidate;
+            if (!wantDanger && !isDanger) return candidate;
+        }
+
+        // Фолбэк: не нашли нужную категорию — берём хоть melee.
+        for (int i = 0; i < pool.Count; i++)
+            if (ClassifyEnemy(pool[i]) == EnemyKind.Melee) return pool[i];
+
+        return pool[0];
+    }
+
     private void SpawnWave(WaveData wave)
     {
         if (_config.EnemyPrefabs == null || _config.EnemyPrefabs.Count == 0) return;
 
-        // Спавним относительно лидера, а не по абсолютному wave.Z.
-        // Лидер неподвижен (мир едет на него), поэтому абсолютные координаты плана
-        // с каждой волной уходили всё дальше вперёд.
         float spawnZ = _leader.position.z + _spawnAheadDistance;
 
-        Vector3[] positions = GenerateWavePositions(wave, spawnZ);
+        const float SpawnSpreadX = 0.25f;
+        const float SpawnSpreadZ = 0.8f;
 
-        for (int i = 0; i < positions.Length; i++)
+        for (int lane = 0; lane < LaneSystem.LaneCount; lane++)
         {
-            GameObject prefabToSpawn = _config.EnemyPrefabs[Random.Range(0, _config.EnemyPrefabs.Count)];
-            if (prefabToSpawn == null) continue;
+            bool isCenterLane = lane == LaneSystem.LaneCount / 2;
+            float laneCenterX = LaneSystem.GetLaneCenterX(lane);
 
-            // Через пул — Instantiate в бою даёт фризы и копит объекты.
-            GameObject go = EnemyPool.Instance != null
-                ? EnemyPool.Instance.Get(prefabToSpawn, positions[i], Quaternion.identity)
-                : Instantiate(prefabToSpawn, positions[i], Quaternion.identity);
-
-            if (go == null) continue;
-
-            Enemy enemy = go.GetComponent<Enemy>();
-            if (enemy != null)
+            for (int i = 0; i < wave.EnemiesPerLane; i++)
             {
-                enemy.ApplyHealthMultiplier(wave.HealthMultiplier);
-                _aliveEnemyCount++;
+                float x = laneCenterX + Random.Range(-SpawnSpreadX, SpawnSpreadX);
+                float z = spawnZ + Random.Range(-SpawnSpreadZ, SpawnSpreadZ);
+                Vector3 pos = new Vector3(x, 1f, z);
+
+                GameObject prefabToSpawn = PickEnemy(isCenterLane, wave.Intensity);
+                if (prefabToSpawn == null) continue;
+
+                GameObject go = EnemyPool.Instance != null
+                    ? EnemyPool.Instance.Get(prefabToSpawn, pos, Quaternion.identity)
+                    : Instantiate(prefabToSpawn, pos, Quaternion.identity);
+
+                if (go == null) continue;
+
+                EnemyCombatBase combat = go.GetComponent<EnemyCombatBase>();
+                if (combat != null) combat.SetLane(lane);
+
+                Enemy enemy = go.GetComponent<Enemy>();
+                if (enemy != null)
+                {
+                    enemy.ApplyHealthMultiplier(wave.HealthMultiplier);
+                    _aliveEnemyCount++;
+                }
             }
         }
-    }
-
-    /// <summary>Генерирует позиции для волны в зависимости от формации.</summary>
-    private Vector3[] GenerateWavePositions(WaveData wave, float spawnZ)
-    {
-        Vector3[] positions = new Vector3[wave.EnemyCount];
-
-        switch (wave.Formation)
-        {
-            case WaveFormation.LeftCluster:
-                // Плотный отряд слева (X ≈ -1.25)
-                positions = GenerateClusterPositions(wave.EnemyCount, spawnZ, centerX: -1.25f, clusterRadius: 0.75f);
-                break;
-
-            case WaveFormation.RightCluster:
-                // Плотный отряд справа (X ≈ +1.25)
-                positions = GenerateClusterPositions(wave.EnemyCount, spawnZ, centerX: 1.25f, clusterRadius: 0.75f);
-                break;
-
-            case WaveFormation.CenterMob:
-                // Большая толпа по центру — широкая по X и глубокая по Z
-                positions = GenerateClusterPositions(wave.EnemyCount, spawnZ, centerX: 0f, clusterRadius: 1.5f);
-                break;
-        }
-
-        return positions;
-    }
-
-    /// <summary>Генерирует позиции толпы вокруг указанного центра.</summary>
-    private Vector3[] GenerateClusterPositions(int count, float centerZ, float centerX, float clusterRadius)
-    {
-        Vector3[] positions = new Vector3[count];
-
-        // Расставляем в сетке + лёгкий шум для естественности
-        int rows = Mathf.CeilToInt(Mathf.Sqrt(count));
-        int cols = Mathf.CeilToInt((float)count / rows);
-        float spacing = clusterRadius * 2f / Mathf.Max(cols - 1, 1);
-
-        int idx = 0;
-        for (int row = 0; row < rows && idx < count; row++)
-        {
-            for (int col = 0; col < cols && idx < count; col++)
-            {
-                float x = centerX + (col - (cols - 1) / 2f) * spacing;
-                float z = centerZ + (row - (rows - 1) / 2f) * spacing;
-
-                // Лёгкий случайный шум чтобы не выглядело как сетка
-                x += Random.Range(-0.15f, 0.15f);
-                z += Random.Range(-0.15f, 0.15f);
-
-                positions[idx] = new Vector3(x, 1f, z);
-                idx++;
-            }
-        }
-
-        return positions;
     }
 
     private void SpawnGate(GateData data)
@@ -372,10 +418,15 @@ public class LevelGenerator : MonoBehaviour
 
     private void FinishLevel()
     {
-        {}
+        Debug.Log("[LevelGen] FinishLevel() вызван! Переход в Victory.");
 
-        // НЕ начисляем награды здесь — это делает VictoryUI после анимации
-        // Просто помечаем уровень пройденным
+        // Убираем оставшихся чейзящих/отступивших врагов при победе
+        var list = EnemyCombatBase.AllEnemies;
+        for (int i = list.Count - 1; i >= 0; i--)
+        {
+            if (list[i] != null) list[i].DespawnToPool();
+        }
+
         var launcher = LevelLauncher.Instance;
         var pdm      = PlayerDataManager.Instance;
 
@@ -386,10 +437,22 @@ public class LevelGenerator : MonoBehaviour
 
         if (GameStateManager.Instance != null)
             GameStateManager.Instance.SetVictory();
+
+        // Показ UI Победы с вашей формы
+        var victoryUI = FindAnyObjectByType<VictoryUI>(FindObjectsInactive.Include);
+        if (victoryUI != null)
+        {
+            victoryUI.ForceShowVictory();
+        }
+        else
+        {
+            Debug.LogWarning("[LevelGen] VictoryUI не найден на игровой сцене! Пожалуйста, добавьте префаб/объект VictoryUI на Canvas игровой сцены.");
+        }
     }
 
     /// <summary>
-    /// Возвращает сколько врагов осталось убить (живые на сцене + ещё не заспавненные).
+    /// Возвращает сколько врагов осталось убить спереди (живые спереди + ещё не заспавненные).
+    /// Враги, прорвавшиеся назад (IsChasing / сзади лидера), не блокируют завершение уровня.
     /// </summary>
     public int GetTotalEnemiesRemaining()
     {
@@ -398,11 +461,29 @@ public class LevelGenerator : MonoBehaviour
         {
             foreach (WaveData wave in _plan.Waves)
             {
-                if (!wave.Spawned) notSpawned += wave.EnemyCount;
+                if (!wave.Spawned) notSpawned += wave.EnemiesPerLane * LaneSystem.LaneCount;
             }
         }
 
-        return _aliveEnemyCount + notSpawned;
+        int activeAhead = 0;
+        var all = EnemyCombatBase.AllEnemies;
+        float leaderZ = _leader != null ? _leader.position.z : 0f;
+
+        for (int i = 0; i < all.Count; i++)
+        {
+            EnemyCombatBase combat = all[i];
+            if (combat == null || !combat.gameObject.activeInHierarchy) continue;
+
+            // Враги, бегущие сзади отряда (IsChasing или Z меньше лидера), не блокируют финиш
+            if (combat.IsChasing || combat.transform.position.z < leaderZ) continue;
+
+            Enemy e = combat.GetComponent<Enemy>();
+            if (e != null && e.IsDead) continue;
+
+            activeAhead++;
+        }
+
+        return activeAhead + notSpawned;
     }
 
     /// <summary>True если все запланированные волны уже заспавнены.</summary>

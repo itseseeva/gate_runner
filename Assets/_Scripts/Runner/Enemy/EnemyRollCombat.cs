@@ -12,6 +12,9 @@ public class EnemyRollCombat : EnemyCombatBase
     // Не прибивается к Z цели — он в неё влетает.
     public override bool SticksToTargetZ => false;
 
+    // Роллер не ограничен одной полосой — едет через всю дорогу в любого героя.
+    public override bool UsesLaneRestriction => false;
+
     public override float AttackTriggerDistance => Data != null ? Data.RollTriggerRange : 5f;
 
     public override void OnAnimationHit() { }   // урон идёт из RollState, не по Animation Event

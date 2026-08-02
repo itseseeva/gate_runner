@@ -9,24 +9,16 @@ public class LevelPlan
 {
     public readonly List<WaveData> Waves = new();
     public readonly List<GateData> Gates = new();
-    public float LevelLength;
 }
 
-public enum WaveFormation
-{
-    LeftCluster,  // плотный отряд слева от центра
-    RightCluster, // плотный отряд справа от центра
-    CenterMob,    // большая толпа по центру
-}
-
-/// <summary>Данные о волне врагов: где, сколько, насколько сильные.</summary>
+/// <summary>Данные о волне врагов: где, сколько на полосу, насколько сильные.</summary>
 public class WaveData
 {
     public float Z;              // позиция по Z где спавнится
-    public int   EnemyCount;     // сколько врагов
+    public int   EnemiesPerLane; // врагов в КАЖДОЙ полосе
+    public float Intensity;      // 0..1 — напряжение волны, задаёт смесь типов
     public float HealthMultiplier; // множитель HP (от Z + от уровня игрока)
     public bool  Spawned;        // уже создан?
-    public WaveFormation Formation;
 }
 
 /// <summary>Данные о воротах: где, какой prefab, какие настройки если Quantity.</summary>

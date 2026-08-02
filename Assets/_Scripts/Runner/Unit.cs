@@ -36,6 +36,19 @@ public class Unit : MonoBehaviour, IDamageable
 
     public bool IsDead { get; private set; } = false;
 
+    private CapsuleCollider _cachedCollider;
+
+    /// <summary>Кешированный коллайдер юнита — чтобы враги не звали GetComponent каждый кадр.</summary>
+    public CapsuleCollider CachedCollider
+    {
+        get
+        {
+            if (_cachedCollider == null)
+                _cachedCollider = GetComponent<CapsuleCollider>();
+            return _cachedCollider;
+        }
+    }
+
     [Header("VFX")]
     [SerializeField] private VfxConfig _vfxConfig;
 

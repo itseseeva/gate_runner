@@ -20,9 +20,13 @@ public class EnemyRangedAttackState : EnemyState
 
     public override void Tick()
     {
-        if (Ctrl.Target == null || Ctrl.Target.IsDead) return;
+        if (Ctrl.Target == null || Ctrl.Target.IsDead || !Ctrl.Target.gameObject.activeSelf)
+        {
+            Ctrl.RefreshTarget();
+            if (Ctrl.Target == null) return;
+        }
 
-        // Если отряд уехал вперёд и враг оказался сзади — уходим в Chase (или Retreat/деспавн, если чейз полон)
+        // Если отряд уехал вперёд и враг оказался сзади — уходим в Chase (или Retreat/деспавн, если мест нет)
         if (Ctrl.IsBehindSquad)
         {
             Ctrl.EndAttackAndChase();

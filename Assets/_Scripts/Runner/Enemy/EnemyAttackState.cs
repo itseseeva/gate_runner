@@ -18,18 +18,23 @@ public class EnemyAttackState : EnemyState
 
     public override void Tick()
     {
-        if (Ctrl.Target == null)
+        if (Ctrl.Target == null || Ctrl.Target.IsDead || !Ctrl.Target.gameObject.activeSelf)
         {
-            Ctrl.Machine.ChangeState(Ctrl.ApproachState);
-            return;
+            // Цель пропала — берём ближайшего, а не вылетаем в approach вслепую.
+            Ctrl.RefreshTarget();
+            if (Ctrl.Target == null)
+            {
+                Ctrl.Machine.ChangeState(Ctrl.ApproachState);
+                return;
+            }
         }
 
         float distSqr = Ctrl.DistToTargetPointSqr();
         float hysteresis = Ctrl.AttackRange * 1.2f;
 
-        // Гистерезис: выходим по большей дистанции, чем входили (0.9 vs 1.2),
-        // иначе враг на границе будет дребезжать между Approach и Attack.
-        if (distSqr > hysteresis * hysteresis)
+        // НЕ выходим, пока клип атаки играет — иначе пинг-понг, клип рестартится,
+        // EndAttackAndChase не срабатывает, враг зависает у спины.
+        if (distSqr > hysteresis * hysteresis && !Ctrl.IsAttackAnimPlaying)
         {
             Ctrl.Machine.ChangeState(Ctrl.ApproachState);
             return;
@@ -43,12 +48,12 @@ public class EnemyAttackState : EnemyState
             Transform t = Ctrl.transform;
             Vector3 targetPos = Ctrl.Target.transform.position;
 
-            // Z и X тянем к цели — иначе при движении отряда вбок враг
-            // отваливается по X, вылетает из Attack и не доходит до чейза.
-            float newZ = Mathf.Lerp(t.position.z, targetPos.z, 15f * Time.deltaTime);
-            float newX = Mathf.Lerp(t.position.x, targetPos.x, 10f * Time.deltaTime);
-
-            t.position = new Vector3(newX, t.position.y, newZ);
+            // Доводим к цели с ПОСТОЯННОЙ скоростью (MoveTowards), а не Lerp —
+            // Lerp с большим коэффициентом даёт рывок тем сильнее, чем дальше цель.
+            // MoveTowards двигает ровно, без скачка при входе в атаку.
+            float stickSpeed = 4f;   // м/сек подтяжки к цели, крути под вкус
+            Vector3 flatTarget = new Vector3(targetPos.x, t.position.y, targetPos.z);
+            t.position = Vector3.MoveTowards(t.position, flatTarget, stickSpeed * Time.deltaTime);
         }
     }
 

@@ -20,6 +20,7 @@ public class EnemyRetreatState : EnemyState
         Ctrl.SetScroller(true);
         Ctrl.SetSpeedMultiplier(LagMultiplier);
         Ctrl.SetAnimatorAttacking(false);
+        Ctrl.SetPhasing(true);   // Отключаем коллайдер и физическое расталкивание, чтобы просачиваться назад без помех
 
         _lookTarget = Ctrl.Target;
     }
@@ -53,5 +54,6 @@ public class EnemyRetreatState : EnemyState
     public override void Exit()
     {
         Ctrl.SetSpeedMultiplier(1f);
+        Ctrl.SetPhasing(false);
     }
 }

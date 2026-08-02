@@ -33,30 +33,64 @@ public class VictoryUI : MonoBehaviour
     [SerializeField] private float _delayBeforeXP = 0.5f;
     [SerializeField] private float _xpFillDuration = 1.5f;
 
+    private void Awake()
+    {
+        if (_continueButton != null)
+            _continueButton.onClick.AddListener(OnContinue);
+    }
+
     private void Start()
     {
         if (_panel != null) _panel.SetActive(false);
-
-        if (_continueButton != null)
-            _continueButton.onClick.AddListener(OnContinue);
-
-        GameStateManager.OnStateChanged += HandleStateChanged;
     }
 
-    private void OnDestroy()
+    private void OnEnable()
+    {
+        GameStateManager.OnStateChanged += HandleStateChanged;
+
+        // Если состояние УЖЕ Victory к моменту включения
+        if (GameStateManager.Instance != null && GameStateManager.Instance.IsVictory)
+        {
+            ShowVictory();
+        }
+    }
+
+    private void OnDisable()
     {
         GameStateManager.OnStateChanged -= HandleStateChanged;
     }
 
+    public void ForceShowVictory()
+    {
+        Debug.Log("[VictoryUI] ForceShowVictory вызван напрямую.");
+        gameObject.SetActive(true);
+        ShowVictory();
+    }
+
     private void HandleStateChanged(GameState newState)
     {
+        Debug.Log($"[VictoryUI] HandleStateChanged: {newState}");
         if (newState != GameState.Victory) return;
         ShowVictory();
     }
 
     private void ShowVictory()
     {
-        if (_panel != null) _panel.SetActive(true);
+        Debug.Log($"[VictoryUI] ShowVictory() вызван. _panel={(_panel != null ? _panel.name : "NULL")}");
+
+        if (_panel != null)
+        {
+            _panel.SetActive(true);
+        }
+        else
+        {
+            // Фолбэк: если поле _panel забыли назначить в инспекторе, включаем весь этот GameObject
+            Debug.LogWarning("[VictoryUI] _panel не назначен в инспекторе! Включаем gameObject.", this);
+            for (int i = 0; i < transform.childCount; i++)
+            {
+                transform.GetChild(i).gameObject.SetActive(true);
+            }
+        }
 
         var launcher = LevelLauncher.Instance;
         var pdm      = PlayerDataManager.Instance;
@@ -64,7 +98,9 @@ public class VictoryUI : MonoBehaviour
         // Защита если играем напрямую со SampleScene
         if (launcher == null || pdm == null || launcher.SelectedBiome == null)
         {
-            Debug.LogWarning("[VictoryUI] Нет launcher/pdm — анимации не показываются", this);
+            Debug.LogWarning("[VictoryUI] Нет launcher/pdm (запуск из SampleScene) — показываем заглушку текста", this);
+            if (_levelLabel != null) _levelLabel.text = "Уровень пройден!";
+            if (_rewardsLabel != null) _rewardsLabel.text = "Тестовый запуск";
             if (_continueButton != null) _continueButton.interactable = true;
             return;
         }
