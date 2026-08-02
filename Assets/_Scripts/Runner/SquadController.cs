@@ -240,8 +240,13 @@ public class SquadController : MonoBehaviour
             MeleeUnitController meleeCtrl = u.GetComponent<MeleeUnitController>();
             if (meleeCtrl != null)
             {
-                meleeCtrl.FormationOffset = u.transform.position - transform.position;
+                // Воин НЕ в строю (бой/rejoin) — не трогаем offset и не двигаем толпой.
+                // Иначе offset перезапишется боевой позицией, и rejoin потянет воина
+                // в точку где он уже стоит → дрожь и уползание за камеру.
                 if (!meleeCtrl.IsInFormation) continue;
+
+                // В строю — offset это его законное место, обновляем и двигаем как часть толпы.
+                meleeCtrl.FormationOffset = u.transform.position - transform.position;
             }
 
             agent.Step(GetNeighborPositions(u), Time.deltaTime);

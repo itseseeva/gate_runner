@@ -51,7 +51,17 @@ public class MeleeUnitController : MonoBehaviour
     // ─── Свойства ────────────────────────────────────────────────
     public Transform Leader          { get; private set; }
     public Vector3   FormationOffset { get; set; }
-    public bool      IsInFormation   { get; set; } = true;
+    private bool _isInFormation = true;
+    public bool IsInFormation
+    {
+        get => _isInFormation;
+        set
+        {
+            _isInFormation = value;
+            // Синхронизируем с Unit, чтобы враги в чейзе игнорировали дэшера как задний край.
+            if (_ownerUnit != null) _ownerUnit.IsOutOfFormation = !value;
+        }
+    }
     public IUnitAttack AutoAttack    => _autoAttack;
     public float DetectionRange      => _detectionRange;
     public float AttackRange         => _attackRange;
@@ -137,7 +147,9 @@ public class MeleeUnitController : MonoBehaviour
 
     public void UpdateRejoin()
     {
-        {}
+        if (_isRejoining)
+            Debug.Log($"[REJOIN] {name} pos={transform.position} target={Leader.position + FormationOffset} offset={FormationOffset} inFormation={IsInFormation}", this);
+
         if (!_isRejoining) return;
 
         _rejoinTimer += Time.deltaTime;
@@ -172,39 +184,39 @@ public class MeleeUnitController : MonoBehaviour
 
     public Enemy FindRandomEnemyInRange(float range, float minZ = float.MinValue)
     {
-        Enemy[] all = Object.FindObjectsByType<Enemy>(FindObjectsSortMode.None);
+        // Идём по кешированному списку врагов вместо FindObjectsByType —
+        // тот перебирает всю сцену и аллоцирует массив каждый вызов.
+        // combat в цикле уже под рукой — не дёргаем GetComponent<EnemyCombatBase> отдельно.
+        var all = EnemyCombatBase.AllEnemies;
 
-        List<Enemy> free    = new(); // совсем свободные (0 атакующих)
-        List<Enemy> partial = new(); // с 1 атакующим (резерв)
+        List<Enemy> free    = new();
+        List<Enemy> partial = new();
 
-        foreach (Enemy e in all)
+        for (int i = 0; i < all.Count; i++)
         {
-            if (e == null || !e.gameObject.activeSelf) continue;
+            EnemyCombatBase combat = all[i];
+            if (combat == null || !combat.gameObject.activeSelf) continue;
+
+            Enemy e = combat.GetComponent<Enemy>();
+            if (e == null) continue;
+
             if (e.transform.position.z < minZ) continue;
 
             float d = Vector3.Distance(transform.position, e.transform.position);
 
-            // Если враг в чейз моде, мы можем атаковать его только если он уже в радиусе атаки.
-            // Это предотвращает разворот отряда назад за убегающими врагами.
-            var combat = e.GetComponent<EnemyCombatBase>();
-            if (combat != null && combat.IsChasing)
-            {
-                if (d > _attackRange) continue;
-            }
+            // Враг в чейзе — берём только если уже в радиусе удара (не гонимся назад).
+            if (combat.IsChasing && d > _attackRange) continue;
 
             if (d > range) continue;
 
             if (IsTank)
             {
-                // Танк: смотрит танковый счётчик — 1 танк на врага
                 int tankClaims = _tankClaimCount.TryGetValue(e, out int tc) ? tc : 0;
                 if (tankClaims < MAX_TANK_CLAIMS_PER_TARGET)
                     free.Add(e);
-                // иначе враг уже занят танком — пропускаем
             }
             else
             {
-                // Воин/ассассин: общий счётчик, до 2 на врага
                 int claims = _claimCount.TryGetValue(e, out int c) ? c : 0;
                 if (claims == 0)
                     free.Add(e);
@@ -213,7 +225,6 @@ public class MeleeUnitController : MonoBehaviour
             }
         }
 
-        // Приоритет — свободные цели
         List<Enemy> pool = free.Count > 0 ? free : partial;
 
         if (pool.Count == 0)

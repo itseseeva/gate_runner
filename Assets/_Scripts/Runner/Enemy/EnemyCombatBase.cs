@@ -477,6 +477,7 @@ public abstract class EnemyCombatBase : MonoBehaviour
         foreach (Unit u in _squad.AllUnits)
         {
             if (u == null || u.IsDead || !u.gameObject.activeSelf) continue;
+            if (u.IsOutOfFormation) continue;   // дэшер не задаёт задний край отряда
             if (u.transform.position.z < tempMin) tempMin = u.transform.position.z;
         }
         return tempMin != float.MaxValue ? tempMin : minZ;

@@ -12,6 +12,10 @@ public class StrikeState : IUnitState
 
     private bool _waitingAfterHit = false;
 
+    // Серия ударов за одну вылазку: воин косит несколько целей подряд без кулдауна, затем домой.
+    private int _hitsThisRun = 0;
+    private const int MAX_HITS_PER_RUN = 3;
+
     public float LastHitZ { get; private set; }
 
     public StrikeState(MeleeUnitController controller)
@@ -28,6 +32,7 @@ public class StrikeState : IUnitState
     {
         {}
         _waitingAfterHit = false;
+        _hitsThisRun = 0;              // ← новая вылазка — серия с нуля
         _ctrl.PlayAttackRun();
 
         // Танк: отключаем AutoAttacker чтобы он не сжигал кулдаун во время рывка
@@ -126,11 +131,16 @@ public class StrikeState : IUnitState
                 return;
             }
 
-            if (_ctrl.AutoAttack == null || !_ctrl.AutoAttack.IsReady) return;
+            // Кулдаун проверяем ТОЛЬКО для первого удара вылазки.
+            // Внутри серии (2-й, 3-й удар) бьём без кулдауна — быстрая серия 1-2-3.
+            if (_hitsThisRun == 0 && (_ctrl.AutoAttack == null || !_ctrl.AutoAttack.IsReady))
+                return;
+            if (_ctrl.AutoAttack == null) return;
 
             DiagLogger.RecordHit(_ctrl.gameObject.GetInstanceID(), _target.GetInstanceID());
 
             _ctrl.AutoAttack.Hit(_target);
+            _hitsThisRun++;           // ← засчитали удар серии
 
             LastHitZ = _target.transform.position.z;
             _lastHitEnemy = _target;
@@ -163,6 +173,14 @@ public class StrikeState : IUnitState
 
         // Танк и Ассасин возвращаются в строй сразу — не ищут следующую цель
         if (_ctrl.IsTankUnit || _ctrl.GetComponent<AssassinAutoAttack>() != null)
+        {
+            _ctrl.StartRejoin();
+            _ctrl.ChangeState(_ctrl.FollowState);
+            return;
+        }
+
+        // Серия добита — домой, даже если впереди ещё есть враги.
+        if (_hitsThisRun >= MAX_HITS_PER_RUN)
         {
             _ctrl.StartRejoin();
             _ctrl.ChangeState(_ctrl.FollowState);

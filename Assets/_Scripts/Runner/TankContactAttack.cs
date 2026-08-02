@@ -134,6 +134,10 @@ public class TankContactAttack : MonoBehaviour
             // Если врага уже прицелил ДРУГОЙ танк — игнорируем
             if (enemy.TargetedByTank != null && enemy.TargetedByTank != this) continue;
 
+            // Враг в фазе Chase — милишник его не берёт в цель (строгое правило B)
+            var combat = enemy.GetComponent<EnemyCombatBase>();
+            if (combat != null && combat.IsChasing) continue;
+
             float dist = Vector3.Distance(transform.position, col.transform.position);
             if (dist < minDistance)
             {
@@ -213,6 +217,10 @@ public class TankContactAttack : MonoBehaviour
         Enemy enemy = other.GetComponent<Enemy>();
         if (enemy == null) return;
 
+        // Враг в чейзе — не бьём (строгое правило B)
+        var combat = enemy.GetComponent<EnemyCombatBase>();
+        if (combat != null && combat.IsChasing) return;
+
         {}
 
         // Если врага бьёт другой танк — мы его игнорируем
@@ -272,6 +280,10 @@ public class TankContactAttack : MonoBehaviour
             if (e == null || !e.gameObject.activeSelf) continue;
             if (e.TargetedByTank != null && e.TargetedByTank != this) continue;
 
+            // Не берём в замену чейзеров
+            var combat = e.GetComponent<EnemyCombatBase>();
+            if (combat != null && combat.IsChasing) continue;
+
             float d = Vector3.Distance(transform.position, e.transform.position);
             if (d > _animAnticipationRange) continue;
 
@@ -292,6 +304,11 @@ public class TankContactAttack : MonoBehaviour
     private void TryHitDuringDash(Enemy enemy)
     {
         if (enemy == null || !enemy.gameObject.activeSelf) return;
+
+        // Враг в чейзе — не бьём во время рывка
+        var combat = enemy.GetComponent<EnemyCombatBase>();
+        if (combat != null && combat.IsChasing) return;
+
         if (Time.time - _lastContactTime < _contactCooldown) return;
 
         _lastContactTime = Time.time;

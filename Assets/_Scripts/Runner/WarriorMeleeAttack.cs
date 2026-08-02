@@ -25,8 +25,8 @@ public class WarriorMeleeAttack : MeleeAutoAttackBase
     {
         if (!IsReady) return HitResult.Miss();
 
-        // Подход 1: Урон и кулдауны управляются исключительно через Animation Events.
-        // Hit() здесь оставляем как заглушку для интерфейса.
+        UpdateCooldown(); // кулдаун стартует в момент, когда StrikeState принял удар — иначе Attack Speed игнорируется
+
         return new HitResult { Hit = true };
     }
 
@@ -36,7 +36,7 @@ public class WarriorMeleeAttack : MeleeAutoAttackBase
     /// </summary>
     public void OnAttackHit()
     {
-        UpdateCooldown(); // Подход 1: кулдаун начинается в момент физического удара
+        // Кулдаун теперь стартует в Hit() — здесь только урон и VFX.
 
         ElementType element = OwnerUnit != null ? OwnerUnit.Element : ElementType.None;
         int multiplier = OwnerUnit != null ? OwnerUnit.PowerMultiplier : 1;

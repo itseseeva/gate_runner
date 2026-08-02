@@ -36,6 +36,13 @@ public class Unit : MonoBehaviour, IDamageable
 
     public bool IsDead { get; private set; } = false;
 
+    /// <summary>
+    /// Юнит временно вышел из строя (дэшит в атаку). Враги в чейзе НЕ считают
+    /// его задним краем отряда — иначе толпа дёргается за одиночным бойцом.
+    /// Ставится из MeleeUnitController при входе/выходе из боя.
+    /// </summary>
+    public bool IsOutOfFormation { get; set; } = false;
+
     private CapsuleCollider _cachedCollider;
 
     /// <summary>Кешированный коллайдер юнита — чтобы враги не звали GetComponent каждый кадр.</summary>

@@ -119,25 +119,31 @@ public class AutoAttacker : MonoBehaviour
  
     private Enemy FindNearestEnemy(float range)
     {
-        Enemy[] all = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
+        // Идём по кешированному списку врагов вместо FindObjectsByType —
+        // тот перебирает всю сцену и аллоцирует массив каждый кадр (нагрузка на GC).
+        var all = EnemyCombatBase.AllEnemies;
         Enemy nearest = null;
         float minDist = range;
- 
+
         float myZ = transform.position.z;
- 
-        foreach (Enemy e in all)
+
+        for (int i = 0; i < all.Count; i++)
         {
-            if (!e.gameObject.activeSelf) continue;
- 
+            EnemyCombatBase combat = all[i];
+            if (combat == null || !combat.gameObject.activeSelf) continue;
+
+            Enemy e = combat.GetComponent<Enemy>();
+            if (e == null) continue;
+
             // Не бьём врагов, которых откинуло назад (позади танка по Z).
             if (e.transform.position.z < myZ - _backCutoff) continue;
- 
+
             // Танк не берёт цель, которую уже держит другой живой танк.
             if (IsTank
                 && _tankClaims.TryGetValue(e, out AutoAttacker holder)
                 && holder != null && holder != this && holder.gameObject.activeSelf)
                 continue;
- 
+
             float dist = Vector3.Distance(transform.position, e.transform.position);
             if (dist < minDist)
             {
