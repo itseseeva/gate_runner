@@ -91,4 +91,14 @@ public class GenerationConfigSO : ScriptableObject
     [Tooltip("HP × (1 + номер_уровня × коэфф). Рост между уровнями.")]
     [FormerlySerializedAs("LevelScalingPerLevel")]
     public float HpScalingPerLevel = 0.2f;
+
+    [Header("━━━ ТЕСТОВЫЙ РЕЖИМ ━━━")]
+    [Tooltip("Включить тест-режим (заменяет генерацию ворот)")]
+    public bool TestMode_ForceGates = false;
+    
+    [Tooltip("Стихия ворот для тест-режима")]
+    public ElementType TestMode_Element = ElementType.Fire;
+    
+    [Tooltip("Сколько ворот спавнить подряд")]
+    public int TestMode_GatesPerSpot = 3;
 }

@@ -200,6 +200,19 @@ public class LevelGenerator : MonoBehaviour
         // Если GatePool не заполнен в конфиге — пропускаем спавн ворот
         if (_config == null || _config.GatePool == null || _config.GatePool.Count == 0) return;
 
+        // ── ТЕСТ-режим: густо ставим ворота одной стихии ──
+        if (_config.TestMode_ForceGates)
+        {
+            float midZ = (fromZ + toZ) / 2f;
+            for (int i = 0; i < _config.TestMode_GatesPerSpot; i++)
+            {
+                float zPos = midZ + i * 3f;                 // 3 метра между воротами в ряду
+                GateData g = MakeGateData(zPos, 0f);        // по центру дороги
+                if (g != null) _plan.Gates.Add(g);
+            }
+            return;   // в тест-режиме обычную генерацию ворот пропускаем
+        }
+
         // Ворота посередине, рандом ± 5м
         float middleZ = (fromZ + toZ) / 2f;
         float gateZ   = middleZ + Random.Range(-5f, 5f);
@@ -251,9 +264,38 @@ public class LevelGenerator : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// ТЕСТ: находит в GatePool префаб ворот с нужной стихией.
+    /// Возвращает null, если таких нет.
+    /// </summary>
+    private GameObject FindElementGateInPool(ElementType element)
+    {
+        if (_config.GatePool == null) return null;
+
+        for (int i = 0; i < _config.GatePool.Count; i++)
+        {
+            GameObject prefab = _config.GatePool[i];
+            if (prefab == null) continue;
+
+            ElementGate eg = prefab.GetComponentInChildren<ElementGate>(true);
+            if (eg != null && eg.Element == element)
+                return prefab;
+        }
+        return null;
+    }
+
     private GateData MakeGateData(float z, float x)
     {
         if (_config == null || _config.GatePool == null || _config.GatePool.Count == 0) return null;
+
+        // ── ТЕСТ-режим: форсим только выбранную стихию ──
+        if (_config.TestMode_ForceGates)
+        {
+            GameObject forced = FindElementGateInPool(_config.TestMode_Element);
+            if (forced != null)
+                return new GateData { Z = z, X = x, Prefab = forced };
+            Debug.LogWarning($"[LevelGen][ТЕСТ] В GatePool нет ворот стихии {_config.TestMode_Element} — проверь пул.", this);
+        }
 
         // Выбираем рандомный prefab из пула
         GameObject prefab = _config.GatePool[Random.Range(0, _config.GatePool.Count)];
@@ -391,7 +433,7 @@ public class LevelGenerator : MonoBehaviour
 
     private void SpawnGate(GateData data)
     {
-        GameObject go = Instantiate(data.Prefab, new Vector3(data.X, 0.01f, data.Z), Quaternion.identity);
+        GameObject go = Instantiate(data.Prefab, new Vector3(data.X, 0.01f, data.Z), data.Prefab.transform.rotation);
         {}
 
         // Если универсальный — настраиваем QuantityGate на лету

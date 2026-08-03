@@ -3,14 +3,17 @@ using TMPro;
 
 /// <summary>
 /// Ворота меняющие стихию всего отряда при прохождении.
-/// Один префаб GatePair_Element — настраивается через Inspector.
+/// Модель ворот = сам объект (модель+коллайдер+этот скрипт на одном GameObject).
 /// </summary>
 public class ElementGate : BaseGate
 {
     [Header("Стихия")]
     [SerializeField] private ElementType _element = ElementType.Fire;
 
-    [Header("Визуал (обновляется автоматически)")]
+    /// <summary>Стихия этих ворот — для чтения генератором в тест-режиме.</summary>
+    public ElementType Element => _element;
+
+    [Header("Визуал стёкол (опционально, если есть)")]
     [SerializeField] private MeshRenderer _leftGlass;
     [SerializeField] private MeshRenderer _rightGlass;
     [SerializeField] private TextMeshPro  _gateLabel;
