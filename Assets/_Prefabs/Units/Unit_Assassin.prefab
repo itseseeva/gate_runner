@@ -32,7 +32,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0.038, z: 0}
-  m_LocalScale: {x: 0.3, y: 0.3, z: 0.3}
+  m_LocalScale: {x: 0.2, y: 0.2, z: 0.2}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8818187347996878050}
@@ -87,7 +87,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MeleeUnitController
   _detectionRange: 6
-  _attackRange: 2
+  _attackRange: 0.8
   _returnDistance: 0.5
   _maxChaseDistance: 4
   _chaseSpeed: 8
@@ -107,8 +107,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c976049ebe18f34aa95b4334d990d3d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AssassinAutoAttack
-  _attackSpeed: 1.5
-  _range: 0.5
+  _attackCooldown: 2
+  _range: 0.8
   _baseDamage: 5
   _critChance: 0.25
   _critMultiplier: 2
@@ -116,7 +116,6 @@ MonoBehaviour:
   _vfxConfig: {fileID: 11400000, guid: d141ab9d65326904ca1ebb6f5312989f, type: 2}
   _slashForward: 0.1
   _slashHeight: 0.2
-  _attackCooldown: 4
 --- !u!136 &-1377439174746364137
 CapsuleCollider:
   m_ObjectHideFlags: 0

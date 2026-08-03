@@ -11,7 +11,7 @@ public class MeleeUnitController : MonoBehaviour
 {
     [Header("Дистанции")]
     [SerializeField] private float _detectionRange   = 5f;
-    [SerializeField] private float _attackRange      = 1.8f;
+    [SerializeField] private float _attackRange      = 1.0f;
     [SerializeField] private float _returnDistance   = 0.5f;
     [Tooltip("Макс. расстояние от места в строю, дальше которого юнит бросает погоню")]
     [SerializeField] private float _maxChaseDistance = 5f;
@@ -40,9 +40,9 @@ public class MeleeUnitController : MonoBehaviour
     private bool        _isPlayingRejoin = false;
     private AutoAttacker _autoAttacker;
 
-    // Общий счётчик для воинов/ассассинов (могут наваливаться по 2)
+    // Общий счётчик для воинов/ассассинов (строго 1 на врага, чтобы не били одну цель)
     private static readonly Dictionary<Enemy, int> _claimCount = new();
-    private const int MAX_CLAIMS_PER_TARGET = 2;
+    private const int MAX_CLAIMS_PER_TARGET = 1;
 
     // Отдельный счётчик для танков — 1 танк на врага
     private static readonly Dictionary<Enemy, int> _tankClaimCount = new();
@@ -121,6 +121,14 @@ public class MeleeUnitController : MonoBehaviour
 
         // Кешируем AutoAttacker для управления во время рывка
         _autoAttacker = GetComponent<AutoAttacker>();
+
+        string rootMotionStr = _animator != null ? _animator.applyRootMotion.ToString() : "?";
+        Debug.Log($"[COMP] {name}: HeroRunner={GetComponent<HeroRunner>()!=null} " +
+                  $"WorldScroller={GetComponent<WorldScroller>()!=null} " +
+                  $"CrowdAgent={GetComponent<CrowdAgent>()!=null} " +
+                  $"Rigidbody={GetComponent<Rigidbody>()!=null} " +
+                  $"NavMeshAgent={GetComponent<UnityEngine.AI.NavMeshAgent>()!=null} " +
+                  $"rootMotion={rootMotionStr}", this);
     }
 
     /// <summary>Отключает AutoAttacker на время рывка танка.</summary>
@@ -147,25 +155,22 @@ public class MeleeUnitController : MonoBehaviour
 
     public void UpdateRejoin()
     {
-        if (_isRejoining)
-            Debug.Log($"[REJOIN] {name} pos={transform.position} target={Leader.position + FormationOffset} offset={FormationOffset} inFormation={IsInFormation}", this);
-
         if (!_isRejoining) return;
 
         _rejoinTimer += Time.deltaTime;
         float t = _rejoinTimer / _rejoinDuration;
 
-        if (t >= 1f)
+        Vector3 targetPos = Leader.position + FormationOffset;
+
+        // Фиксированная скорость возврата (в 1.5 раза быстрее погони), чтобы избежать дерготни Lerp
+        float speed = ChaseSpeed * 1.5f;
+        transform.position = Vector3.MoveTowards(transform.position, targetPos, speed * Time.deltaTime);
+
+        if (Vector3.Distance(transform.position, targetPos) < 0.1f || t >= 1f)
         {
             _isRejoining = false;
             if (_animator != null) _animator.applyRootMotion = false;
-            transform.position = Leader.position + FormationOffset;
-        }
-        else
-        {
-            Vector3 targetPos = Leader.position + FormationOffset;
-            transform.position = Vector3.Lerp(transform.position, targetPos,
-                _rejoinDuration > 0 ? Time.deltaTime / (_rejoinDuration * (1f - t + 0.01f)) : 1f);
+            transform.position = targetPos;
         }
 
         // Сбрасываем localPosition всех дочерних аур обратно в ноль
@@ -344,12 +349,8 @@ public class MeleeUnitController : MonoBehaviour
         if (_isPlayingRejoin) return;
         _isPlayingRejoin = true;
 
-        // Если играет анимация удара — не прерываем, она сама перейдёт в Run
-        if (_animator != null
-            && _animator.GetCurrentAnimatorStateInfo(0).IsName("AttackRun"))
-            return;
-
-        if (_animator != null) _animator.Play("Run");
+        if (_animator != null) 
+            _animator.Play("Run");
     }
 
     public AnimatorStateInfo GetAnimatorState() => 

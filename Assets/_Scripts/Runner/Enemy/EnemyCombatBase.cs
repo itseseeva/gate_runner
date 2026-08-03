@@ -474,12 +474,27 @@ public abstract class EnemyCombatBase : MonoBehaviour
         if (_squad == null) return minZ;
 
         float tempMin = float.MaxValue;
+
         foreach (Unit u in _squad.AllUnits)
         {
             if (u == null || u.IsDead || !u.gameObject.activeSelf) continue;
-            if (u.IsOutOfFormation) continue;   // дэшер не задаёт задний край отряда
-            if (u.transform.position.z < tempMin) tempMin = u.transform.position.z;
+            
+            float z = u.transform.position.z;
+
+            // Если юнит выбежал из строя (дэш), берём его законное место в строю, 
+            // чтобы задний край отряда не прыгал туда-сюда.
+            if (u.IsOutOfFormation)
+            {
+                var melee = u.GetComponent<MeleeUnitController>();
+                if (melee != null && _leader != null)
+                {
+                    z = _leader.position.z + melee.FormationOffset.z;
+                }
+            }
+
+            if (z < tempMin) tempMin = z;
         }
+
         return tempMin != float.MaxValue ? tempMin : minZ;
     }
 

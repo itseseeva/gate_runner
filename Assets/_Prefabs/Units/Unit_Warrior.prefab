@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4815872090238487518}
-  - component: {fileID: 1488260461765576270}
   - component: {fileID: -9045093064832784335}
   - component: {fileID: 2096177001576266159}
   - component: {fileID: 5230822437080539484}
@@ -41,29 +40,6 @@ Transform:
   - {fileID: 6874672929095927286}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!136 &1488260461765576270
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3056958237148401626}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 2
-  m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &-9045093064832784335
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -112,7 +88,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MeleeUnitController
   _detectionRange: 6
-  _attackRange: 2
+  _attackRange: 0.8
   _returnDistance: 0.5
   _maxChaseDistance: 4
   _chaseSpeed: 8
@@ -132,13 +108,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3e8f4894727f5834c9a8dfa15951d43e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WarriorMeleeAttack
-  _attackSpeed: 0.2
+  _attackCooldown: 2
   _range: 1.8
   _baseDamage: 20
   _slashRadius: 1
   _vfxConfig: {fileID: 11400000, guid: d141ab9d65326904ca1ebb6f5312989f, type: 2}
-  _slashForward: 0.3
-  _slashHeight: 0.3
+  _slashForward: 0.15
+  _slashHeight: 0.1
 --- !u!114 &-5793145940803831541
 MonoBehaviour:
   m_ObjectHideFlags: 0

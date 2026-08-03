@@ -12,6 +12,17 @@ public class ElementCheat : MonoBehaviour
 {
     private bool _forceFire = false;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void AutoInit()
+    {
+        if (FindAnyObjectByType<ElementCheat>() == null)
+        {
+            var go = new GameObject("[ElementCheat]");
+            go.AddComponent<ElementCheat>();
+            DontDestroyOnLoad(go);
+        }
+    }
+
     private void Update()
     {
         HandleElementKeys();

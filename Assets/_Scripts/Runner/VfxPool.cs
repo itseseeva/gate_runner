@@ -112,17 +112,11 @@ public class VfxPool : MonoBehaviour
         inst.Root.transform.SetParent(transform);
         inst.Root.transform.position   = position;
         inst.Root.transform.rotation   = rotation;
-        inst.Root.transform.localScale = Vector3.one;
+        
+        // Восстанавливаем оригинальный Scale из префаба, чтобы все настройки
+        // художника (Shape, Velocity, Start Size) работали корректно через иерархию.
+        inst.Root.transform.localScale = prefab.transform.localScale;
 
-        // Scale из префаба умножаем на оригинальный startSizeMultiplier каждой PS.
-        // Так настройки художника сохраняются, а scale просто масштабирует их.
-        float scaleMul = prefab.transform.lossyScale.x;
-        {}
-        for (int i = 0; i < inst.AllSystems.Length; i++)
-        {
-            var m = inst.AllSystems[i].main;
-            m.startSizeMultiplier = inst.OriginalSizes[i] * scaleMul;
-        }
 
         inst.Root.SetActive(true);
         inst.Particles.Clear(true);

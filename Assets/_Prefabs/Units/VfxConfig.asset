@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::VfxConfig
   WarriorHitVfx: {fileID: 5503505460791601945, guid: 84f95c958ce9d784997019551f8cc1b3, type: 3}
   TankHitVfx: {fileID: 5024009746357069194, guid: ec3f674830402cc45bce805cf6493db7, type: 3}
-  AssassinHitVfx: {fileID: 5503505460791601945, guid: 0ce1f31578b029c4da80e2a6ec540730, type: 3}
+  AssassinHitVfx: {fileID: 8332669465479727273, guid: 50589753f23f1e749a8e76b0012644a7, type: 3}
   WarriorSlashFire: {fileID: 8375397338541890676, guid: d53cf8ec3484293408cfd1aea2993a80, type: 3}
   WarriorSlashIce: {fileID: 8332669465479727273, guid: a141d2d2debb982428386c55f14085ca, type: 3}
   WarriorSlashLightning: {fileID: 158789456559184324, guid: 6b443dc7dadec9d45a79cee853746253, type: 3}

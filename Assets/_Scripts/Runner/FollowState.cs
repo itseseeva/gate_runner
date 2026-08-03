@@ -65,8 +65,7 @@ public class FollowState : IUnitState
             if (!_ctrl.ClaimTarget(enemy))
                 return;
 
-            var assassinAttack = _ctrl.GetComponent<AssassinAutoAttack>();
-            if (assassinAttack != null && !assassinAttack.IsAttackReady)
+            if (_ctrl.AutoAttack != null && !_ctrl.AutoAttack.IsReady)
             {
                 _ctrl.ReleaseTarget(enemy);
                 return;

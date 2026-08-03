@@ -12,10 +12,6 @@ public class StrikeState : IUnitState
 
     private bool _waitingAfterHit = false;
 
-    // Серия ударов за одну вылазку: воин косит несколько целей подряд без кулдауна, затем домой.
-    private int _hitsThisRun = 0;
-    private const int MAX_HITS_PER_RUN = 3;
-
     public float LastHitZ { get; private set; }
 
     public StrikeState(MeleeUnitController controller)
@@ -30,14 +26,11 @@ public class StrikeState : IUnitState
 
     public void Enter()
     {
-        {}
         _waitingAfterHit = false;
-        _hitsThisRun = 0;              // ← новая вылазка — серия с нуля
         _ctrl.PlayAttackRun();
 
-        // Танк: отключаем AutoAttacker чтобы он не сжигал кулдаун во время рывка
-        if (_ctrl.IsTankUnit)
-            _ctrl.DisableAutoAttacker();
+        // Отключаем AutoAttacker для всех (в т.ч. воинов), чтобы он не сжигал кулдаун во время рывка
+        _ctrl.DisableAutoAttacker();
     }
 
     public void Exit()
@@ -49,9 +42,8 @@ public class StrikeState : IUnitState
             _target = null;
         }
 
-        // Танк: возвращаем AutoAttacker при выходе из состояния
-        if (_ctrl.IsTankUnit)
-            _ctrl.EnableAutoAttacker();
+        // Возвращаем AutoAttacker при выходе из состояния
+        _ctrl.EnableAutoAttacker();
     }
 
     /// <summary>
@@ -83,6 +75,7 @@ public class StrikeState : IUnitState
             
             if (attackDone || notAttack)
             {
+                Debug.Log($"[STRIKE_END] {_ctrl.name} finishes wait. attackDone={attackDone} notAttack={notAttack} animState={state.shortNameHash}");
                 _waitingAfterHit = false;
                 FindNextOrReturn();
             }
@@ -131,16 +124,11 @@ public class StrikeState : IUnitState
                 return;
             }
 
-            // Кулдаун проверяем ТОЛЬКО для первого удара вылазки.
-            // Внутри серии (2-й, 3-й удар) бьём без кулдауна — быстрая серия 1-2-3.
-            if (_hitsThisRun == 0 && (_ctrl.AutoAttack == null || !_ctrl.AutoAttack.IsReady))
-                return;
-            if (_ctrl.AutoAttack == null) return;
+            if (_ctrl.AutoAttack == null || !_ctrl.AutoAttack.IsReady) return;
 
             DiagLogger.RecordHit(_ctrl.gameObject.GetInstanceID(), _target.GetInstanceID());
 
             _ctrl.AutoAttack.Hit(_target);
-            _hitsThisRun++;           // ← засчитали удар серии
 
             LastHitZ = _target.transform.position.z;
             _lastHitEnemy = _target;
@@ -169,44 +157,8 @@ public class StrikeState : IUnitState
 
     private void FindNextOrReturn()
     {
-        {}
-
-        // Танк и Ассасин возвращаются в строй сразу — не ищут следующую цель
-        if (_ctrl.IsTankUnit || _ctrl.GetComponent<AssassinAutoAttack>() != null)
-        {
-            _ctrl.StartRejoin();
-            _ctrl.ChangeState(_ctrl.FollowState);
-            return;
-        }
-
-        // Серия добита — домой, даже если впереди ещё есть враги.
-        if (_hitsThisRun >= MAX_HITS_PER_RUN)
-        {
-            _ctrl.StartRejoin();
-            _ctrl.ChangeState(_ctrl.FollowState);
-            return;
-        }
-
-        if (_lastHitEnemy != null && _lastHitEnemy.gameObject.activeSelf)
-            _ctrl.ClaimTarget(_lastHitEnemy);
-
-        {}
-        Enemy next = _ctrl.FindRandomEnemyInRange(_ctrl.DetectionRange, minZ: LastHitZ + 3f);
-
-        if (_lastHitEnemy != null)
-        {
-            _ctrl.ReleaseTarget(_lastHitEnemy);
-            _lastHitEnemy = null;
-        }
-
-        if (next != null)
-        {
-            {}
-            _ctrl.ClaimTarget(next);
-            SetTarget(next);
-            return;
-        }
-
+        // Все милишники — один удар за вылазку, затем сразу домой.
+        // Чистый rejoin как у ассасина, без поиска следующей цели и беготни по толпе.
         _ctrl.StartRejoin();
         _ctrl.ChangeState(_ctrl.FollowState);
     }

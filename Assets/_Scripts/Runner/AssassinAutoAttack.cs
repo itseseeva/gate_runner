@@ -24,19 +24,11 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
     [Tooltip("Высота спавна слеш-эффекта")]
     [SerializeField] private float _slashHeight = 0.2f;
 
-    [Header("Кулдаун атаки")]
-    [Tooltip("Пауза между атаками в секундах")]
-    [SerializeField] private float _attackCooldown = 4f;
-    private float _lastAttackTime = -999f;
-
-    public bool IsAttackReady => Time.time - _lastAttackTime >= _attackCooldown;
-
     public override HitResult Hit(Enemy target)
     {
-        if (!IsAttackReady) return HitResult.Miss();
+        if (!IsReady) return HitResult.Miss();
         {}
-        _lastAttackTime = Time.time;
-        UpdateCooldown();
+        UpdateCooldown(); // обновляет _lastFireTime в базовом классе
         return new HitResult { Hit = true };
     }
 
@@ -71,7 +63,7 @@ public class AssassinAutoAttack : MeleeAutoAttackBase
             if (slashPrefab != null)
                 VfxPool.Instance.Spawn(spawnPos, slashPrefab.transform.rotation, slashPrefab);
             else if (_vfxConfig.AssassinHitVfx != null)
-                VfxPool.Instance.Spawn(spawnPos, Quaternion.identity, _vfxConfig.AssassinHitVfx);
+                VfxPool.Instance.Spawn(spawnPos, _vfxConfig.AssassinHitVfx.transform.rotation, _vfxConfig.AssassinHitVfx);
         }
     }
 

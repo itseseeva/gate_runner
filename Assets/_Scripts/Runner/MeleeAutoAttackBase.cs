@@ -7,9 +7,9 @@ using UnityEngine;
 /// </summary>
 public abstract class MeleeAutoAttackBase : MonoBehaviour, IUnitAttack
 {
-    [Header("Базовые параметры")]
-    [Tooltip("Атак в секунду. 1 = одна атака за секунду, 2 = две.")]
-    [SerializeField] protected float _attackSpeed = 1.5f;
+    [Header("Кулдаун атаки")]
+    [Tooltip("Пауза между атаками в секундах")]
+    [SerializeField] protected float _attackCooldown = 4f;
 
     [Tooltip("Дальность удара в метрах")]
     [SerializeField] protected float _range = 1.8f;
@@ -17,7 +17,7 @@ public abstract class MeleeAutoAttackBase : MonoBehaviour, IUnitAttack
     [Tooltip("Базовый урон без модификаторов")]
     [SerializeField] protected int _baseDamage = 20;
 
-    private float _lastFireTime = -999f;
+    protected float _lastFireTime = -999f;
 
     /// <summary>Обновляет время последнего выстрела. Вызывается наследниками.</summary>
     protected void UpdateCooldown() => _lastFireTime = Time.time;
@@ -35,7 +35,7 @@ public abstract class MeleeAutoAttackBase : MonoBehaviour, IUnitAttack
     }
 
     public float Range   => _range;
-    public virtual bool IsReady => Time.time - _lastFireTime >= (1f / _attackSpeed);
+    public virtual bool IsReady => Time.time - _lastFireTime >= _attackCooldown;
 
     /// <summary>
     /// Главный метод — выполняет удар.
