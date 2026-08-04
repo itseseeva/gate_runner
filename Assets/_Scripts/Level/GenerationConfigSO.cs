@@ -101,4 +101,27 @@ public class GenerationConfigSO : ScriptableObject
     
     [Tooltip("Сколько ворот спавнить подряд")]
     public int TestMode_GatesPerSpot = 3;
+
+    [Header("━━━ ТЕСТ: все три стихии в ряд ━━━")]
+    [Tooltip("ВКЛ = ставит Fire/Ice/Lightning рядом по полосам для сравнения. Перебивает обычный тест-режим.")]
+    public bool TestMode_ShowAllThree = false;
+
+    [Tooltip("X-позиция ЛЕВОЙ полосы (Ice).")]
+    public float TestMode_LeftX = -2.5f;
+
+    [Tooltip("X-позиция ЦЕНТРА (Lightning).")]
+    public float TestMode_CenterX = 0f;
+
+    [Tooltip("X-позиция ПРАВОЙ полосы (Fire).")]
+    public float TestMode_RightX = 2.5f;
+
+    [Header("━━━ 🧪 ТЕСТ сундуков ━━━")]
+    [Tooltip("Префаб сундука (Breakable). Спавнится через EnemyPool.")]
+    public GameObject ChestPrefab;
+
+    [Tooltip("ВКЛ = густо спавнить сундуки между волнами для теста.")]
+    public bool TestMode_SpawnChests = false;
+
+    [Tooltip("Через сколько метров по Z ставить сундук в тест-режиме.")]
+    public float TestMode_ChestSpacing = 15f;
 }

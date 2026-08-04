@@ -7,8 +7,9 @@ using System.Collections.Generic;
 /// </summary>
 public class LevelPlan
 {
-    public readonly List<WaveData> Waves = new();
-    public readonly List<GateData> Gates = new();
+    public readonly List<WaveData> Waves  = new();
+    public readonly List<GateData> Gates  = new();
+    public readonly List<GateData> Chests = new();
 }
 
 /// <summary>Данные о волне врагов: где, сколько на полосу, насколько сильные.</summary>

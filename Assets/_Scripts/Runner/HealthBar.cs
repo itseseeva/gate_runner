@@ -28,22 +28,25 @@ public class HealthBar : MonoBehaviour
     private float  _targetRatio = 1f;   // куда должен приехать бар (реальное HP / max)
     private float  _displayedRatio = 1f;// что реально показано (плавно догоняет target)
 
+    // Если _root не назначен — бар управляет только _fillImage и _bgImage,
+    // НЕ выключая свой gameObject. Это важно для сундуков и других объектов,
+    // где HealthBar находится непосредственно на Canvas без отдельного root-объекта.
+    private bool _selfManaged => _root == null;
+
     private void Awake()
     {
         if (_camera == null) _camera = Camera.main;
 
-        // Фикс бага "первого удара": если префаб был сохранен выключенным, 
-        // первое включение через SetActive(true) вызовет Awake.
-        // Если мы получили урон, _targetRatio уже будет < 1, и нам НЕ НУЖНО его прятать.
-        if (_targetRatio >= 1f && _root != null) 
-        {
-            _root.SetActive(false);
-        }
+        // Скрываем визуал при старте. Если _root назначен — скрываем его.
+        // Если нет — скрываем только картинки, НЕ выключая этот gameObject.
+        if (_targetRatio >= 1f)
+            HideVisual();
     }
 
     private void LateUpdate()
     {
-        if (_root == null || !_root.activeSelf) return;
+        // Если _root назначен и выключен — нет смысла работать.
+        if (!_selfManaged && (_root == null || !_root.activeSelf)) return;
 
         // Билборд — поворачиваем бар к камере
         if (_camera == null) _camera = Camera.main;
@@ -58,37 +61,79 @@ public class HealthBar : MonoBehaviour
         );
 
         // Применяем к Image
-        if (_fillImage != null)
-        {
-            // 1. Стандартный способ (работает только если назначен Source Image и Image Type = Filled)
-            _fillImage.fillAmount = _displayedRatio;
-
-            // 2. Железобетонный способ (работает ВСЕГДА, даже если Source Image = None)
-            // Мы просто сдвигаем правый якорь (Anchor Max X) влево.
-            RectTransform fillRect = _fillImage.rectTransform;
-            fillRect.anchorMax = new Vector2(_displayedRatio, fillRect.anchorMax.y);
-            fillRect.offsetMax = new Vector2(0, fillRect.offsetMax.y); // обнуляем отступ справа
-
-
-            // Цвет по градиенту (0 = красный, 1 = зелёный)
-            if (_hpGradient != null)
-                _fillImage.color = _hpGradient.Evaluate(_displayedRatio);
-        }
+        ApplyFill(_displayedRatio);
 
         // Проверяем — пора скрывать?
         if (_hideAtTime > 0f && Time.time >= _hideAtTime)
         {
-            _root.SetActive(false);
+            HideVisual();
             _hideAtTime = -1f;
         }
     }
 
+    /// <summary>Скрывает визуал бара. Если _root назначен — выключает его. Иначе — только картинки.</summary>
+    private void HideVisual()
+    {
+        if (!_selfManaged && _root != null)
+        {
+            _root.SetActive(false);
+        }
+        else
+        {
+            // Режим без root — прячем только картинки, сам gameObject остаётся активным.
+            if (_fillImage != null) _fillImage.enabled = false;
+            if (_bgImage   != null) _bgImage.enabled   = false;
+        }
+    }
+
+    /// <summary>Показывает визуал бара.</summary>
+    private void ShowVisual()
+    {
+        if (!_selfManaged && _root != null)
+        {
+            if (!_root.activeSelf) _root.SetActive(true);
+        }
+        else
+        {
+            if (_fillImage != null) _fillImage.enabled = true;
+            if (_bgImage   != null) _bgImage.enabled   = true;
+        }
+    }
+
+    /// <summary>Обновляет fillImage немедленно (не ждёт LateUpdate).</summary>
+    private void ApplyFill(float ratio)
+    {
+        if (_fillImage == null) return;
+
+        _fillImage.fillAmount = ratio;
+
+        RectTransform fillRect = _fillImage.rectTransform;
+        fillRect.anchorMax = new Vector2(ratio, fillRect.anchorMax.y);
+        fillRect.offsetMax = new Vector2(0, fillRect.offsetMax.y);
+
+        if (_hpGradient != null)
+            _fillImage.color = _hpGradient.Evaluate(ratio);
+    }
+
+    /// <summary>
+    /// Принудительно показывает бар, минуя всю логику HP.
+    /// Используется в Breakable, где бар нужно показать явно.
+    /// </summary>
+    public void ForceShow()
+    {
+        ShowVisual();
+        _hideAtTime = -1f;
+    }
+
     /// <summary>
     /// Обновляет HP-бар. Если HP уменьшилось — показывает бар на _hideDelay секунд.
-    /// Вызывается из Enemy.TakeDamage / Unit.TakeDamage.
+    /// Вызывается из Enemy.TakeDamage / Unit.TakeDamage / Breakable.TakeDamage.
     /// </summary>
     public void SetHP(int current, int max)
     {
+        Debug.Log($"[HealthBar] SetHP: {current}/{max} | _root={(_root!=null?_root.name:"NULL")} | " +
+                  $"_selfManaged={_selfManaged} | _fillImage={(_fillImage!=null?_fillImage.name:"NULL")} | " +
+                  $"rootActive={(_root!=null?_root.activeSelf.ToString():"n/a")}", this);
         if (max <= 0) return;
 
         _targetRatio = Mathf.Clamp01((float)current / max);
@@ -96,15 +141,16 @@ public class HealthBar : MonoBehaviour
         // Полное HP — скрываем бар
         if (current >= max)
         {
-            if (_root != null) _root.SetActive(false);
-            _hideAtTime = -1f;
-            _displayedRatio = 1f;   // сбрасываем чтобы при следующем показе не было "прыжка"
+            HideVisual();
+            _hideAtTime    = -1f;
+            _displayedRatio = 1f;
             return;
         }
 
-        // Получили урон — показываем бар и продлеваем таймер
-        if (_root != null && !_root.activeSelf)
-            _root.SetActive(true);
+        // Получили урон — показываем бар, обновляем fill немедленно и продлеваем таймер.
+        ShowVisual();
+        _displayedRatio = _targetRatio; // без плавности при первом показе — без прыжка с 100%
+        ApplyFill(_displayedRatio);
 
         _hideAtTime = Time.time + _hideDelay;
     }

@@ -26,7 +26,10 @@ MonoBehaviour:
   - {fileID: 6538716731787721495, guid: 821a3e2f9ac842543bc68be5295484dc, type: 3}
   - {fileID: 6538716731787721495, guid: e29e53421a0e8ea44b0f3c3cf030c332, type: 3}
   DangerRatioAtPeak: 0.5
-  GatePool: []
+  GatePool:
+  - {fileID: 1510145080603753584, guid: df7b36a60739adb45863a4cf578991b3, type: 3}
+  - {fileID: 1887959721009223402, guid: c4b7b2d5ab9465d4bacc6bf0fb00ebb1, type: 3}
+  - {fileID: 7108336622302797049, guid: 699fd80323a099b45a908541b0a6bec7, type: 3}
   DoubleGateChance: 0.1
   QuantityHeroPool: 01000000020000000000000003000000
   MultiplyChance: 0.2
@@ -36,3 +39,10 @@ MonoBehaviour:
   NegativeValueRange: {x: 2, y: 4}
   HpScalingPerMeter: 0.005
   HpScalingPerLevel: 0.2
+  TestMode_ForceGates: 0
+  TestMode_Element: 2
+  TestMode_GatesPerSpot: 3
+  TestMode_ShowAllThree: 0
+  TestMode_LeftX: -2.5
+  TestMode_CenterX: 0
+  TestMode_RightX: 2.5

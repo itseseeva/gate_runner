@@ -97,6 +97,15 @@ public class LevelGenerator : MonoBehaviour
             gate.Spawned = true;
         }
 
+        // Спавним сундуки через пул
+        foreach (GateData chest in _plan.Chests)
+        {
+            if (chest.Spawned) continue;
+            if (chest.Z > spawnLineZ) continue;
+            SpawnChest(chest);
+            chest.Spawned = true;
+        }
+
         // ─── Очистка врагов которые уехали за лидера (раз в 30 кадров) ────────────
         if (Time.frameCount % 30 == 0) CleanupEscapedEnemies();
 
@@ -190,6 +199,13 @@ public class LevelGenerator : MonoBehaviour
             {
                 float nextWaveZ = currentZ + Random.Range(_config.GapBetweenWavesMin, _config.GapBetweenWavesMax);
                 AddGatesBetween(currentZ, nextWaveZ);
+
+                if (_config.TestMode_SpawnChests && _config.ChestPrefab != null)
+                {
+                    float chestZ = (currentZ + nextWaveZ) / 2f;
+                    _plan.Chests.Add(new GateData { Z = chestZ, X = 0f, Prefab = _config.ChestPrefab });
+                }
+
                 currentZ = nextWaveZ;
             }
         }
@@ -199,6 +215,17 @@ public class LevelGenerator : MonoBehaviour
     {
         // Если GatePool не заполнен в конфиге — пропускаем спавн ворот
         if (_config == null || _config.GatePool == null || _config.GatePool.Count == 0) return;
+
+        // ── ТЕСТ: все три стихии в ряд для сравнения ──
+        if (_config.TestMode_ShowAllThree)
+        {
+            float midZ = (fromZ + toZ) / 2f;
+
+            AddElementGateAt(_config.TestMode_LeftX,   midZ, ElementType.Ice);
+            AddElementGateAt(_config.TestMode_CenterX, midZ, ElementType.Lightning);
+            AddElementGateAt(_config.TestMode_RightX,  midZ, ElementType.Fire);
+            return;
+        }
 
         // ── ТЕСТ-режим: густо ставим ворота одной стихии ──
         if (_config.TestMode_ForceGates)
@@ -262,6 +289,20 @@ public class LevelGenerator : MonoBehaviour
             if (singleGate != null)
                 _plan.Gates.Add(singleGate);
         }
+    }
+
+    /// <summary>
+    /// ТЕСТ: ставит ворота указанной стихии в точку (x, z), если такие есть в пуле.
+    /// </summary>
+    private void AddElementGateAt(float x, float z, ElementType element)
+    {
+        GameObject prefab = FindElementGateInPool(element);
+        if (prefab == null)
+        {
+            Debug.LogWarning($"[LevelGen][ТЕСТ] Нет ворот стихии {element} в GatePool.", this);
+            return;
+        }
+        _plan.Gates.Add(new GateData { Z = z, X = x, Prefab = prefab });
     }
 
     /// <summary>
@@ -431,10 +472,20 @@ public class LevelGenerator : MonoBehaviour
         }
     }
 
+    /// <summary>Спавнит сундук через EnemyPool — OnEnable оживит его и бар.</summary>
+    private void SpawnChest(GateData chest)
+    {
+        if (chest.Prefab == null || EnemyPool.Instance == null) return;
+
+        Vector3 pos = new Vector3(chest.X, chest.Prefab.transform.position.y, chest.Z);
+        EnemyPool.Instance.Get(chest.Prefab, pos, chest.Prefab.transform.rotation);
+    }
+
     private void SpawnGate(GateData data)
     {
-        GameObject go = Instantiate(data.Prefab, new Vector3(data.X, 0.01f, data.Z), data.Prefab.transform.rotation);
-        {}
+        GameObject go = Instantiate(data.Prefab);
+        go.transform.position = new Vector3(data.X, data.Prefab.transform.position.y, data.Z);
+        go.transform.rotation = data.Prefab.transform.rotation;
 
         // Если универсальный — настраиваем QuantityGate на лету
         if (data.NeedsRandomQuantity)
@@ -536,4 +587,14 @@ public class LevelGenerator : MonoBehaviour
             if (!wave.Spawned) return false;
         return true;
     }
+
+    /// <summary>ТЕСТ: спавнит сундук через пул в точке (x, z).</summary>
+    private void SpawnChestAt(float x, float z)
+    {
+        if (_config.ChestPrefab == null || EnemyPool.Instance == null) return;
+
+        Vector3 pos = new Vector3(x, _config.ChestPrefab.transform.position.y, z);
+        EnemyPool.Instance.Get(_config.ChestPrefab, pos, _config.ChestPrefab.transform.rotation);
+    }
 }
+
